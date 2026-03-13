@@ -209,17 +209,74 @@
     }
 
     // Alertas cada minuto
-    setInterval(() => {
-        const ahora = new Date();
-        eventosHoy.forEach(ev => {
-            if (ev.esAlerta && ev.obj.getHours() === ahora.getHours() && ev.obj.getMinutes() === ahora.getMinutes() && ahora.getSeconds() < 2) {
-                hablar(`Atención. Es hora de: ${ev.titulo}`);
-            }
-        });
-    }, 1000);
+  // --- NUEVA LÓGICA DE ALARMA CON CAMPANA Y REPETICIÓN ---
 
-    setInterval(cargarCalendario, 300000);
-    window.onload = cargarCalendario;
+// Función para el sonido de campana (usamos un tono sintético de alta frecuencia)
+function sonarCampana(callback) {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const duracionSegundos = 15;
+    const oscilador = audioCtx.createOscillator();
+    const ganancia = audioCtx.createGain();
+
+    oscilador.type = 'sine'; // Tono suave tipo campana
+    oscilador.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota La (A5)
+    
+    // Hace que el sonido "pulse" cada segundo para que parezca una campana real
+    for (let i = 0; i < duracionSegundos; i++) {
+        ganancia.gain.setValueAtTime(0.5, audioCtx.currentTime + i);
+        ganancia.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i + 0.8);
+    }
+
+    oscilador.connect(ganancia);
+    ganancia.connect(audioCtx.destination);
+
+    oscilador.start();
+    oscilador.stop(audioCtx.currentTime + duracionSegundos);
+
+    // Cuando terminen los 15 segundos de campana, empezamos a hablar
+    setTimeout(callback, duracionSegundos * 1000);
+}
+
+// Función para hablar con repetición triple
+function hablarTriple(mensaje) {
+    let contador = 0;
+    
+    function ejecutarLectura() {
+        if (contador < 3) {
+            const frase = new SpeechSynthesisUtterance(mensaje);
+            frase.lang = 'es-ES';
+            frase.rate = 0.8;
+            
+            // Al terminar una lectura, esperamos 2 segundos y repetimos
+            frase.onend = () => {
+                contador++;
+                setTimeout(ejecutarLectura, 2000); 
+            };
+            
+            window.speechSynthesis.speak(frase);
+        }
+    }
+    ejecutarLectura();
+}
+
+// Intervalo de comprobación cada minuto
+setInterval(() => {
+    const ahora = new Date();
+    eventosHoy.forEach(ev => {
+        // Si el evento tiene asterisco y es el minuto exacto
+        if (ev.esAlerta && 
+            ev.obj.getHours() === ahora.getHours() && 
+            ev.obj.getMinutes() === ahora.getMinutes() && 
+            ahora.getSeconds() < 2) {
+            
+            // 1. Primero suena la campana 15 segundos
+            // 2. Luego lee el mensaje 3 veces
+            sonarCampana(() => {
+                hablarTriple(`Atención mamá. Es hora de: ${ev.titulo}`);
+            });
+        }
+    });
+}, 1000);
 </script>
 </body>
 </html>
