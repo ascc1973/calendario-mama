@@ -128,14 +128,26 @@
         });
     }
 
-    function repasarDia(dia) {
-        const lista = dia === 'hoy' ? eventosHoy : eventosManana;
-        if (lista.length === 0) return hablar(`No tienes nada anotado para ${dia}`);
-        
-        let texto = `${dia === 'hoy' ? 'Hoy' : 'Mañana'} tienes: `;
-        lista.forEach(ev => texto += `A las ${ev.hora}, ${ev.titulo}. `);
-        hablar(texto);
+   function repasarDia(dia) {
+    // 1. Intentamos forzar la activación del sonido
+    window.speechSynthesis.resume(); 
+
+    const lista = dia === 'hoy' ? eventosHoy : eventosManana;
+    const nombreDia = dia === 'hoy' ? 'hoy' : 'mañana';
+
+    // 2. Si la lista está vacía, que avise para saber que el audio funciona
+    if (lista.length === 0) {
+        return hablar(`Para ${nombreDia} no tienes ninguna tarea anotada.`);
     }
+    
+    // 3. Si hay eventos, los lee
+    let texto = `Para ${nombreDia} tienes lo siguiente: `;
+    lista.forEach(ev => {
+        texto += `A las ${ev.hora}, ${ev.titulo}. `;
+    });
+    
+    hablar(texto);
+}
 
     // Comprobación de alertas automáticas cada minuto
     setInterval(() => {
