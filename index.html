@@ -12,27 +12,26 @@
         
         .col { 
             width: 50%; 
-            padding: 2vh 2vw; 
+            padding: 20px; 
             display: flex; 
             flex-direction: column; 
             box-sizing: border-box;
-            overflow: hidden;
         }
 
-        .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 4px solid #000; }
+        .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 5px solid #000; }
         .col-manana { background-color: var(--manana-bg); color: #FFF; }
 
-        h1 { font-size: 4vh; margin: 0 0 2vh 0; text-align: center; text-transform: uppercase; font-weight: 900; }
+        h1 { font-size: 2.5rem; margin: 0 0 15px 0; text-align: center; text-transform: uppercase; font-weight: bold; }
         
         .btn-repaso { 
             width: 100%; 
-            padding: 3vh; 
-            font-size: 3vh; 
+            padding: 20px; 
+            font-size: 1.5rem; 
             font-weight: bold; 
-            border-radius: 20px; 
-            border: 4px solid #000; 
+            border-radius: 15px; 
+            border: 3px solid #000; 
             cursor: pointer; 
-            margin-bottom: 2vh;
+            margin-bottom: 20px;
             background: #fff;
             color: #000;
         }
@@ -48,18 +47,17 @@
         .evento { 
             background: white; 
             color: #000; 
-            padding: 3vh; 
-            border-radius: 25px; 
-            border: 5px solid #333; 
+            padding: 20px; 
+            border-radius: 20px; 
+            border: 4px solid #333; 
             cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             flex-shrink: 0;
         }
 
-        .evento h2 { margin: 0; font-size: 4vh; color: #d32f2f; }
-        .evento p { margin: 1vh 0 0; font-size: 3.5vh; font-weight: bold; line-height: 1.2; }
+        .evento h2 { margin: 0; font-size: 2rem; color: #d32f2f; }
+        .evento p { margin: 5px 0 0; font-size: 1.8rem; font-weight: bold; }
         
-        .urgente { border: 8px solid #ff0000; background-color: #fff5f5; animation: blinker 1.5s linear infinite; }
+        .urgente { border: 8px solid #ff0000; animation: blinker 1.5s linear infinite; }
         @keyframes blinker { 50% { border-color: transparent; } }
     </style>
 </head>
@@ -80,20 +78,18 @@
 </div>
 
 <script>
-    // --- CONFIGURACIÓN DEL ADMINISTRADOR ---
+    // --- CONFIGURACIÓN ---
     const API_KEY = 'TU_CLAVE_API_AQUÍ'; 
-    const CALENDAR_ID = 'TU_EMAIL_CALENDARIO_MAMA@group.calendar.google.com';
-    // ---------------------------------------
+    const CALENDAR_ID = 'TU_ID_CALENDARIO_MAMA';
+    // ---------------------
 
     let eventosHoy = [];
     let eventosManana = [];
 
-    // Función para limpiar el asterisco y ALERTA
     function limpiarTexto(t) {
         return t.replace(/\*/g, '').replace(/\[ALERTA\]/gi, '').trim();
     }
 
-    // Función para convertir a formato 12h natural (para voz)
     function horaNatural(fecha) {
         let h = fecha.getHours();
         let m = fecha.getMinutes();
@@ -104,9 +100,14 @@
         return h + mins + " " + period;
     }
 
-    // Función para formato 12h visual (para pantalla)
     function horaVisual(fecha) {
-        return fecha.toLocaleTimeString('es-ES', { hour: 'numeric', minute: '2-digit', hour12: true });
+        let h = fecha.getHours();
+        let m = fecha.getMinutes();
+        let period = h >= 12 ? 'PM' : 'AM';
+        if (h > 12) h -= 12;
+        if (h === 0) h = 12;
+        let mm = m < 10 ? '0' + m : m;
+        return h + ':' + mm + ' ' + period;
     }
 
     async function cargarCalendario() {
@@ -115,12 +116,14 @@
         const pasadoMananaIso = new Date();
         pasadoMananaIso.setDate(hoyIso.getDate() + 2);
 
-        const url = `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${API_KEY}&timeMin=${hoyIso.toISOString()}&timeMax=${pasadoMananaIso.toISOString()}&singleEvents=true&orderBy=startTime`;
+        const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${hoyIso.toISOString()}&timeMax=${pasadoMananaIso.toISOString()}&singleEvents=true&orderBy=startTime`;
 
         try {
             const response = await fetch(url);
             const data = await response.json();
-            if(data.items) organizarEventos(data.items);
+            if(data.items) {
+                organizarEventos(data.items);
+            }
         } catch (e) { console.error("Error:", e); }
     }
 
@@ -139,8 +142,11 @@
                 esAlerta: (item.summary || "").includes("*")
             };
 
-            if (inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
-            else eventosManana.push(ev);
+            if (inicio.toLocaleDateString() === hoyStr) {
+                eventosHoy.push(ev);
+            } else {
+                eventosManana.push(ev);
+            }
         });
         dibujarPantalla();
     }
@@ -157,8 +163,10 @@
         const opc = { weekday: 'long', day: 'numeric', month: 'long' };
         const d = new Date();
         document.getElementById('txt-hoy').innerText = "HOY: " + d.toLocaleDateString('es-ES', opc);
-        d.setDate(d.getDate() + 1);
-        document.getElementById('txt-manana').innerText = "MAÑANA: " + d.toLocaleDateString('es-ES', opc);
+        
+        const d2 = new Date();
+        d2.setDate(d2.getDate() + 1);
+        document.getElementById('txt-manana').innerText = "MAÑANA: " + d2.toLocaleDateString('es-ES', opc);
 
         renderLista(eventosHoy, 'lista-hoy');
         renderLista(eventosManana, 'lista-manana');
@@ -169,9 +177,9 @@
         cont.innerHTML = "";
         lista.forEach(ev => {
             const div = document.createElement('div');
-            div.className = `evento ${ev.esAlerta ? 'urgente' : ''}`;
-            div.onclick = () => hablar(`A las ${ev.horaVoz}, ${ev.titulo}`);
-            div.innerHTML = `<h2>${ev.horaV)</h2><p>${ev.titulo}</p>`;
+            div.className = "evento " + (ev.esAlerta ? 'urgente' : '');
+            div.onclick = function() { hablar("A las " + ev.horaVoz + ", " + ev.titulo); };
+            div.innerHTML = "<h2>" + ev.horaV + "</h2><p>" + ev.titulo + "</p>";
             cont.appendChild(div);
         });
     }
@@ -180,18 +188,18 @@
         const lista = dia === 'hoy' ? eventosHoy : eventosManana;
         if (lista.length === 0) return hablar("No tienes nada anotado.");
         let t = (dia === 'hoy' ? "Hoy tienes: " : "Mañana tienes: ");
-        lista.forEach(ev => t += `A las ${ev.horaVoz}, ${ev.titulo}. `);
+        lista.forEach(ev => { t += "A las " + ev.horaVoz + ", " + ev.titulo + ". "; });
         hablar(t);
     }
 
-    setInterval(() => {
+    setInterval(function() {
         const ahora = new Date();
         eventosHoy.forEach(ev => {
-            if (ev.esAlerta && ev.obj.getHours() === ahora.getHours() && ev.obj.getMinutes() === ahora.getMinutes()) {
-                hablar(`Atención. Es hora de: ${ev.titulo}`);
+            if (ev.esAlerta && ev.obj.getHours() === ahora.getHours() && ev.obj.getMinutes() === ahora.getMinutes() && ahora.getSeconds() < 2) {
+                hablar("Atención. Es hora de: " + ev.titulo);
             }
         });
-    }, 60000);
+    }, 1000);
 
     setInterval(cargarCalendario, 300000);
     window.onload = cargarCalendario;
