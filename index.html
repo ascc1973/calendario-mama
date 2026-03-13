@@ -5,66 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario Mama</title>
     <style>
-    :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
-    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', Gadget, sans-serif; overflow: hidden; background: #000; }
-    
-    .container { display: flex; height: 100vh; width: 100vw; }
-    
-    .col { 
-        width: 50%; 
-        padding: 10px; 
-        display: flex; 
-        flex-direction: column; 
-        box-sizing: border-box;
-        height: 100vh;
-    }
+        :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', Gadget, sans-serif; overflow: hidden; background: #000; }
+        
+        .container { display: flex; height: 100vh; width: 100vw; }
+        
+        .col { 
+            width: 50%; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            box-sizing: border-box;
+            height: 100vh;
+        }
 
-    .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 4px solid #000; }
-    .col-manana { background-color: var(--manana-bg); color: #FFF; }
+        .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 5px solid #000; }
+        .col-manana { background-color: var(--manana-bg); color: #FFF; }
 
-    h1 { font-size: 4vh; margin: 5px 0; text-align: center; text-transform: uppercase; }
-    
-    .btn-repaso { 
-        width: 100%; 
-        padding: 15px; 
-        font-size: 2.5vh; 
-        font-weight: bold; 
-        border-radius: 15px; 
-        border: 3px solid #000; 
-        margin-bottom: 10px;
-        background: #fff;
-        cursor: pointer;
-    }
+        h1 { font-size: 3.5vh; margin: 5px 0; text-align: center; text-transform: uppercase; }
+        
+        .btn-repaso { 
+            width: 100%; 
+            padding: 15px; 
+            font-size: 2.2vh; 
+            font-weight: bold; 
+            border-radius: 15px; 
+            border: 3px solid #000; 
+            margin-bottom: 10px;
+            background: #fff;
+            cursor: pointer;
+            color: #000;
+        }
 
-    /* Contenedor flexible para eventos */
-    .lista-eventos { 
-        flex-grow: 1; 
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        overflow: hidden; /* Evitamos el scroll para que el auto-ajuste trabaje */
-    }
+        .lista-eventos { 
+            flex-grow: 1; 
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow: hidden;
+        }
 
-    .evento { 
-        background: white; 
-        color: #000; 
-        padding: 10px 15px; 
-        border-radius: 15px; 
-        border: 3px solid #333; 
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        flex-shrink: 1; /* Permite que se encojan */
-        min-height: 0;
-    }
+        .evento { 
+            background: white; 
+            color: #000; 
+            padding: 12px; 
+            border-radius: 15px; 
+            border: 4px solid #333; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-shrink: 1;
+            min-height: 0;
+        }
 
-    /* El tamaño de estos se ajustará por JS */
-    .evento h2 { margin: 0; color: #d32f2f; line-height: 1; }
-    .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; }
-    
-    .urgente { border: 6px solid #ff0000; animation: blinker 1.5s linear infinite; }
-    @keyframes blinker { 50% { border-color: transparent; } }
-</style>
+        .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 3.5vh; }
+        .evento p { margin: 4px 0 0; font-weight: bold; line-height: 1.1; font-size: 4vh; }
+        
+        .urgente { border: 8px solid #ff0000; animation: blinker 1.5s linear infinite; }
+        @keyframes blinker { 50% { border-color: transparent; } }
+    </style>
 </head>
 <body>
 
@@ -82,13 +81,11 @@
     </div>
 </div>
 
-
-   // --- const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
-   // --- const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
-
 <script>
+    // --- CONFIGURACIÓN ---
     const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
-    const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
+    const CALENDAR_ID = 'https://calendar.google.com/calendar/embed?src=28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3%40group.calendar.google.com&ctz=Europe%2FMadrid';
+    // ---------------------
 
     let eventosHoy = [];
     let eventosManana = [];
@@ -107,13 +104,13 @@
         return h + mins + " " + period;
     }
 
-    function horaVisualSinPeriodo(fecha) {
+    function horaVisualLimpia(fecha) {
         let h = fecha.getHours();
         let m = fecha.getMinutes();
         if (h > 12) h -= 12;
         if (h === 0) h = 12;
         let mm = m < 10 ? '0' + m : m;
-        return h + ':' + mm; // Sin AM/PM
+        return h + ':' + mm;
     }
 
     async function cargarCalendario() {
@@ -125,7 +122,7 @@
             const r = await fetch(url);
             const d = await r.json();
             if(d.items) organizarEventos(d.items);
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Error cargando Google Calendar:", e); }
     }
 
     function organizarEventos(items) {
@@ -136,7 +133,7 @@
             const inicio = new Date(item.start.dateTime || item.start.date);
             const ev = {
                 titulo: limpiarTexto(item.summary || "Sin título"),
-                horaV: horaVisualSinPeriodo(inicio),
+                horaV: horaVisualLimpia(inicio),
                 horaVoz: horaNatural(inicio),
                 obj: inicio,
                 esAlerta: (item.summary || "").includes("*")
@@ -157,7 +154,6 @@
         renderLista(eventosHoy, 'lista-hoy');
         renderLista(eventosManana, 'lista-manana');
 
-        // Ajustar tamaño de letra tras renderizar
         ajustarTexto('lista-hoy');
         ajustarTexto('lista-manana');
     }
@@ -165,10 +161,17 @@
     function renderLista(lista, id) {
         const cont = document.getElementById(id);
         cont.innerHTML = "";
+        const esManana = (id === 'lista-manana');
+
         lista.forEach(ev => {
             const div = document.createElement('div');
             div.className = "evento " + (ev.esAlerta ? 'urgente' : '');
-            div.onclick = () => hablar(`A las ${ev.horaVoz}, ${ev.titulo}`);
+            
+            div.onclick = function() { 
+                const prefijo = esManana ? "Mañana tienes a las " : "A las ";
+                hablar(prefijo + ev.horaVoz + ", " + ev.titulo); 
+            };
+            
             div.innerHTML = `<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
             cont.appendChild(div);
         });
@@ -179,15 +182,14 @@
         const eventos = cont.getElementsByClassName('evento');
         if (eventos.length === 0) return;
 
-        let fontSize = 4; // Empezamos con 4vh
+        let fontSizeP = 4; 
         let maxHeight = cont.clientHeight;
 
-        // Bucle para reducir la letra hasta que el scroll desaparezca
-        while (cont.scrollHeight > maxHeight && fontSize > 1.5) {
-            fontSize -= 0.1;
+        while (cont.scrollHeight > maxHeight && fontSizeP > 1.5) {
+            fontSizeP -= 0.1;
             for (let ev of eventos) {
-                ev.querySelector('h2').style.fontSize = (fontSize * 0.8) + "vh";
-                ev.querySelector('p').style.fontSize = fontSize + "vh";
+                ev.querySelector('h2').style.fontSize = (fontSizeP * 0.8) + "vh";
+                ev.querySelector('p').style.fontSize = fontSizeP + "vh";
             }
         }
     }
@@ -200,6 +202,43 @@
         window.speechSynthesis.speak(m);
     }
 
+    // --- SISTEMA DE ALARMA MEJORADO ---
+
+    function sonarCampana(callback) {
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const duration = 15; 
+        const startTime = context.currentTime;
+
+        for (let i = 0; i < duration; i += 1.5) {
+            const osc = context.createOscillator();
+            const gain = context.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(660, startTime + i);
+            gain.gain.setValueAtTime(0, startTime + i);
+            gain.gain.linearRampToValueAtTime(0.5, startTime + i + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + i + 1);
+            osc.connect(gain);
+            gain.connect(context.destination);
+            osc.start(startTime + i);
+            osc.stop(startTime + i + 1);
+        }
+        setTimeout(callback, duration * 1000);
+    }
+
+    function hablarTriple(mensajeCompleto) {
+        let veces = 0;
+        function repetir() {
+            if (veces < 3) {
+                const m = new SpeechSynthesisUtterance(mensajeCompleto);
+                m.lang = 'es-ES';
+                m.rate = 0.8;
+                m.onend = () => { veces++; setTimeout(repetir, 1500); };
+                window.speechSynthesis.speak(m);
+            }
+        }
+        repetir();
+    }
+
     function repasarDia(dia) {
         const lista = dia === 'hoy' ? eventosHoy : eventosManana;
         if (lista.length === 0) return hablar("No tienes nada anotado.");
@@ -208,75 +247,19 @@
         hablar(t);
     }
 
-    // Alertas cada minuto
-  // --- NUEVA LÓGICA DE ALARMA CON CAMPANA Y REPETICIÓN ---
+    setInterval(() => {
+        const ahora = new Date();
+        eventosHoy.forEach(ev => {
+            if (ev.esAlerta && ev.obj.getHours() === ahora.getHours() && ev.obj.getMinutes() === ahora.getMinutes() && ahora.getSeconds() < 2) {
+                sonarCampana(() => {
+                    hablarTriple(`Atención mamá. Es hora de: ${ev.titulo}`);
+                });
+            }
+        });
+    }, 1000);
 
-// Función para el sonido de campana (usamos un tono sintético de alta frecuencia)
-function sonarCampana(callback) {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const duracionSegundos = 15;
-    const oscilador = audioCtx.createOscillator();
-    const ganancia = audioCtx.createGain();
-
-    oscilador.type = 'sine'; // Tono suave tipo campana
-    oscilador.frequency.setValueAtTime(880, audioCtx.currentTime); // Nota La (A5)
-    
-    // Hace que el sonido "pulse" cada segundo para que parezca una campana real
-    for (let i = 0; i < duracionSegundos; i++) {
-        ganancia.gain.setValueAtTime(0.5, audioCtx.currentTime + i);
-        ganancia.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i + 0.8);
-    }
-
-    oscilador.connect(ganancia);
-    ganancia.connect(audioCtx.destination);
-
-    oscilador.start();
-    oscilador.stop(audioCtx.currentTime + duracionSegundos);
-
-    // Cuando terminen los 15 segundos de campana, empezamos a hablar
-    setTimeout(callback, duracionSegundos * 1000);
-}
-
-// Función para hablar con repetición triple
-function hablarTriple(mensaje) {
-    let contador = 0;
-    
-    function ejecutarLectura() {
-        if (contador < 3) {
-            const frase = new SpeechSynthesisUtterance(mensaje);
-            frase.lang = 'es-ES';
-            frase.rate = 0.8;
-            
-            // Al terminar una lectura, esperamos 2 segundos y repetimos
-            frase.onend = () => {
-                contador++;
-                setTimeout(ejecutarLectura, 2000); 
-            };
-            
-            window.speechSynthesis.speak(frase);
-        }
-    }
-    ejecutarLectura();
-}
-
-// Intervalo de comprobación cada minuto
-setInterval(() => {
-    const ahora = new Date();
-    eventosHoy.forEach(ev => {
-        // Si el evento tiene asterisco y es el minuto exacto
-        if (ev.esAlerta && 
-            ev.obj.getHours() === ahora.getHours() && 
-            ev.obj.getMinutes() === ahora.getMinutes() && 
-            ahora.getSeconds() < 2) {
-            
-            // 1. Primero suena la campana 15 segundos
-            // 2. Luego lee el mensaje 3 veces
-            sonarCampana(() => {
-                hablarTriple(`Atención mamá. Es hora de: ${ev.titulo}`);
-            });
-        }
-    });
-}, 1000);
+    setInterval(cargarCalendario, 300000);
+    window.onload = cargarCalendario;
 </script>
 </body>
 </html>
