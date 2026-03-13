@@ -1,75 +1,30 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendario de Apoyo Familiar</title>
-    <style>
-        :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; background: #000; }
-        .container { display: flex; height: 100vh; gap: 5px; }
-        
-        /* Columna HOY (Amarillo) */
-        .col-hoy { width: 50%; background-color: var(--hoy-bg); color: #000; padding: 20px; display: flex; flex-direction: column; }
-        
-        /* Columna MAÑANA (Azul) */
-        .col-manana { width: 50%; background-color: var(--manana-bg); color: #FFF; padding: 20px; display: flex; flex-direction: column; }
-
-        h1 { font-size: 3rem; margin: 0 0 10px 0; text-align: center; text-transform: uppercase; }
-        .btn-repaso { width: 100%; padding: 25px; font-size: 1.8rem; font-weight: bold; border-radius: 20px; border: 4px solid #000; cursor: pointer; margin-bottom: 20px; box-shadow: 0 10px #666; }
-        .btn-repaso:active { box-shadow: 0 5px #666; transform: translateY(4px); }
-
-        .lista-eventos { flex-grow: 1; overflow-y: auto; }
-        .evento { background: white; color: #000; margin: 20px 0; padding: 30px; border-radius: 25px; border: 5px solid #333; cursor: pointer; }
-        .evento h2 { margin: 0; font-size: 2.5rem; color: #d32f2f; }
-        .evento p { margin: 10px 0 0; font-size: 2rem; font-weight: 500; }
-        
-        /* Estilo para eventos con [ALERTA] */
-        .urgente { border-color: #ff0000; background-color: #fff5f5; animation: parpadeo 1.5s infinite; }
-        @keyframes parpadeo { 0% { box-shadow: 0 0 0px red; } 50% { box-shadow: 0 0 30px red; } 100% { box-shadow: 0 0 0px red; } }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="col-hoy">
-        <h1 id="txt-hoy">HOY</h1>
-        <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 ESCUCHAR TODO HOY</button>
-        <div id="lista-hoy" class="lista-eventos"></div>
-    </div>
-
-    <div class="col-manana">
-        <h1 id="txt-manana">MAÑANA</h1>
-        <button class="btn-repaso" onclick="repasarDia('manana')" style="border-color: white;">🔊 ESCUCHAR TODO MAÑANA</button>
-        <div id="lista-manana" class="lista-eventos"></div>
-    </div>
-</div>
+<style>
+    /* ... (mantener estilos anteriores o usar estos mejorados) */
+    .evento h2 { margin: 0; font-size: 2.2rem; color: #d32f2f; }
+    .evento p { margin: 5px 0 0; font-size: 1.8rem; font-weight: bold; }
+    
+    /* Ajuste para que quepan más eventos */
+    .lista-eventos { 
+        flex-grow: 1; 
+        overflow-y: auto; 
+        padding-right: 10px;
+    }
+</style>
 
 <script>
-    // --- CONFIGURACIÓN DEL ADMINISTRADOR ---
-    const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
-    const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com'
-;
-    // ---------------------------------------
+    // --- FUNCIÓN PARA FORMATO 12 HORAS ---
+    function formatearHora12(fecha) {
+        return fecha.toLocaleTimeString('es-ES', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        }).replace("am", "de la mañana").replace("pm", "de la tarde");
+    }
 
-    let eventosHoy = [];
-    let eventosManana = [];
-
-    async function cargarCalendario() {
-        const hoyIso = new Date();
-        hoyIso.setHours(0,0,0,0);
-        const pasadoMananaIso = new Date();
-        pasadoMananaIso.setDate(hoyIso.getDate() + 2);
-
-        const url = `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${API_KEY}&timeMin=${hoyIso.toISOString()}&timeMax=${pasadoMananaIso.toISOString()}&singleEvents=true&orderBy=startTime`;
-
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-            organizarEventos(data.items);
-        } catch (error) {
-            console.error("Error cargando Google Calendar:", error);
-        }
+    // --- FUNCIÓN PARA LIMPIAR EL TEXTO DEL ASTERISCO ---
+    function limpiarTexto(texto) {
+        // Elimina el asterisco y la palabra ALERTA para que no se lean
+        return texto.replace(/\*/g, '').replace(/\[ALERTA\]/gi, '').trim();
     }
 
     function organizarEventos(items) {
@@ -79,9 +34,12 @@
 
         items.forEach(item => {
             const inicio = new Date(item.start.dateTime || item.start.date);
+            const tituloLimpio = limpiarTexto(item.summary);
+            
             const evento = {
-                titulo: item.summary,
-                hora: inicio.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                titulo: tituloLimpio,
+                // Guardamos la hora en formato 12h para la pantalla
+                horaPantalla: inicio.toLocaleTimeString('es-ES', { hour: 'numeric', minute: '2-digit', hour12: true }),
                 objetoFecha: inicio,
                 esAlerta: item.summary.includes("[ALERTA]") || item.summary.includes("*")
             };
@@ -96,24 +54,11 @@
     }
 
     function hablar(texto) {
-        window.speechSynthesis.cancel(); // Detener cualquier lectura previa
+        window.speechSynthesis.cancel();
         const msg = new SpeechSynthesisUtterance(texto);
         msg.lang = 'es-ES';
         msg.rate = 0.8;
         window.speechSynthesis.speak(msg);
-    }
-
-    function dibujarPantalla() {
-        // Fechas cabecera
-        const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
-        const d = new Date();
-        document.getElementById('txt-hoy').innerText = "HOY: " + d.toLocaleDateString('es-ES', opciones);
-        d.setDate(d.getDate() + 1);
-        document.getElementById('txt-manana').innerText = "MAÑANA: " + d.toLocaleDateString('es-ES', opciones);
-
-        // Renderizar listas
-        renderLista(eventosHoy, 'lista-hoy', 'hoy');
-        renderLista(eventosManana, 'lista-manana', 'mañana');
     }
 
     function renderLista(lista, idContenedor, diaTexto) {
@@ -122,47 +67,35 @@
         lista.forEach(ev => {
             const div = document.createElement('div');
             div.className = `evento ${ev.esAlerta ? 'urgente' : ''}`;
-            div.onclick = () => hablar(`${ev.hora}. ${ev.titulo}`);
-            div.innerHTML = `<h2>${ev.hora}</h2><p>${ev.titulo}</p>`;
+            // Al pulsar, lee la hora en formato natural y el título limpio
+            div.onclick = () => hablar(`A las ${formatearHora12(ev.objetoFecha)}, ${ev.titulo}`);
+            div.innerHTML = `<h2>${ev.horaPantalla}</h2><p>${ev.titulo}</p>`;
             contenedor.appendChild(div);
         });
     }
 
-   function repasarDia(dia) {
-    // 1. Intentamos forzar la activación del sonido
-    window.speechSynthesis.resume(); 
-
-    const lista = dia === 'hoy' ? eventosHoy : eventosManana;
-    const nombreDia = dia === 'hoy' ? 'hoy' : 'mañana';
-
-    // 2. Si la lista está vacía, que avise para saber que el audio funciona
-    if (lista.length === 0) {
-        return hablar(`Para ${nombreDia} no tienes ninguna tarea anotada.`);
+    function repasarDia(dia) {
+        const lista = dia === 'hoy' ? eventosHoy : eventosManana;
+        const nombreDia = dia === 'hoy' ? 'hoy' : 'mañana';
+        
+        if (lista.length === 0) return hablar(`No tienes nada anotado para ${nombreDia}`);
+        
+        let texto = `${dia === 'hoy' ? 'Hoy' : 'Mañana'} tienes: `;
+        lista.forEach(ev => {
+            texto += `A las ${formatearHora12(ev.objetoFecha)}, ${ev.titulo}. `;
+        });
+        hablar(texto);
     }
-    
-    // 3. Si hay eventos, los lee
-    let texto = `Para ${nombreDia} tienes lo siguiente: `;
-    lista.forEach(ev => {
-        texto += `A las ${ev.hora}, ${ev.titulo}. `;
-    });
-    
-    hablar(texto);
-}
 
-    // Comprobación de alertas automáticas cada minuto
+    // Alarma automática (también limpia el asterisco)
     setInterval(() => {
         const ahora = new Date();
         eventosHoy.forEach(ev => {
-            if (ev.esAlerta && ev.objetoFecha.getHours() === ahora.getHours() && ev.objetoFecha.getMinutes() === ahora.getMinutes()) {
-                hablar(`Atención. Es hora de: ${ev.titulo}`);
+            if (ev.esAlerta && 
+                ev.objetoFecha.getHours() === ahora.getHours() && 
+                ev.objetoFecha.getMinutes() === ahora.getMinutes()) {
+                hablar(`Atención mamá. Es hora de: ${ev.titulo}`);
             }
         });
     }, 60000);
-
-    // Actualizar datos cada 15 minutos
-    setInterval(cargarCalendario, 900000);
-    
-    window.onload = cargarCalendario;
 </script>
-</body>
-</html>
