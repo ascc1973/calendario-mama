@@ -34,6 +34,7 @@
 
         .lista-eventos { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
 
+        /* Estilo estándar: Fondo blanco y marco negro */
         .evento { 
             background: white; color: #000; padding: 7px; border-radius: 10px; 
             border: 2.5px solid #333; display: flex; flex-direction: column;
@@ -44,6 +45,7 @@
         .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; pointer-events: none; }
         .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 2.8vh; word-wrap: break-word; pointer-events: none; }
         
+        /* ALERTA: Línea roja fina y parpadeo (Solo si NO ha terminado) */
         .urgente-perma { 
             border: 1.5px solid #ff0000 !important; 
             animation: blinker-completo 1s linear infinite !important;
@@ -89,13 +91,10 @@
         let elem = document.documentElement;
         if (elem.requestFullscreen) { elem.requestFullscreen(); } 
         else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
-        
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         audioContext.resume();
-        
         window.speechSynthesis.getVoices();
         hablar("Sistema activado");
-
         document.getElementById('btn-inicial').style.display = 'none';
         cargarCalendario();
     }
@@ -103,8 +102,7 @@
     function limpiarTexto(t) { return t.replace(/\*/g, '').replace(/\[ALERTA\]/gi, '').trim(); }
 
     function horaNatural(fecha) {
-        let h = fecha.getHours();
-        let m = fecha.getMinutes();
+        let h = fecha.getHours(); let m = fecha.getMinutes();
         let period = h >= 12 ? 'de la tarde' : 'de la mañana';
         if (h > 12) h -= 12; if (h === 0) h = 12;
         return h + (m === 0 ? "" : " y " + m) + " " + period;
@@ -132,11 +130,15 @@
         eventosHoy = []; eventosManana = [];
         items.forEach(item => {
             const inicio = new Date(item.start.dateTime || item.start.date);
+            // Tomamos la hora de fin real del calendario
+            const fin = new Date(item.end.dateTime || item.end.date);
+            
             const ev = {
                 titulo: limpiarTexto(item.summary || "Sin título"),
                 horaV: horaVisualLimpia(inicio),
                 horaVoz: horaNatural(inicio),
                 obj: inicio,
+                objFin: fin,
                 esAlerta: (item.summary || "").includes("*")
             };
             if (inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
@@ -154,11 +156,16 @@
     function renderLista(lista, id, diaClave) {
         const cont = document.getElementById(id);
         cont.innerHTML = "";
+        const ahora = new Date();
         lista.forEach(ev => {
             const div = document.createElement('div');
-            div.className = "evento " + (ev.esAlerta ? 'urgente-perma' : '');
             
-            // RESTAURADA: Función para leer al tocar el evento
+            // LÓGICA DE FINALIZACIÓN: 1 minuto (60000ms) después de la hora de fin real
+            const haTerminado = ahora.getTime() > (ev.objFin.getTime() + 60000);
+            
+            // Si tiene * y no ha terminado, parpadea. Si ya terminó, vuelve a marco negro.
+            div.className = "evento " + (ev.esAlerta && !haTerminado ? 'urgente-perma' : '');
+            
             div.onclick = function() {
                 const prefijo = (diaClave === 'hoy' ? "Hoy a las " : "Mañana tienes a las ");
                 hablar(prefijo + ev.horaVoz + ", " + ev.titulo);
@@ -233,12 +240,14 @@
     setInterval(() => {
         const ahora = new Date();
         eventosHoy.forEach(ev => {
+            // Campana y voz a la hora de inicio exacta
             if (ev.esAlerta && ev.obj.getHours() === ahora.getHours() && ev.obj.getMinutes() === ahora.getMinutes() && ahora.getSeconds() === 0) {
                 sonarCampana(() => {
                     hablarTriple(`Atención mamá. Es hora de: ${ev.titulo}`);
                 });
             }
         });
+        // Actualizamos cada minuto para comprobar si algún evento debe "apagarse"
         if (ahora.getSeconds() === 0) dibujarYEscalar();
     }, 1000);
 
