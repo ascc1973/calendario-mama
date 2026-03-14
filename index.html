@@ -8,7 +8,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-    <link rel="manifest" href='data:application/manifest+json,{"name":"Calendario","short_name":"Calendario","start_url":"index.html?v=2","display":"standalone","background_color":"#000000","theme_color":"#000000","orientation":"any"}'>
+
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Calendario","short_name":"Calendario","start_url":"/","display":"standalone","background_color":"#000000","theme_color":"#000000","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/591/591567.png","sizes":"512x512","type":"image/png"}]}'>
 
     <title>Calendario Mamá</title>
     
@@ -16,7 +17,7 @@
         :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', Gadget, sans-serif; overflow: hidden; background: #000; }
         
-        /* Contenedor con división 50/50 horizontal siempre */
+        /* Contenedor con división 50/50 horizontal estricta */
         .container { display: flex; height: 100vh; width: 100vw; flex-direction: row; }
         
         .col { 
@@ -28,7 +29,6 @@
             height: 100vh;
         }
 
-        /* Colores originales recuperados */
         .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 4px solid #000; }
         .col-manana { background-color: var(--manana-bg); color: #FFF; }
 
@@ -68,7 +68,7 @@
         .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; }
         .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 3vh; word-wrap: break-word; }
         
-        /* MARCO INTERMITENTE ROJO RECUPERADO */
+        /* Marco intermitente rojo para alarmas activas */
         .urgente.activo { border: 8px solid #ff0000; animation: blinker 1s linear infinite; background-color: #fff0f0; }
         @keyframes blinker { 50% { border-color: transparent; } }
 
@@ -94,13 +94,15 @@
 </div>
 
 <script>
+    // --- IMPORTANTE: Pon tus datos aquí ---
     const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
     const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
+    // --------------------------------------
 
     let eventosHoy = [];
     let eventosManana = [];
 
-    // Wake Lock para pantalla encendida
+    // Wake Lock para evitar que la pantalla se apague
     if ('wakeLock' in navigator) {
         navigator.wakeLock.request('screen').catch(err => {});
     }
@@ -132,7 +134,9 @@
             const d = await r.json();
             document.getElementById('status-dot').style.backgroundColor = '#4CAF50';
             if(d.items) organizarEventos(d.items);
-        } catch (e) { document.getElementById('status-dot').style.backgroundColor = '#F44336'; }
+        } catch (e) { 
+            document.getElementById('status-dot').style.backgroundColor = '#F44336'; 
+        }
     }
 
     function organizarEventos(items) {
@@ -147,7 +151,7 @@
                 horaVoz: horaNatural(inicio),
                 obj: inicio,
                 esAlerta: (item.summary || "").includes("*"),
-                estaActivo: inicio.getTime() + 600000 > ahora.getTime()
+                estaActivo: (inicio.getTime() + 600000 > ahora.getTime()) && (inicio.getTime() <= ahora.getTime())
             };
             if (inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
             else eventosManana.push(ev);
