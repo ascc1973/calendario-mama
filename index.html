@@ -64,9 +64,9 @@
         .evento { 
             background: white; 
             color: #000; 
-            padding: 5px; 
+            padding: 7px; /* Aumentado ligeramente para dar aire */
             border-radius: 10px; 
-            border: 2px solid #333; 
+            border: 3px solid #333; /* Borde normal */
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -74,6 +74,8 @@
             min-height: 0;
             box-sizing: border-box;
             width: 100%;
+            /* Asegura que el borde no invada el contenido */
+            background-clip: padding-box; 
         }
 
         .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; }
@@ -85,7 +87,14 @@
             word-wrap: break-word; 
         }
         
-        .urgente.activo { border: 6px solid #ff0000; animation: blinker 1s linear infinite; background-color: #fff0f0; }
+        /* ALERTA: Borde más fino (3px) y externa para no pisar texto */
+        .urgente.activo { 
+            border: 3px solid #ff0000; 
+            animation: blinker 1s linear infinite; 
+            background-color: #fff0f0; 
+            /* Mantiene el borde parpadeante fuera del área del texto */
+            box-shadow: 0 0 0 1px #ff0000 inset;
+        }
         @keyframes blinker { 50% { border-color: transparent; } }
 
         #status-dot { position: fixed; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 1px solid #000; }
