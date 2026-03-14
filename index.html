@@ -127,15 +127,25 @@
         const hoyStr = new Date().toLocaleDateString();
         eventosHoy = []; eventosManana = [];
         items.forEach(item => {
+            const sum = item.summary || "";
             const inicio = new Date(item.start.dateTime || item.start.date);
             const fin = new Date(item.end.dateTime || item.end.date);
+            
+            // Lógica de asteriscos
+            let antelacionHoras = 0;
+            if (sum.startsWith("***")) antelacionHoras = 3;
+            else if (sum.startsWith("**")) antelacionHoras = 2;
+            else if (sum.startsWith("*")) antelacionHoras = 0;
+            else antelacionHoras = -1; // Sin asterisco = sin avisos automáticos
+
             const ev = {
-                titulo: limpiarTexto(item.summary || "Sin título"),
+                titulo: limpiarTexto(sum),
                 horaV: horaVisualLimpia(inicio),
                 horaVoz: horaNatural(inicio),
                 obj: inicio,
                 objFin: fin,
-                esAlerta: (item.summary || "").includes("*")
+                antelacion: antelacionHoras,
+                esAlerta: antelacionHoras >= 0
             };
             if (inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
             else eventosManana.push(ev);
@@ -144,17 +154,11 @@
     }
 
     function dibujarYEscalar() {
-        // AJUSTE: Solo el nombre del día de la semana
         const opc = { weekday: 'long' };
-        
         const dHoy = new Date();
-        const diaHoy = dHoy.toLocaleDateString('es-ES', opc).toUpperCase();
-        document.getElementById('txt-hoy').innerText = "HOY " + diaHoy;
-        
-        const dMan = new Date();
-        dMan.setDate(dMan.getDate() + 1);
-        const diaManana = dMan.toLocaleDateString('es-ES', opc).toUpperCase();
-        document.getElementById('txt-manana').innerText = "MAÑANA " + diaManana;
+        document.getElementById('txt-hoy').innerText = "HOY " + dHoy.toLocaleDateString('es-ES', opc).toUpperCase();
+        const dMan = new Date(); dMan.setDate(dMan.getDate() + 1);
+        document.getElementById('txt-manana').innerText = "MAÑANA " + dMan.toLocaleDateString('es-ES', opc).toUpperCase();
 
         renderLista(eventosHoy, 'lista-hoy', 'hoy');
         renderLista(eventosManana, 'lista-manana', 'manana');
@@ -167,8 +171,18 @@
         const ahora = new Date();
         lista.forEach(ev => {
             const div = document.createElement('div');
+            
+            // El parpadeo se activa si es alerta y aún no ha pasado el minuto de cortesía del fin
             const haTerminado = ahora.getTime() > (ev.objFin.getTime() + 60000);
-            div.className = "evento " + (ev.esAlerta && !haTerminado ? 'urgente-perma' : '');
+            
+            // Activamos parpadeo si estamos en el rango de antelación
+            let mostrarUrgente = false;
+            if (ev.esAlerta && !haTerminado) {
+                const inicioAviso = new Date(ev.obj.getTime() - (ev.antelacion * 3600000));
+                if (ahora >= inicioAviso) mostrarUrgente = true;
+            }
+
+            div.className = "evento " + (mostrarUrgente ? 'urgente-perma' : '');
             div.onclick = function() {
                 const prefijo = (diaClave === 'hoy' ? "Hoy a las " : "Mañana tienes a las ");
                 hablar(prefijo + ev.horaVoz + ", " + ev.titulo);
@@ -241,12 +255,33 @@
 
     setInterval(() => {
         const ahora = new Date();
+        const seg = ahora.getSeconds();
+        const min = ahora.getMinutes();
+        const hora = ahora.getHours();
+
         eventosHoy.forEach(ev => {
-            if (ev.esAlerta && ev.obj.getHours() === ahora.getHours() && ev.obj.getMinutes() === ahora.getMinutes() && ahora.getSeconds() === 0) {
-                sonarCampana(() => { hablarTriple(`Atención mamá. Es hora de: ${ev.titulo}`); });
+            if (!ev.esAlerta) return;
+
+            // 1. Aviso a la hora real
+            const esHoraReal = (ev.obj.getHours() === hora && ev.obj.getMinutes() === min && seg === 0);
+            
+            // 2. Aviso con antelación (solo si tiene 2 o 3 asteriscos)
+            let esHoraAntelacion = false;
+            if (ev.antelacion > 0) {
+                const horaAviso = new Date(ev.obj.getTime() - (ev.antelacion * 3600000));
+                esHoraAntelacion = (horaAviso.getHours() === hora && horaAviso.getMinutes() === min && seg === 0);
+            }
+
+            if (esHoraReal || esHoraAntelacion) {
+                const mensaje = esHoraAntelacion ? 
+                    `Aviso importante mamá. En ${ev.antelacion} horas tienes: ${ev.titulo}` : 
+                    `Atención mamá. Es hora de: ${ev.titulo}`;
+                
+                sonarCampana(() => { hablarTriple(mensaje); });
             }
         });
-        if (ahora.getSeconds() === 0) dibujarYEscalar();
+
+        if (seg === 0) dibujarYEscalar();
     }, 1000);
 
     setInterval(cargarCalendario, 300000);
