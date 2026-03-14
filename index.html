@@ -144,15 +144,17 @@
     }
 
     function dibujarYEscalar() {
-        // AJUSTE: Nombres de días incluidos
-        const opc = { weekday: 'long', day: 'numeric', month: 'short' };
+        // AJUSTE: Solo el nombre del día de la semana
+        const opc = { weekday: 'long' };
         
         const dHoy = new Date();
-        document.getElementById('txt-hoy').innerText = "HOY " + dHoy.toLocaleDateString('es-ES', opc).toUpperCase();
+        const diaHoy = dHoy.toLocaleDateString('es-ES', opc).toUpperCase();
+        document.getElementById('txt-hoy').innerText = "HOY " + diaHoy;
         
         const dMan = new Date();
         dMan.setDate(dMan.getDate() + 1);
-        document.getElementById('txt-manana').innerText = dMan.toLocaleDateString('es-ES', opc).toUpperCase();
+        const diaManana = dMan.toLocaleDateString('es-ES', opc).toUpperCase();
+        document.getElementById('txt-manana').innerText = "MAÑANA " + diaManana;
 
         renderLista(eventosHoy, 'lista-hoy', 'hoy');
         renderLista(eventosManana, 'lista-manana', 'manana');
