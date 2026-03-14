@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendario Mama</title>
+    <title>Calendario para Mamá</title>
     <style>
         :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', Gadget, sans-serif; overflow: hidden; background: #000; }
@@ -30,7 +30,7 @@
             font-size: 2.2vh; 
             font-weight: bold; 
             border-radius: 15px; 
-            border: 3px solid #000; 
+            border: 4px solid #000; 
             margin-bottom: 10px;
             background: #fff;
             cursor: pointer;
@@ -61,12 +61,17 @@
         .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 3.5vh; }
         .evento p { margin: 4px 0 0; font-weight: bold; line-height: 1.1; font-size: 4vh; }
         
-        /* Solo parpadea si tiene la clase 'activo' */
+        /* Alarma activa: parpadeo rojo fuerte */
         .urgente.activo { border: 10px solid #ff0000; animation: blinker 1s linear infinite; background-color: #fff0f0; }
         @keyframes blinker { 50% { border-color: transparent; } }
+
+        /* Punto de estado de conexión */
+        #status-dot { position: fixed; top: 10px; right: 10px; width: 15px; height: 15px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 2px solid #000; }
     </style>
 </head>
 <body>
+
+<div id="status-dot"></div>
 
 <div class="container">
     <div class="col col-hoy">
@@ -83,8 +88,10 @@
 </div>
 
 <script>
-    const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
-    const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
+    // --- CONFIGURACIÓN ---
+    const API_KEY = 'TU_CLAVE_API_AQUÍ'; 
+    const CALENDAR_ID = 'TU_ID_CALENDARIO_MAMA';
+    // ---------------------
 
     let eventosHoy = [];
     let eventosManana = [];
@@ -115,13 +122,19 @@
     async function cargarCalendario() {
         const min = new Date(); min.setHours(0,0,0,0);
         const max = new Date(); max.setDate(min.getDate() + 2);
-        const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime`;
+        
+        // El parámetro t=... evita que Google o el navegador devuelvan datos viejos (caché)
+        const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${new Date().getTime()}`;
 
         try {
-            const r = await fetch(url);
+            const r = await fetch(url, { cache: 'no-store' });
             const d = await r.json();
+            document.getElementById('status-dot').style.backgroundColor = '#4CAF50'; // Verde: OK
             if(d.items) organizarEventos(d.items);
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Error de conexión:", e);
+            document.getElementById('status-dot').style.backgroundColor = '#F44336'; // Rojo: Sin internet
+        }
     }
 
     function organizarEventos(items) {
@@ -137,8 +150,7 @@
                 horaVoz: horaNatural(inicio),
                 obj: inicio,
                 esAlerta: (item.summary || "").includes("*"),
-                // Solo activa el parpadeo si es futuro o presente (margen de 10 min tras empezar)
-                estaActivo: inicio.getTime() + 600000 > ahora.getTime() 
+                estaActivo: inicio.getTime() + 600000 > ahora.getTime() // Se apaga el parpadeo tras 10 min
             };
             if (inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
             else eventosManana.push(ev);
@@ -150,8 +162,8 @@
         const opc = { weekday: 'long', day: 'numeric', month: 'long' };
         const d = new Date();
         document.getElementById('txt-hoy').innerText = "HOY: " + d.toLocaleDateString('es-ES', opc);
-        d.setDate(d.getDate() + 1);
-        document.getElementById('txt-manana').innerText = "MAÑANA: " + d.toLocaleDateString('es-ES', opc);
+        const d2 = new Date(); d2.setDate(d2.getDate() + 1);
+        document.getElementById('txt-manana').innerText = "MAÑANA: " + d2.toLocaleDateString('es-ES', opc);
 
         renderLista(eventosHoy, 'lista-hoy');
         renderLista(eventosManana, 'lista-manana');
@@ -166,7 +178,6 @@
 
         lista.forEach(ev => {
             const div = document.createElement('div');
-            // 'urgente' activa el estilo, 'activo' activa el parpadeo rojo
             div.className = "evento " + (ev.esAlerta ? 'urgente ' : '') + (ev.esAlerta && ev.estaActivo ? 'activo' : '');
             
             div.onclick = function() { 
@@ -201,18 +212,16 @@
         window.speechSynthesis.speak(m);
     }
 
-    // --- SONIDO DE ALERTA FUERTE (BIP-BIP) ---
+    // --- ALARMA SONORA FUERTE ---
     function sonarCampana(callback) {
         const context = new (window.AudioContext || window.webkitAudioContext)();
         const duration = 15; 
         const startTime = context.currentTime;
-
         for (let i = 0; i < duration; i += 0.8) {
-            // Dos tonos rápidos para que sea más llamativo
             [880, 1100].forEach((freq, idx) => {
                 const osc = context.createOscillator();
                 const gain = context.createGain();
-                osc.type = 'square'; // Sonido tipo alarma, más penetrante
+                osc.type = 'square';
                 osc.frequency.setValueAtTime(freq, startTime + i + (idx * 0.1));
                 gain.gain.setValueAtTime(0, startTime + i + (idx * 0.1));
                 gain.gain.linearRampToValueAtTime(0.3, startTime + i + (idx * 0.1) + 0.05);
@@ -256,11 +265,10 @@
                 });
             }
         });
-        // Refrescar visibilidad de recuadros rojos cada minuto
         if (ahora.getSeconds() < 2) dibujarYEscalar();
     }, 1000);
 
-    setInterval(cargarCalendario, 300000);
+    setInterval(cargarCalendario, 300000); // 5 minutos
     window.onload = cargarCalendario;
 </script>
 </body>
