@@ -44,21 +44,25 @@
         .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; }
         .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 2.8vh; word-wrap: break-word; }
         
-        /* LÍNEA ROJA EXTRA FINA (1.5px) */
-        .urgente.activo { 
+        /* PARPADEO ROJO FINO Y PERMANENTE */
+        .urgente-perma { 
             border: 1.5px solid #ff0000 !important; 
-            animation: blinker 1s linear infinite; 
+            animation: blinker-completo 1s linear infinite !important;
             background-color: #fff0f0; 
-            box-shadow: 0 0 0 0.5px #ff0000 inset;
         }
-        @keyframes blinker { 50% { border-color: transparent; } }
+
+        @keyframes blinker-completo { 
+            0% { border-color: #ff0000; box-shadow: 0 0 0 0.5px #ff0000 inset; }
+            50% { border-color: transparent; box-shadow: 0 0 0 0.5px transparent inset; }
+            100% { border-color: #ff0000; box-shadow: 0 0 0 0.5px #ff0000 inset; }
+        }
 
         #status-dot { position: fixed; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 1px solid #000; }
     </style>
 </head>
 <body>
 
-<button id="btn-inicial" onclick="iniciarApp()">PULSA PARA EMPEZAR</button>
+<button id="btn-inicial" onclick="iniciarApp()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
 <div id="status-dot"></div>
 
 <div class="container">
@@ -80,11 +84,22 @@
 
     let eventosHoy = [];
     let eventosManana = [];
+    let audioContext;
 
     function iniciarApp() {
+        // 1. Activar Pantalla Completa
         let elem = document.documentElement;
         if (elem.requestFullscreen) { elem.requestFullscreen(); } 
         else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
+        
+        // 2. DESBLOQUEAR AUDIO (Crucial para que suene la campana)
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioContext.resume();
+        
+        // 3. Activar Voces
+        window.speechSynthesis.getVoices();
+        hablar("Sistema activado");
+
         document.getElementById('btn-inicial').style.display = 'none';
         cargarCalendario();
     }
@@ -95,16 +110,13 @@
         let h = fecha.getHours();
         let m = fecha.getMinutes();
         let period = h >= 12 ? 'de la tarde' : 'de la mañana';
-        if (h > 12) h -= 12;
-        if (h === 0) h = 12;
+        if (h > 12) h -= 12; if (h === 0) h = 12;
         return h + (m === 0 ? "" : " y " + m) + " " + period;
     }
 
     function horaVisualLimpia(fecha) {
-        let h = fecha.getHours();
-        let m = fecha.getMinutes();
-        if (h > 12) h -= 12;
-        if (h === 0) h = 12;
+        let h = fecha.getHours(); let m = fecha.getMinutes();
+        if (h > 12) h -= 12; if (h === 0) h = 12;
         return h + ':' + (m < 10 ? '0' + m : m);
     }
 
@@ -121,7 +133,6 @@
 
     function organizarEventos(items) {
         const hoyStr = new Date().toLocaleDateString();
-        const ahora = new Date();
         eventosHoy = []; eventosManana = [];
         items.forEach(item => {
             const inicio = new Date(item.start.dateTime || item.start.date);
@@ -130,8 +141,7 @@
                 horaV: horaVisualLimpia(inicio),
                 horaVoz: horaNatural(inicio),
                 obj: inicio,
-                esAlerta: (item.summary || "").includes("*"),
-                estaActivo: inicio.getTime() + 600000 > ahora.getTime()
+                esAlerta: (item.summary || "").includes("*")
             };
             if (inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
             else eventosManana.push(ev);
@@ -140,11 +150,6 @@
     }
 
     function dibujarYEscalar() {
-        const opc = { day: 'numeric', month: 'short' };
-        const d = new Date();
-        document.getElementById('txt-hoy').innerText = "HOY " + d.toLocaleDateString('es-ES', opc).toUpperCase();
-        d.setDate(d.getDate() + 1);
-        document.getElementById('txt-manana').innerText = "MAÑ. " + d.toLocaleDateString('es-ES', opc).toUpperCase();
         renderLista(eventosHoy, 'lista-hoy');
         renderLista(eventosManana, 'lista-manana');
         setTimeout(() => { ajustarTexto('lista-hoy'); ajustarTexto('lista-manana'); }, 50);
@@ -153,14 +158,10 @@
     function renderLista(lista, id) {
         const cont = document.getElementById(id);
         cont.innerHTML = "";
-        const esManana = (id === 'lista-manana');
         lista.forEach(ev => {
             const div = document.createElement('div');
-            div.className = "evento " + (ev.esAlerta ? 'urgente ' : '') + (ev.esAlerta && ev.estaActivo ? 'activo' : '');
-            div.onclick = function() { 
-                const prefijo = esManana ? "Mañana tienes a las " : "Hoy a las ";
-                hablar(prefijo + ev.horaVoz + ", " + ev.titulo); 
-            };
+            // PARPADEO PERMANENTE SI TIENE ASTERISCO
+            div.className = "evento " + (ev.esAlerta ? 'urgente-perma' : '');
             div.innerHTML = `<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
             cont.appendChild(div);
         });
@@ -171,8 +172,7 @@
         const eventos = cont.getElementsByClassName('evento');
         if (eventos.length === 0) return;
         let fontSizeP = 3.5; 
-        let maxHeight = cont.clientHeight;
-        while (cont.scrollHeight > maxHeight && fontSizeP > 1.0) {
+        while (cont.scrollHeight > cont.clientHeight && fontSizeP > 1.0) {
             fontSizeP -= 0.1;
             for (let ev of eventos) {
                 ev.querySelector('h2').style.fontSize = (fontSizeP * 0.7) + "vh";
@@ -189,31 +189,29 @@
     }
 
     function sonarCampana(callback) {
-        const context = new (window.AudioContext || window.webkitAudioContext)();
-        const duration = 15; const startTime = context.currentTime;
+        if (!audioContext) return callback();
+        const duration = 15; const startTime = audioContext.currentTime;
         for (let i = 0; i < duration; i += 0.8) {
             [880, 1100].forEach((freq, idx) => {
-                const osc = context.createOscillator();
-                const gain = context.createGain();
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(freq, startTime + i + (idx * 0.1));
                 gain.gain.setValueAtTime(0, startTime + i + (idx * 0.1));
                 gain.gain.linearRampToValueAtTime(0.3, startTime + i + (idx * 0.1) + 0.05);
                 gain.gain.linearRampToValueAtTime(0, startTime + i + (idx * 0.1) + 0.4);
-                osc.connect(gain);
-                gain.connect(context.destination);
-                osc.start(startTime + i + (idx * 0.1));
-                osc.stop(startTime + i + (idx * 0.1) + 0.4);
+                osc.connect(gain); gain.connect(audioContext.destination);
+                osc.start(startTime + i + (idx * 0.1)); osc.stop(startTime + i + (idx * 0.1) + 0.4);
             });
         }
         setTimeout(callback, duration * 1000);
     }
 
-    function hablarTriple(mensajeCompleto) {
+    function hablarTriple(mensaje) {
         let veces = 0;
         function repetir() {
             if (veces < 3) {
-                const m = new SpeechSynthesisUtterance(mensajeCompleto);
+                const m = new SpeechSynthesisUtterance(mensaje);
                 m.lang = 'es-ES'; m.rate = 0.8;
                 m.onend = () => { veces++; setTimeout(repetir, 1500); };
                 window.speechSynthesis.speak(m);
@@ -224,25 +222,28 @@
 
     function repasarDia(dia) {
         const lista = dia === 'hoy' ? eventosHoy : eventosManana;
-        if (lista.length === 0) return hablar("No tienes nada anotado.");
-        let t = (dia === 'hoy' ? "Hoy tienes: " : "Mañana tienes: ");
-        lista.forEach(ev => { t += `A las ${ev.horaVoz}, ${ev.titulo}. `; });
+        if (lista.length === 0) return hablar("Nada anotado.");
+        let t = (dia === 'hoy' ? "Hoy: " : "Mañana: ");
+        lista.forEach(ev => { t += `${ev.horaVoz}, ${ev.titulo}. `; });
         hablar(t);
     }
 
+    // Comprobación de avisos cada segundo
     setInterval(() => {
         const ahora = new Date();
         eventosHoy.forEach(ev => {
-            if (ev.esAlerta && ev.obj.getHours() === ahora.getHours() && ev.obj.getMinutes() === ahora.getMinutes() && ahora.getSeconds() < 2) {
-                sonarCampana(() => { hablarTriple(`Atención mamá. Es hora de: ${ev.titulo}`); });
+            // Si es la hora exacta (00 segundos), dispara el aviso
+            if (ev.esAlerta && ev.obj.getHours() === ahora.getHours() && ev.obj.getMinutes() === ahora.getMinutes() && ahora.getSeconds() === 0) {
+                sonarCampana(() => {
+                    hablarTriple(`Atención mamá. Es hora de: ${ev.titulo}`);
+                });
             }
         });
-        if (ahora.getSeconds() < 2) dibujarYEscalar();
+        if (ahora.getSeconds() === 0) dibujarYEscalar();
     }, 1000);
 
     setInterval(cargarCalendario, 300000);
     window.onload = cargarCalendario;
-    window.onresize = dibujarYEscalar;
 </script>
 </body>
 </html>
