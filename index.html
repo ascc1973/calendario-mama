@@ -34,7 +34,6 @@
 
         .lista-eventos { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
 
-        /* Estilo estándar: Fondo blanco y marco negro */
         .evento { 
             background: white; color: #000; padding: 7px; border-radius: 10px; 
             border: 2.5px solid #333; display: flex; flex-direction: column;
@@ -45,7 +44,6 @@
         .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; pointer-events: none; }
         .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 2.8vh; word-wrap: break-word; pointer-events: none; }
         
-        /* ALERTA: Línea roja fina y parpadeo (Solo si NO ha terminado) */
         .urgente-perma { 
             border: 1.5px solid #ff0000 !important; 
             animation: blinker-completo 1s linear infinite !important;
@@ -130,9 +128,7 @@
         eventosHoy = []; eventosManana = [];
         items.forEach(item => {
             const inicio = new Date(item.start.dateTime || item.start.date);
-            // Tomamos la hora de fin real del calendario
             const fin = new Date(item.end.dateTime || item.end.date);
-            
             const ev = {
                 titulo: limpiarTexto(item.summary || "Sin título"),
                 horaV: horaVisualLimpia(inicio),
@@ -148,6 +144,16 @@
     }
 
     function dibujarYEscalar() {
+        // AJUSTE: Nombres de días incluidos
+        const opc = { weekday: 'long', day: 'numeric', month: 'short' };
+        
+        const dHoy = new Date();
+        document.getElementById('txt-hoy').innerText = "HOY " + dHoy.toLocaleDateString('es-ES', opc).toUpperCase();
+        
+        const dMan = new Date();
+        dMan.setDate(dMan.getDate() + 1);
+        document.getElementById('txt-manana').innerText = dMan.toLocaleDateString('es-ES', opc).toUpperCase();
+
         renderLista(eventosHoy, 'lista-hoy', 'hoy');
         renderLista(eventosManana, 'lista-manana', 'manana');
         setTimeout(() => { ajustarTexto('lista-hoy'); ajustarTexto('lista-manana'); }, 50);
@@ -159,18 +165,12 @@
         const ahora = new Date();
         lista.forEach(ev => {
             const div = document.createElement('div');
-            
-            // LÓGICA DE FINALIZACIÓN: 1 minuto (60000ms) después de la hora de fin real
             const haTerminado = ahora.getTime() > (ev.objFin.getTime() + 60000);
-            
-            // Si tiene * y no ha terminado, parpadea. Si ya terminó, vuelve a marco negro.
             div.className = "evento " + (ev.esAlerta && !haTerminado ? 'urgente-perma' : '');
-            
             div.onclick = function() {
                 const prefijo = (diaClave === 'hoy' ? "Hoy a las " : "Mañana tienes a las ");
                 hablar(prefijo + ev.horaVoz + ", " + ev.titulo);
             };
-
             div.innerHTML = `<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
             cont.appendChild(div);
         });
@@ -240,14 +240,10 @@
     setInterval(() => {
         const ahora = new Date();
         eventosHoy.forEach(ev => {
-            // Campana y voz a la hora de inicio exacta
             if (ev.esAlerta && ev.obj.getHours() === ahora.getHours() && ev.obj.getMinutes() === ahora.getMinutes() && ahora.getSeconds() === 0) {
-                sonarCampana(() => {
-                    hablarTriple(`Atención mamá. Es hora de: ${ev.titulo}`);
-                });
+                sonarCampana(() => { hablarTriple(`Atención mamá. Es hora de: ${ev.titulo}`); });
             }
         });
-        // Actualizamos cada minuto para comprobar si algún evento debe "apagarse"
         if (ahora.getSeconds() === 0) dibujarYEscalar();
     }, 1000);
 
