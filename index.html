@@ -2,64 +2,55 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calendario para Mamá</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Calendario Mamá</title>
+    
     <style>
         :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', Gadget, sans-serif; overflow: hidden; background: #000; }
         
-        /* División vertical estricta siempre */
-        .container { 
-            display: flex; 
-            height: 100vh; 
-            width: 100vw; 
-            flex-direction: row; 
-        }
+        /* División vertical 50/50 SIEMPRE */
+        .container { display: flex; height: 100vh; width: 100vw; flex-direction: row; }
         
         .col { 
             width: 50%; 
-            padding: 5px; 
+            padding: 8px; 
             display: flex; 
             flex-direction: column; 
             box-sizing: border-box;
             height: 100vh;
         }
 
-        .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 3px solid #000; }
+        .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 4px solid #000; }
         .col-manana { background-color: var(--manana-bg); color: #FFF; }
 
-        /* Títulos de columna más compactos */
-        h1 { font-size: 2.2vh; margin: 2px 0; text-align: center; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+        h1 { font-size: 2.2vh; margin: 4px 0; text-align: center; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
         
         .btn-repaso { 
             width: 100%; 
-            padding: 8px 2px; 
-            font-size: 1.6vh; 
+            padding: 10px 2px; 
+            font-size: 1.8vh; 
             font-weight: bold; 
-            border-radius: 8px; 
+            border-radius: 10px; 
             border: 2px solid #000; 
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             background: #fff;
-            cursor: pointer;
             color: #000;
             flex-shrink: 0;
             text-transform: uppercase;
         }
 
-        .lista-eventos { 
-            flex-grow: 1; 
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            overflow: hidden;
-        }
+        .lista-eventos { flex-grow: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
 
         .evento { 
             background: white; 
             color: #000; 
-            padding: 5px; 
-            border-radius: 10px; 
-            border: 2px solid #333; 
+            padding: 6px; 
+            border-radius: 12px; 
+            border: 3px solid #333; 
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -70,18 +61,12 @@
         }
 
         .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; }
-        .evento p { 
-            margin: 2px 0 0; 
-            font-weight: bold; 
-            line-height: 1.1; 
-            font-size: 2.8vh; 
-            word-wrap: break-word; /* Permite que las palabras largas rompan si no hay espacio */
-        }
+        .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 3vh; word-wrap: break-word; }
         
-        .urgente.activo { border: 6px solid #ff0000; animation: blinker 1s linear infinite; background-color: #fff0f0; }
+        .urgente.activo { border: 8px solid #ff0000; animation: blinker 1s linear infinite; background-color: #fff0f0; }
         @keyframes blinker { 50% { border-color: transparent; } }
 
-        #status-dot { position: fixed; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 1px solid #000; }
+        #status-dot { position: fixed; top: 5px; right: 5px; width: 10px; height: 10px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 1px solid #000; }
     </style>
 </head>
 <body>
@@ -108,6 +93,11 @@
 
     let eventosHoy = [];
     let eventosManana = [];
+
+    // Intenta mantener la pantalla encendida
+    if ('wakeLock' in navigator) {
+        navigator.wakeLock.request('screen').catch(err => console.log("WakeLock bloqueado"));
+    }
 
     function limpiarTexto(t) { return t.replace(/\*/g, '').replace(/\[ALERTA\]/gi, '').trim(); }
 
@@ -195,11 +185,8 @@
         const cont = document.getElementById(idContenedor);
         const eventos = cont.getElementsByClassName('evento');
         if (eventos.length === 0) return;
-
         let fontSizeP = 3.5; 
         let maxHeight = cont.clientHeight;
-
-        // Bucle de ajuste: reduce mientras haya scroll vertical
         while (cont.scrollHeight > maxHeight && fontSizeP > 1.0) {
             fontSizeP -= 0.1;
             for (let ev of eventos) {
@@ -251,7 +238,7 @@
     }
 
     function repasarDia(dia) {
-        const lista = dia === 'hoy' ? eventosHoy : eventosManana;
+        const lista = (dia === 'hoy' ? eventosHoy : eventosManana);
         if (lista.length === 0) return hablar("No tienes nada anotado.");
         let t = (dia === 'hoy' ? "Hoy tienes: " : "Mañana tienes: ");
         lista.forEach(ev => { t += `A las ${ev.horaVoz}, ${ev.titulo}. `; });
