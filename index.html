@@ -8,11 +8,73 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
-
     <link rel="manifest" href='data:application/manifest+json,{"name":"Calendario","short_name":"Calendario","start_url":"index.html","display":"standalone","background_color":"#000000","theme_color":"#000000","orientation":"any"}'>
 
     <title>Calendario Mamá</title>
-    </head>
+    
+    <style>
+        :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', Gadget, sans-serif; overflow: hidden; background: #000; }
+        
+        /* Contenedor con división 50/50 horizontal siempre */
+        .container { display: flex; height: 100vh; width: 100vw; flex-direction: row; }
+        
+        .col { 
+            width: 50%; 
+            padding: 8px; 
+            display: flex; 
+            flex-direction: column; 
+            box-sizing: border-box;
+            height: 100vh;
+        }
+
+        /* Colores originales recuperados */
+        .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 4px solid #000; }
+        .col-manana { background-color: var(--manana-bg); color: #FFF; }
+
+        h1 { font-size: 2.2vh; margin: 4px 0; text-align: center; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+        
+        .btn-repaso { 
+            width: 100%; 
+            padding: 10px 2px; 
+            font-size: 1.8vh; 
+            font-weight: bold; 
+            border-radius: 10px; 
+            border: 2px solid #000; 
+            margin-bottom: 8px;
+            background: #fff;
+            color: #000;
+            flex-shrink: 0;
+            text-transform: uppercase;
+        }
+
+        .lista-eventos { flex-grow: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+
+        .evento { 
+            background: white; 
+            color: #000; 
+            padding: 6px; 
+            border-radius: 12px; 
+            border: 3px solid #333; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-shrink: 1;
+            min-height: 0;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; }
+        .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 3vh; word-wrap: break-word; }
+        
+        /* MARCO INTERMITENTE ROJO RECUPERADO */
+        .urgente.activo { border: 8px solid #ff0000; animation: blinker 1s linear infinite; background-color: #fff0f0; }
+        @keyframes blinker { 50% { border-color: transparent; } }
+
+        #status-dot { position: fixed; top: 5px; right: 5px; width: 10px; height: 10px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 1px solid #000; }
+    </style>
+</head>
 <body>
 
 <div id="status-dot"></div>
@@ -38,9 +100,9 @@
     let eventosHoy = [];
     let eventosManana = [];
 
-    // Intenta mantener la pantalla encendida
+    // Wake Lock para pantalla encendida
     if ('wakeLock' in navigator) {
-        navigator.wakeLock.request('screen').catch(err => console.log("WakeLock bloqueado"));
+        navigator.wakeLock.request('screen').catch(err => {});
     }
 
     function limpiarTexto(t) { return t.replace(/\*/g, '').replace(/\[ALERTA\]/gi, '').trim(); }
@@ -99,14 +161,9 @@
         document.getElementById('txt-hoy').innerText = "HOY " + d.toLocaleDateString('es-ES', opc).toUpperCase();
         d.setDate(d.getDate() + 1);
         document.getElementById('txt-manana').innerText = "MAÑ. " + d.toLocaleDateString('es-ES', opc).toUpperCase();
-
         renderLista(eventosHoy, 'lista-hoy');
         renderLista(eventosManana, 'lista-manana');
-
-        setTimeout(() => {
-            ajustarTexto('lista-hoy');
-            ajustarTexto('lista-manana');
-        }, 50);
+        setTimeout(() => { ajustarTexto('lista-hoy'); ajustarTexto('lista-manana'); }, 50);
     }
 
     function renderLista(lista, id) {
