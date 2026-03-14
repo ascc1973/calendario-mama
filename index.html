@@ -3,21 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#000000">
-
-    <link rel="manifest" href='data:application/manifest+json,{"name":"Calendario","short_name":"Calendario","start_url":"/","display":"standalone","background_color":"#000000","theme_color":"#000000","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/591/591567.png","sizes":"512x512","type":"image/png"}]}'>
-
     <title>Calendario Mamá</title>
     
     <style>
         :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
         body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', Gadget, sans-serif; overflow: hidden; background: #000; }
         
-        /* Contenedor con división 50/50 horizontal estricta */
+        /* Botón de Pantalla Completa - Muy visible al inicio */
+        #btn-f-screen {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            padding: 30px;
+            font-size: 25px;
+            font-weight: bold;
+            background: #ff0000;
+            color: white;
+            border: 5px solid white;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
         .container { display: flex; height: 100vh; width: 100vw; flex-direction: row; }
         
         .col { 
@@ -32,7 +42,7 @@
         .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 4px solid #000; }
         .col-manana { background-color: var(--manana-bg); color: #FFF; }
 
-        h1 { font-size: 2.2vh; margin: 4px 0; text-align: center; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+        h1 { font-size: 2.2vh; margin: 4px 0; text-align: center; text-transform: uppercase; white-space: nowrap; }
         
         .btn-repaso { 
             width: 100%; 
@@ -45,7 +55,6 @@
             background: #fff;
             color: #000;
             flex-shrink: 0;
-            text-transform: uppercase;
         }
 
         .lista-eventos { flex-grow: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
@@ -62,14 +71,17 @@
             flex-shrink: 1;
             min-height: 0;
             box-sizing: border-box;
-            width: 100%;
         }
 
         .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; }
-        .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 3vh; word-wrap: break-word; }
+        .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 3vh; }
         
-        /* Marco intermitente rojo para alarmas activas */
-        .urgente.activo { border: 8px solid #ff0000; animation: blinker 1s linear infinite; background-color: #fff0f0; }
+        /* EL PARPADEO ROJO RECUPERADO */
+        .urgente.activo { 
+            border: 8px solid #ff0000 !important; 
+            animation: blinker 1s linear infinite !important; 
+            background-color: #fff0f0 !important; 
+        }
         @keyframes blinker { 50% { border-color: transparent; } }
 
         #status-dot { position: fixed; top: 5px; right: 5px; width: 10px; height: 10px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 1px solid #000; }
@@ -78,6 +90,8 @@
 <body>
 
 <div id="status-dot"></div>
+
+<button id="btn-f-screen" onclick="entrarPantallaCompleta()">PULSAR: PANTALLA COMPLETA</button>
 
 <div class="container">
     <div class="col col-hoy">
@@ -94,17 +108,27 @@
 </div>
 
 <script>
-    // --- IMPORTANTE: Pon tus datos aquí ---
     const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
     const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
-    // --------------------------------------
 
     let eventosHoy = [];
     let eventosManana = [];
 
-    // Wake Lock para evitar que la pantalla se apague
-    if ('wakeLock' in navigator) {
-        navigator.wakeLock.request('screen').catch(err => {});
+    // Función para activar pantalla completa y ocultar botón
+    function entrarPantallaCompleta() {
+        let elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) { // Safari e iOS
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+            elem.msRequestFullscreen();
+        }
+        document.getElementById('btn-f-screen').style.display = 'none';
+        
+        // Al interactuar, habilitamos el audio para las futuras alarmas
+        const dummy = new AudioContext();
+        dummy.resume();
     }
 
     function limpiarTexto(t) { return t.replace(/\*/g, '').replace(/\[ALERTA\]/gi, '').trim(); }
@@ -134,9 +158,7 @@
             const d = await r.json();
             document.getElementById('status-dot').style.backgroundColor = '#4CAF50';
             if(d.items) organizarEventos(d.items);
-        } catch (e) { 
-            document.getElementById('status-dot').style.backgroundColor = '#F44336'; 
-        }
+        } catch (e) { document.getElementById('status-dot').style.backgroundColor = '#F44336'; }
     }
 
     function organizarEventos(items) {
@@ -151,7 +173,8 @@
                 horaVoz: horaNatural(inicio),
                 obj: inicio,
                 esAlerta: (item.summary || "").includes("*"),
-                estaActivo: (inicio.getTime() + 600000 > ahora.getTime()) && (inicio.getTime() <= ahora.getTime())
+                // Activo si es hora exacta o hasta 10 minutos después
+                estaActivo: (ahora >= inicio && ahora.getTime() < inicio.getTime() + 600000)
             };
             if (inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
             else eventosManana.push(ev);
@@ -176,6 +199,7 @@
         const esManana = (id === 'lista-manana');
         lista.forEach(ev => {
             const div = document.createElement('div');
+            // Si tiene asterisco y es la hora, se pone rojo y parpadea
             div.className = "evento " + (ev.esAlerta ? 'urgente ' : '') + (ev.esAlerta && ev.estaActivo ? 'activo' : '');
             div.onclick = function() { 
                 const prefijo = esManana ? "Mañana tienes a las " : "Hoy a las ";
@@ -240,14 +264,6 @@
             }
         }
         repetir();
-    }
-
-    function repasarDia(dia) {
-        const lista = (dia === 'hoy' ? eventosHoy : eventosManana);
-        if (lista.length === 0) return hablar("No tienes nada anotado.");
-        let t = (dia === 'hoy' ? "Hoy tienes: " : "Mañana tienes: ");
-        lista.forEach(ev => { t += `A las ${ev.horaVoz}, ${ev.titulo}. `; });
-        hablar(t);
     }
 
     setInterval(() => {
