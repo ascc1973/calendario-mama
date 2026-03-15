@@ -4,383 +4,283 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Calendario para Mamá</title>
-
 <style>
-body,html{
-margin:0;
-padding:0;
-height:100%;
-font-family:'Arial Black', Gadget, sans-serif;
-overflow:hidden;
-background:#000;
-}
+    :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
+    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', Gadget, sans-serif; overflow: hidden; background: #000; }
 
-#fecha-hora{
-position:fixed;
-top:5px;
-left:50%;
-transform:translateX(-50%);
-text-align:center;
-color:white;
-background:rgba(0,0,0,0.5);
-padding:5px 10px;
-border-radius:10px;
-font-size:2.8vh;
-z-index:1000;
-white-space:pre-line;
-}
+    #btn-inicial {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #ff0000; color: white; font-size: 5vh; font-weight: bold;
+        border: none; z-index: 9999; cursor: pointer; text-transform: uppercase;
+    }
 
-.container{
-display:flex;
-height:100vh;
-width:100vw;
-flex-direction:row;
-padding-top:8vh; /* deja espacio para fecha-hora */
-box-sizing:border-box;
-}
+    /* RECUADRO FECHA/HORA */
+    #fecha-hora {
+        position: fixed; top: 0; width: 100%; text-align: center;
+        background: rgba(0,0,0,0.6); color: #fff; padding: 10px 0;
+        z-index: 5000; font-size: 3vh; border-bottom: 2px solid #fff;
+    }
 
-.col{
-width:50%;
-padding:5px;
-display:flex;
-flex-direction:column;
-box-sizing:border-box;
-height:100%;
-}
+    .container { display: flex; height: 100vh; width: 100vw; flex-direction: row; padding-top: 8vh; box-sizing: border-box; }
 
-.col-hoy{background-color:#FFEB3B;color:#000;border-right:3px solid #000;}
-.col-manana{background-color:#1A237E;color:#FFF;}
+    .col { 
+        width: 50%; padding: 5px; display: flex; 
+        flex-direction: column; box-sizing: border-box; height: 100%;
+    }
 
-h1{
-font-size:2.2vh;
-margin:5px 0;
-text-align:center;
-text-transform:uppercase;
-white-space:nowrap;
-overflow:hidden;
-}
+    .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 3px solid #000; }
+    .col-manana { background-color: var(--manana-bg); color: #FFF; }
 
-.btn-repaso{
-width:100%;
-padding:8px 2px;
-font-size:1.6vh;
-font-weight:bold;
-border-radius:8px;
-border:2px solid #000;
-margin-bottom:5px;
-background:#fff;
-cursor:pointer;
-color:#000;
-flex-shrink:0;
-text-transform:uppercase;
-}
+    h1 { font-size: 2.2vh; margin: 2px 0; text-align: center; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
 
-.lista-eventos{
-flex-grow:1;
-display:flex;
-flex-direction:column;
-gap:4px;
-overflow:hidden;
-}
+    .btn-repaso { 
+        width: 100%; padding: 8px 2px; font-size: 1.6vh; font-weight: bold; 
+        border-radius: 8px; border: 2px solid #000; margin-bottom: 5px;
+        background: #fff; cursor: pointer; color: #000; flex-shrink: 0; text-transform: uppercase;
+    }
 
-.evento{
-background:white;
-color:#000;
-padding:7px;
-border-radius:10px;
-border:2.5px solid #333;
-display:flex;
-flex-direction:column;
-justify-content:center;
-flex-shrink:1;
-min-height:0;
-box-sizing:border-box;
-width:100%;
-cursor:pointer;
-}
+    .lista-eventos { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
 
-.evento h2{
-margin:0;
-color:#d32f2f;
-line-height:1;
-font-size:2.5vh;
-}
+    .evento { 
+        background: white; color: #000; padding: 7px; border-radius: 10px; 
+        border: 2.5px solid #333; display: flex; flex-direction: column;
+        justify-content: center; flex-shrink: 1; min-height: 0; box-sizing: border-box;
+        width: 100%; background-clip: padding-box; cursor: pointer;
+    }
 
-.evento p{
-margin:2px 0 0;
-font-weight:bold;
-line-height:1.1;
-font-size:2.8vh;
-word-wrap:break-word;
-}
+    .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; pointer-events: none; }
+    .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 2.8vh; word-wrap: break-word; pointer-events: none; }
 
-.evento-ahora{
-transform:scale(1.15);
-border:4px solid #ff0000!important;
-background:#fff3cd;
-}
+    .urgente-perma { 
+        border: 2.5px solid #ff0000 !important; 
+        animation: blinker-completo 1s linear infinite !important;
+        background-color: #fff0f0; 
+    }
 
-.evento-proximo{
-border:3px solid #ff9800;
-}
+    @keyframes blinker-completo { 
+        0% { border-color: #ff0000; box-shadow: 0 0 0 0.5px #ff0000 inset; }
+        50% { border-color: transparent; box-shadow: 0 0 0 0.5px transparent inset; }
+        100% { border-color: #ff0000; box-shadow: 0 0 0 0.5px #ff0000 inset; }
+    }
 
-.tipo-medicina{background:#ffe5e5;}
-.tipo-medico{background:#fff2cc;}
-.tipo-familiar{background:#e5ffe5;}
-
-.urgente-perma{
-border:2.5px solid #ff0000!important;
-animation:blinker-completo 1s linear infinite!important;
-background-color:#fff0f0;
-}
-
-@keyframes blinker-completo{
-0%{border-color:#ff0000;}
-50%{border-color:transparent;}
-100%{border-color:#ff0000;}
-}
-
-#status-dot{
-position:fixed;
-top:3px;
-right:3px;
-width:8px;
-height:8px;
-border-radius:50%;
-background:#4CAF50;
-z-index:1000;
-border:1px solid #000;
-}
-
-#btn-inicial{
-position:fixed;
-top:0;
-left:0;
-width:100vw;
-height:100vh;
-background:#ff0000;
-color:white;
-font-size:5vh;
-font-weight:bold;
-border:none;
-z-index:9999;
-cursor:pointer;
-text-transform:uppercase;
-}
+    #status-dot { position: fixed; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 1px solid #000; }
 </style>
 </head>
-
 <body>
-
-<div id="fecha-hora">Cargando fecha...</div>
 
 <button id="btn-inicial" onclick="iniciarApp()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
 <div id="status-dot"></div>
+<div id="fecha-hora"></div>
 
 <div class="container">
-
-<div class="col col-hoy">
-<h1 id="txt-hoy">HOY</h1>
-<button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
-<div id="lista-hoy" class="lista-eventos"></div>
-</div>
-
-<div class="col col-manana">
-<h1 id="txt-manana">MAÑANA</h1>
-<button class="btn-repaso" onclick="repasarDia('manana')">🔊 TODO MAÑANA</button>
-<div id="lista-manana" class="lista-eventos"></div>
-</div>
-
+    <div class="col col-hoy">
+        <h1 id="txt-hoy">HOY</h1>
+        <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
+        <div id="lista-hoy" class="lista-eventos"></div>
+    </div>
+    <div class="col col-manana">
+        <h1 id="txt-manana">MAÑANA</h1>
+        <button class="btn-repaso" onclick="repasarDia('manana')" style="border-color: #FFF;">🔊 TODO MAÑANA</button>
+        <div id="lista-manana" class="lista-eventos"></div>
+    </div>
 </div>
 
 <script>
-const API_KEY='AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
-const CALENDAR_ID='28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
+const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
+const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
 
-let eventosHoy=[];
-let eventosManana=[];
-let audioContext;
-let ultimoOK=Date.now();
+let eventosHoy = [], eventosManana = [], audioContext;
 
-function iniciarApp(){
-let elem=document.documentElement;
-if(elem.requestFullscreen)elem.requestFullscreen();
+function iniciarApp() {
+    let elem = document.documentElement;
+    if (elem.requestFullscreen) elem.requestFullscreen();
+    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
 
-audioContext=new(window.AudioContext||window.webkitAudioContext)();
-audioContext.resume();
-
-navigator.wakeLock?.request('screen');
-
-window.speechSynthesis.getVoices();
-
-hablar("Sistema activado");
-
-document.getElementById('btn-inicial').style.display='none';
-
-cargarCalendario();
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    audioContext.resume();
+    window.speechSynthesis.getVoices();
+    hablar("Sistema activado");
+    document.getElementById('btn-inicial').style.display = 'none';
+    cargarCalendario();
+    actualizarFechaHora();
+    setInterval(actualizarFechaHora, 1000);
 }
 
-function limpiarTexto(t){ return t.replace(/\*/g,'').trim(); }
-function horaNatural(fecha){
-let h=fecha.getHours(); let m=fecha.getMinutes();
-let period=h>=12?'de la tarde':'de la mañana';
-if(h>12)h-=12;if(h===0)h=12;
-return h+(m===0?"":" y "+m)+" "+period;
-}
-function horaVisual(fecha){
-let h=fecha.getHours(); let m=fecha.getMinutes();
-if(h>12)h-=12;if(h===0)h=12;
-return h+':'+(m<10?'0'+m:m);
-}
-function detectarTipo(t){
-t=t.toLowerCase();
-if(t.includes("pastilla")||t.includes("medicina")||t.includes("insulina")) return "tipo-medicina";
-if(t.includes("médico")||t.includes("doctor")) return "tipo-medico";
-if(t.includes("hijo")||t.includes("familia")) return "tipo-familiar";
-return "";
+function actualizarFechaHora() {
+    const d = new Date();
+    const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
+    const fecha = d.toLocaleDateString('es-ES', opts).toUpperCase();
+    const h = d.getHours() > 12 ? d.getHours()-12 : (d.getHours()===0?12:d.getHours());
+    const m = d.getMinutes().toString().padStart(2,'0');
+    const period = d.getHours()>=12?'PM':'AM';
+    document.getElementById('fecha-hora').innerText = `${fecha}  ${h}:${m} ${period}`;
 }
 
-async function cargarCalendario(){
-const min=new Date(); min.setHours(0,0,0,0);
-const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
-try{
-const r=await fetch(url,{cache:'no-store'});
-const d=await r.json();
-document.getElementById('status-dot').style.backgroundColor='#4CAF50';
-ultimoOK=Date.now();
-if(d.items)organizarEventos(d.items);
-}catch(e){
-document.getElementById('status-dot').style.backgroundColor='#F44336';
-}
+function limpiarTexto(t){return t.replace(/\*/g,'').replace(/\[ALERTA\]/gi,'').trim();}
+function horaNatural(f){let h=f.getHours();let m=f.getMinutes();let p=h>=12?'de la tarde':'de la mañana';if(h>12)h-=12;if(h===0)h=12;return h+(m===0?'':' y '+m)+' '+p;}
+function horaVisualLimpia(f){let h=f.getHours();let m=f.getMinutes();if(h>12)h-=12;if(h===0)h=12;return h+':'+(m<10?'0'+m:m);}
+
+async function cargarCalendario() {
+    const min = new Date(); min.setHours(0,0,0,0);
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${new Date().getTime()}`;
+    try {
+        const r = await fetch(url,{cache:'no-store'});
+        const d = await r.json();
+        document.getElementById('status-dot').style.backgroundColor = '#4CAF50';
+        if(d.items) organizarEventos(d.items);
+    } catch(e){ document.getElementById('status-dot').style.backgroundColor = '#F44336'; }
 }
 
 function organizarEventos(items){
-const hoyStr=new Date().toLocaleDateString();
-eventosHoy=[]; eventosManana=[];
-items.forEach(item=>{
-const sum=item.summary||"";
-const inicio=new Date(item.start.dateTime||item.start.date);
-const fin=new Date(item.end.dateTime||item.end.date);
-let antelacionHoras=0;
-if(sum.startsWith("***"))antelacionHoras=3;
-else if(sum.startsWith("**"))antelacionHoras=2;
-else if(sum.startsWith("*"))antelacionHoras=0;
-else antelacionHoras=-1;
+    const hoyStr = new Date().toLocaleDateString();
+    eventosHoy=[]; eventosManana=[];
+    items.forEach(item=>{
+        const sum = item.summary||"";
+        const inicio = new Date(item.start.dateTime || item.start.date);
+        const fin = new Date(item.end.dateTime || item.end.date);
 
-const ev={
-titulo:limpiarTexto(sum),
-horaV:horaVisual(inicio),
-horaVoz:horaNatural(inicio),
-obj:inicio,
-objFin:fin,
-antelacion:antelacionHoras,
-esAlerta:antelacionHoras>=0,
-tipo:detectarTipo(sum),
-_avisado:false
-};
+        let antelacionHoras = 0;
+        if(sum.startsWith("***")) antelacionHoras=3;
+        else if(sum.startsWith("**")) antelacionHoras=2;
+        else if(sum.startsWith("*")) antelacionHoras=0;
+        else antelacionHoras=-1;
 
-if(inicio.toLocaleDateString()===hoyStr)eventosHoy.push(ev);
-else eventosManana.push(ev);
-});
-dibujar();
+        const ev={
+            titulo: limpiarTexto(sum),
+            horaV: horaVisualLimpia(inicio),
+            horaVoz: horaNatural(inicio),
+            obj: inicio,
+            objFin: fin,
+            antelacion: antelacionHoras,
+            esAlerta: antelacionHoras>=0
+        };
+        if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
+        else eventosManana.push(ev);
+    });
+    dibujarYEscalar();
 }
 
-function dibujar(){
-renderLista(eventosHoy,'lista-hoy','hoy');
-renderLista(eventosManana,'lista-manana','manana');
+function dibujarYEscalar(){
+    const opc={weekday:'long'};
+    const dHoy=new Date();
+    document.getElementById('txt-hoy').innerText="HOY "+dHoy.toLocaleDateString('es-ES',opc).toUpperCase();
+    const dMan=new Date(); dMan.setDate(dMan.getDate()+1);
+    document.getElementById('txt-manana').innerText="MAÑANA "+dMan.toLocaleDateString('es-ES',opc).toUpperCase();
+    renderLista(eventosHoy,'lista-hoy','hoy');
+    renderLista(eventosManana,'lista-manana','manana');
+    setTimeout(()=>{ajustarTexto('lista-hoy');ajustarTexto('lista-manana');},50);
 }
 
 function renderLista(lista,id,diaClave){
-const cont=document.getElementById(id);
-cont.innerHTML="";
-const ahora=new Date();
-let proximo=null;
-const futuro=lista.filter(e=>e.obj>ahora);
-if(futuro.length){futuro.sort((a,b)=>a.obj-b.obj); proximo=futuro[0];}
-lista.forEach(ev=>{
-if(ahora>ev.objFin)return;
-const div=document.createElement('div');
-const ahoraMismo=ahora>=ev.obj && ahora<=ev.objFin;
+    const cont=document.getElementById(id);
+    cont.innerHTML="";
+    const ahora=new Date();
+    lista.forEach(ev=>{
+        const div=document.createElement('div');
+        const haTerminado=ahora.getTime()>(ev.objFin.getTime()+60000);
+        let mostrarUrgente=false;
+        if(ev.esAlerta && !haTerminado){
+            const inicioAviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
+            if(ahora>=inicioAviso) mostrarUrgente=true;
+        }
+        div.className="evento "+(mostrarUrgente?'urgente-perma':'');
+        div.onclick=function(){
+            const prefijo=(diaClave==='hoy'?"Hoy a las ":"Mañana tienes a las ");
+            hablar(prefijo+ev.horaVoz+", "+ev.titulo);
+        };
+        div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
+        cont.appendChild(div);
+    });
+}
 
-let mostrarUrgente=ev.esAlerta; // siempre rojo si *
-
-div.className="evento "
-+(mostrarUrgente?'urgente-perma ':'')
-+(ahoraMismo?'evento-ahora ':'')
-+(proximo===ev?'evento-proximo ':'')
-+(ev.tipo);
-
-div.onclick=function(){
-const prefijo=(diaClave==='hoy'?"Hoy a las ":"Mañana a las ");
-hablar(prefijo+ev.horaVoz+", "+ev.titulo);
-};
-
-div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
-cont.appendChild(div);
-});
+function ajustarTexto(idContenedor){
+    const cont=document.getElementById(idContenedor);
+    const eventos=cont.getElementsByClassName('evento');
+    if(eventos.length===0) return;
+    let fontSizeP=3.5;
+    while(cont.scrollHeight>cont.clientHeight && fontSizeP>1.0){
+        fontSizeP-=0.1;
+        for(let ev of eventos){
+            ev.querySelector('h2').style.fontSize=(fontSizeP*0.7)+"vh";
+            ev.querySelector('p').style.fontSize=fontSizeP+"vh";
+        }
+    }
 }
 
 function hablar(t){
-window.speechSynthesis.cancel();
-const m=new SpeechSynthesisUtterance(t);
-m.lang='es-ES';
-m.rate=0.9;
-m.pitch=1;
-m.volume=1;
-window.speechSynthesis.speak(m);
+    window.speechSynthesis.cancel();
+    const m=new SpeechSynthesisUtterance(t);
+    m.lang='es-ES'; m.rate=0.9;
+    window.speechSynthesis.speak(m);
+}
+
+function sonarCampana(callback){
+    if(!audioContext) return callback();
+    const duration=15; const startTime=audioContext.currentTime;
+    for(let i=0;i<duration;i+=0.8){
+        [880,1100].forEach((freq,idx)=>{
+            const osc=audioContext.createOscillator();
+            const gain=audioContext.createGain();
+            osc.type='square';
+            osc.frequency.setValueAtTime(freq,startTime+i+(idx*0.1));
+            gain.gain.setValueAtTime(0,startTime+i+(idx*0.1));
+            gain.gain.linearRampToValueAtTime(0.3,startTime+i+(idx*0.1)+0.05);
+            gain.gain.linearRampToValueAtTime(0,startTime+i+(idx*0.1)+0.4);
+            osc.connect(gain); gain.connect(audioContext.destination);
+            osc.start(startTime+i+(idx*0.1)); osc.stop(startTime+i+(idx*0.1)+0.4);
+        });
+    }
+    setTimeout(callback,duration*1000);
+}
+
+function hablarTriple(mensaje){
+    let veces=0;
+    function repetir(){
+        if(veces<3){
+            const m=new SpeechSynthesisUtterance(mensaje);
+            m.lang='es-ES'; m.rate=0.9;
+            m.onend=()=>{veces++; setTimeout(repetir,1500);};
+            window.speechSynthesis.speak(m);
+        }
+    }
+    repetir();
 }
 
 function repasarDia(dia){
-let lista=(dia==='hoy')?eventosHoy:eventosManana;
-let texto=lista.map(ev=>`${ev.horaV} ${ev.titulo}`).join(". ");
-if(texto)hablar(texto);
+    const lista=dia==='hoy'?eventosHoy:eventosManana;
+    if(lista.length===0) return hablar("Nada anotado.");
+    let t=(dia==='hoy'?"Hoy tienes: ":"Mañana tienes: ");
+    lista.forEach(ev=>{ t+=`${ev.horaVoz}, ${ev.titulo}. `; });
+    hablar(t);
 }
 
-function avisoEvento(ev){
-const mensaje=`Mamá. Son las ${ev.horaVoz}. Ahora toca ${ev.titulo}`;
-hablar(mensaje);
-}
-
+// INTERVALO PRINCIPAL
 setInterval(()=>{
-const ahora=new Date();
-const seg=ahora.getSeconds();
-if(audioContext && audioContext.state==="suspended")audioContext.resume();
-[eventosHoy,eventosManana].forEach(lista=>{
-lista.forEach(ev=>{
-if(!ev.esAlerta)return;
-if(ahora.getHours()===ev.obj.getHours() &&
-   ahora.getMinutes()===ev.obj.getMinutes() &&
-   !ev._avisado){
-       avisoEvento(ev);
-       ev._avisado=true;
-}
-});
-});
-if(seg===0)dibujar();
+    const ahora=new Date();
+    const seg=ahora.getSeconds();
+    const min=ahora.getMinutes();
+    const hora=ahora.getHours();
+
+    eventosHoy.concat(eventosManana).forEach(ev=>{
+        if(!ev.esAlerta) return;
+        const esHoraReal=(ev.obj.getHours()===hora && ev.obj.getMinutes()===min && seg===0);
+        let esHoraAntelacion=false;
+        if(ev.antelacion>0){
+            const horaAviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
+            esHoraAntelacion=(horaAviso.getHours()===hora && horaAviso.getMinutes()===min && seg===0);
+        }
+        if(esHoraReal || esHoraAntelacion){
+            const mensaje=esHoraAntelacion?
+                `Aviso importante mamá. En ${ev.antelacion} horas tienes: ${ev.titulo}`:
+                `Atención mamá. Es hora de: ${ev.titulo}`;
+            sonarCampana(()=>{ hablarTriple(mensaje); });
+        }
+    });
+    if(seg===0) dibujarYEscalar();
 },1000);
 
+// RECARGA CALENDARIO Y WAKLOCK
 setInterval(cargarCalendario,300000);
-
-setInterval(()=>{
-if(Date.now()-ultimoOK>900000)location.reload();
-},60000);
-
-setInterval(()=>{
-if(window.speechSynthesis.speaking)window.speechSynthesis.cancel();
-},60000);
-
-setInterval(()=>{
-document.body.style.opacity="0.99";
-setTimeout(()=>document.body.style.opacity="1",50);
-},300000);
-
-setInterval(()=>{
-const n=new Date();
-document.getElementById("fecha-hora").innerText=
-n.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase()
-+"\n"+n.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
-},1000);
-
 window.onload=cargarCalendario;
 </script>
 </body>
