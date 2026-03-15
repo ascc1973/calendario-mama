@@ -15,6 +15,7 @@ height:100%;
 font-family:'Arial Black', Gadget, sans-serif;
 overflow:hidden;
 background:#000;
+padding-top:120px; /* espacio para fecha y hora */
 }
 
 #reloj{
@@ -29,8 +30,8 @@ z-index:1000;
 text-align:center;
 white-space:pre-line;
 background:rgba(0,0,0,0.5);
-padding:5px 10px;
-border-radius:8px;
+padding:8px 12px;
+border-radius:10px;
 }
 
 #btn-inicial{
@@ -51,10 +52,9 @@ text-transform:uppercase;
 
 .container{
 display:flex;
-height:100vh;
+height:calc(100vh - 120px); /* ajustado por el espacio de fecha */
 width:100vw;
 flex-direction:row;
-padding-top:90px; /* espacio para fecha y hora */
 }
 
 .col{
@@ -63,7 +63,7 @@ padding:5px;
 display:flex;
 flex-direction:column;
 box-sizing:border-box;
-height:100vh;
+height:100%;
 }
 
 .col-hoy{background-color:var(--hoy-bg);color:#000;border-right:3px solid #000;}
@@ -199,8 +199,6 @@ border:1px solid #000;
 const API_KEY='AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
 const CALENDAR_ID='28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
 
-
-
 let eventosHoy=[];
 let eventosManana=[];
 let audioContext;
@@ -326,7 +324,6 @@ window.speechSynthesis.speak(m);
 function avisoEvento(ev){
 const mensaje=`Mamá. Son las ${ev.horaVoz}. Ahora toca: ${ev.titulo}`;
 hablar(mensaje);
-// Repetición espaciada
 setTimeout(()=>hablar("Recuerda: "+ev.titulo),120000);
 setTimeout(()=>hablar("No olvides: "+ev.titulo),300000);
 }
@@ -339,50 +336,39 @@ hablar(ev.horaVoz+" "+ev.titulo);
 });
 }
 
-// === Lógica de avisos exacta como en tu primer código ===
+// === Lógica de avisos EXACTA como en tu código original ===
 setInterval(()=>{
 const ahora=new Date();
 if(audioContext && audioContext.state==="suspended")audioContext.resume();
 [eventosHoy,eventosManana].forEach(lista=>{
 lista.forEach(ev=>{
 if(!ev.esAlerta)return;
-const inicioAviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
-const finAviso=ev.objFin;
-if(ahora>=inicioAviso && ahora<=finAviso){
-if(!ev._avisado){
+// Condición original: hora y minuto exacto
+if(ahora.getHours()===ev.obj.getHours() && ahora.getMinutes()===ev.obj.getMinutes() && !ev._avisado){
 avisoEvento(ev);
 ev._avisado=true;
 }
+// reset para próximos días o eventos recurrentes
+if(ahora.getHours()!==ev.obj.getHours() || ahora.getMinutes()!==ev.obj.getMinutes()){
+ev._avisado=false;
 }
-if(ahora<inicioAviso) ev._avisado=false;
 });
 });
 dibujar();
 },1000);
 
+// Otras protecciones 24/7
 setInterval(cargarCalendario,300000);
-setInterval(()=>{
-if(Date.now()-ultimoOK>900000)location.reload();
-},60000);
-setInterval(()=>{
-if(window.speechSynthesis.speaking)window.speechSynthesis.cancel();
-},60000);
-setInterval(()=>{
-document.body.style.opacity="0.99";
-setTimeout(()=>document.body.style.opacity="1",50);
-},300000);
-
+setInterval(()=>{if(Date.now()-ultimoOK>900000)location.reload();},60000);
+setInterval(()=>{if(window.speechSynthesis.speaking)window.speechSynthesis.cancel();},60000);
+setInterval(()=>{document.body.style.opacity="0.99"; setTimeout(()=>document.body.style.opacity="1",50);},300000);
 setInterval(()=>{
 const n=new Date();
 document.getElementById("reloj").innerHTML=
 n.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase()
 +"\n"+n.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
 },1000);
-
-setInterval(()=>{
-const ahora=new Date();
-if(ahora.getHours()===4 && ahora.getMinutes()===0 && ahora.getSeconds()===0)location.reload();
-},1000);
+setInterval(()=>{const ahora=new Date();if(ahora.getHours()===4 && ahora.getMinutes()===0 && ahora.getSeconds()===0)location.reload();},1000);
 
 window.onload=cargarCalendario;
 
