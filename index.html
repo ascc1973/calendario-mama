@@ -5,12 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Calendario para Mamá</title>
 <style>
-:root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
+:root { --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
 html, body { margin:0; padding:0; height:100%; font-family:'Arial Black', sans-serif; background:#000; overflow:hidden; }
-#btn-inicial { position: fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999;
+#btn-inicial { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999;
   background:#ff0000; color:#fff; font-size:5vh; font-weight:bold; border:none; cursor:pointer; text-transform:uppercase; }
-#reloj { position: fixed; top:0; left:0; width:100%; text-align:center; font-size:3.5vh; color:#FFF; z-index:1000; }
-.container { display:flex; height:100vh; width:100vw; padding-top:5vh; box-sizing:border-box; }
+#reloj { position:fixed; top:0; left:0; width:100%; text-align:center; font-size:3vh; color:#fff; z-index:1000;
+  background:rgba(0,0,0,0.5); padding:5px 0; }
+.container { display:flex; height:100vh; width:100vw; padding-top:6vh; box-sizing:border-box; }
 .col { width:50%; padding:5px; display:flex; flex-direction:column; box-sizing:border-box; }
 .col-hoy { background-color:var(--hoy-bg); color:#000; border-right:3px solid #000; }
 .col-manana { background-color:var(--manana-bg); color:#FFF; }
@@ -47,16 +48,16 @@ h1 { font-size:2.2vh; margin:2px 0; text-align:center; text-transform:uppercase;
 <script>
 const API_KEY='AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
 const CALENDAR_ID='28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
-let eventosHoy=[], eventosManana=[], audioContext, idsAvisados=new Set(), sistemaActivado=false;
+let eventosHoy=[], eventosManana=[], audioContext, sistemaActivado=false;
 
 function iniciarApp(){
   document.getElementById('btn-inicial').style.display='none';
   document.documentElement.requestFullscreen?.();
-  audioContext = new (window.AudioContext||window.webkitAudioContext)();
+  audioContext=new (window.AudioContext||window.webkitAudioContext)();
   audioContext.resume();
   window.speechSynthesis.getVoices();
   if(!sistemaActivado){ hablar("Sistema activado"); sistemaActivado=true; }
-  
+
   setInterval(latidoSilencioso,30000);
   cargarCalendario();
   setInterval(cargarCalendario,60000);
@@ -65,8 +66,8 @@ function iniciarApp(){
 }
 
 function latidoSilencioso(){
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
+  const osc=audioContext.createOscillator();
+  const gain=audioContext.createGain();
   gain.gain.value=0.001;
   osc.connect(gain); gain.connect(audioContext.destination);
   osc.start(); osc.stop(audioContext.currentTime+0.1);
@@ -74,26 +75,23 @@ function latidoSilencioso(){
 
 function actualizarReloj(){
   const d=new Date();
-  const h=(d.getHours()<10?'0':'')+d.getHours();
-  const m=(d.getMinutes()<10?'0':'')+d.getMinutes();
-  document.getElementById('reloj').innerText=h+":"+m;
+  const dias=['DOMINGO','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO'];
+  const dia=dias[d.getDay()]; const fecha=d.getDate();
+  let h=d.getHours(); let m=d.getMinutes();
+  if(h===0) h=12; else if(h>12) h-=12;
+  h=(h<10?'0':'')+h; m=(m<10?'0':'')+m;
+  document.getElementById('reloj').innerText=dia+" "+fecha+" - "+h+":"+m;
 }
 
 function limpiarTexto(t){ return t.replace(/\*/g,'').trim(); }
-
-function horaNatural(fecha){
-  let h=fecha.getHours(), m=fecha.getMinutes(), period=h>=12?'de la tarde':'de la mañana';
-  if(h>12) h-=12; if(h===0) h=12;
-  return h+(m===0?'':' y '+m)+' '+period;
-}
+function hora12(fecha){ let h=fecha.getHours(); let m=fecha.getMinutes(); if(h===0) h=12; else if(h>12) h-=12;
+return (h<10?'0':'')+h+":"+(m<10?'0':'')+m; }
 
 async function cargarCalendario(){
   const min=new Date(); min.setHours(0,0,0,0);
   const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
-  try{
-    const r=await fetch(url,{cache:'no-store'}); const d=await r.json();
-    document.getElementById('status-dot').style.backgroundColor='#4CAF50';
-    if(d.items) organizarEventos(d.items);
+  try{ const r=await fetch(url); const d=await r.json(); document.getElementById('status-dot').style.backgroundColor='#4CAF50';
+      if(d.items) organizarEventos(d.items);
   }catch(e){ document.getElementById('status-dot').style.backgroundColor='#F44336'; }
 }
 
@@ -112,13 +110,13 @@ function organizarEventos(items){
     const ev={
       id:item.id+inicio.getTime(),
       titulo:limpiarTexto(sum),
-      horaV:inicio.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',hour12:true}),
-      horaVoz:horaNatural(inicio),
+      horaV:hora12(inicio),
+      horaVoz:hora12(inicio),
       obj:inicio,
       objFin:fin,
       antelacion:ant,
       esAlerta:ant>=0,
-      avisado: false
+      avisado:false
     };
     if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
     else eventosManana.push(ev);
@@ -127,8 +125,7 @@ function organizarEventos(items){
 }
 
 function dibujarYEscalar(){
-  const opc={weekday:'long'};
-  const dHoy=new Date();
+  const opc={weekday:'long'}; const dHoy=new Date();
   document.getElementById('txt-hoy').innerText="HOY "+dHoy.toLocaleDateString('es-ES',opc).toUpperCase();
   const dMan=new Date(); dMan.setDate(dMan.getDate()+1);
   document.getElementById('txt-manana').innerText="MAÑANA "+dMan.toLocaleDateString('es-ES',opc).toUpperCase();
@@ -149,7 +146,7 @@ function renderLista(lista,id,dia){
       if(ahora>=inicioAviso) mostrarUrgente=true;
     }
     div.className="evento "+(mostrarUrgente?'urgente-perma':'');
-    div.onclick=()=>{ hablarTriple(dia==='hoy'?"Hoy a las "+ev.horaVoz+", ":"Mañana a las "+ev.horaVoz+", "+ev.titulo); ev.avisado=true; idsAvisados.add(ev.id); };
+    div.onclick=()=>{ hablarTriple(dia==='hoy'?"Hoy a las "+ev.horaVoz+", ":"Mañana a las "+ev.horaVoz+", "+ev.titulo); ev.avisado=true; };
     div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
     cont.appendChild(div);
   });
@@ -157,22 +154,13 @@ function renderLista(lista,id,dia){
 
 function ajustarTexto(id){
   const cont=document.getElementById(id);
-  const eventos=cont.getElementsByClassName('evento');
-  if(eventos.length===0) return;
-  let fontSizeP=3.5;
-  while(cont.scrollHeight>cont.clientHeight && fontSizeP>1.0){
-    fontSizeP-=0.1;
-    for(let ev of eventos){
-      ev.querySelector('h2').style.fontSize=(fontSizeP*0.7)+"vh";
-      ev.querySelector('p').style.fontSize=fontSizeP+"vh";
-    }
+  const eventos=cont.getElementsByClassName('evento'); if(eventos.length===0) return;
+  let fontSizeP=3.5; while(cont.scrollHeight>cont.clientHeight && fontSizeP>1.0){ fontSizeP-=0.1;
+    for(let ev of eventos){ ev.querySelector('h2').style.fontSize=(fontSizeP*0.7)+"vh"; ev.querySelector('p').style.fontSize=fontSizeP+"vh"; }
   }
 }
 
-function hablar(t){
-  window.speechSynthesis.cancel();
-  const m=new SpeechSynthesisUtterance(t); m.lang='es-ES'; m.rate=0.8; window.speechSynthesis.speak(m);
-}
+function hablar(t){ window.speechSynthesis.cancel(); const m=new SpeechSynthesisUtterance(t); m.lang='es-ES'; m.rate=0.8; window.speechSynthesis.speak(m); }
 
 function sonarCampana(callback){
   if(!audioContext) return callback();
@@ -192,13 +180,11 @@ function sonarCampana(callback){
   setTimeout(callback,duration*1000);
 }
 
-function hablarTriple(mensaje){
+function hablarTriple(msg){
   let veces=0;
-  function repetir(){
-    if(veces<3){ const m=new SpeechSynthesisUtterance(mensaje); m.lang='es-ES'; m.rate=0.8;
-      m.onend=()=>{veces++; setTimeout(repetir,1500);}
-      window.speechSynthesis.speak(m);
-    }
+  function repetir(){ if(veces<3){ const m=new SpeechSynthesisUtterance(msg); m.lang='es-ES'; m.rate=0.8;
+    m.onend=()=>{ veces++; setTimeout(repetir,1500); };
+    window.speechSynthesis.speak(m); }
   }
   repetir();
 }
@@ -207,7 +193,7 @@ function repasarDia(dia){
   const lista=dia==='hoy'?eventosHoy:eventosManana;
   if(lista.length===0) return hablar("Nada anotado.");
   let t=dia==='hoy'?"Hoy tienes: ":"Mañana tienes: ";
-  lista.forEach(ev=>{t+=`${ev.horaVoz}, ${ev.titulo}. `;});
+  lista.forEach(ev=>{ t+=`${ev.horaVoz}, ${ev.titulo}. `; });
   hablar(t);
 }
 
@@ -216,18 +202,13 @@ function verificarAlertas(){
   const hora=ahora.getHours(); const min=ahora.getMinutes();
   eventosHoy.concat(eventosManana).forEach(ev=>{
     if(!ev.esAlerta) return;
-    const avisoReal=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
-    if(hora===avisoReal.getHours() && min===avisoReal.getMinutes() && !idsAvisados.has(ev.id)){
-      sonarCampana(()=>{ hablarTriple((ev.antelacion>0?"Aviso importante mamá. En "+ev.antelacion+" horas ":"Atención mamá. Es hora de: ")+ev.titulo); });
-      idsAvisados.add(ev.id);
+    const inicioAviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
+    if(hora===inicioAviso.getHours() && min===inicioAviso.getMinutes() && !ev.avisado){
+      sonarCampana(()=>{ hablarTriple(ev.antelacion>0?"Aviso importante mamá. En "+ev.antelacion+" horas ":"Atención mamá. Es hora de: "+ev.titulo); });
+      ev.avisado=true;
     }
-    // Repetir cada minuto hasta tocar
-    if(ev.avisado===false && ahora>=avisoReal && ahora<=ev.objFin){
-      if(!idsAvisados.has(ev.id+"_repetir")){
-        sonarCampana(()=>{ hablarTriple("Recuerda: "+ev.titulo); });
-        idsAvisados.add(ev.id+"_repetir");
-        setTimeout(()=>idsAvisados.delete(ev.id+"_repetir"),60000);
-      }
+    if(ev.avisado===false && ahora>=inicioAviso && ahora<=ev.objFin){
+      if(!ev._repetido){ sonarCampana(()=>{ hablarTriple("Recuerda: "+ev.titulo); }); ev._repetido=true; setTimeout(()=>{ev._repetido=false;},60000); }
     }
   });
 }
