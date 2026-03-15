@@ -6,7 +6,7 @@
     <title>Calendario Mamá</title>
     <style>
         :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', Gadget, sans-serif; overflow: hidden; background: #000; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', sans-serif; overflow: hidden; background: #000; }
         #btn-f-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             z-index: 9999; font-size: 30px; font-weight: bold;
@@ -51,21 +51,38 @@
 
     let eventosHoy = [];
     let eventosManana = [];
-    let idsAvisados = new Set(); // Para no repetir el aviso del mismo evento
+    let idsAvisados = new Set();
+    let audioContext;
 
-    function iniciarSistema() {
+    async function iniciarSistema() {
+        // 1. Ocultar botón
         document.getElementById('btn-f-screen').style.display = 'none';
-        // Desbloqueo de audio
-        const setupVoice = () => {
-            const m = new SpeechSynthesisUtterance("");
-            window.speechSynthesis.speak(m);
-        };
-        setupVoice();
+
+        // 2. Activar Audio Context para "engañar" al navegador
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // 3. Forzar carga de voces
+        window.speechSynthesis.getVoices();
+        
+        // 4. Latido de silencio cada 30 seg para mantener la web despierta
+        setInterval(() => {
+            if(audioContext) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                gain.gain.value = 0.001; // Casi inaudible
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.start();
+                osc.stop(audioContext.currentTime + 0.1);
+            }
+        }, 30000);
+
+        hablar("Sistema encendido");
         cargarCalendario();
-        // Chequeo del reloj cada 10 segundos para mayor precisión
-        setInterval(verificarAlertas, 10000);
-        // Recarga de calendario cada 2 minutos
-        setInterval(cargarCalendario, 120000);
+        
+        // Verificación continua
+        setInterval(verificarAlertas, 5000); // Cada 5 segundos para no perder el minuto
+        setInterval(cargarCalendario, 60000); // Recargar datos cada minuto
     }
 
     async function cargarCalendario() {
@@ -88,7 +105,7 @@
         items.forEach(item => {
             const inicio = new Date(item.start.dateTime || item.start.date);
             const ev = {
-                id: item.id,
+                id: item.id + inicio.getTime(), // ID único combinado con tiempo
                 titulo: (item.summary || "Sin título").replace(/\*/g, '').trim(),
                 horaV: inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true }),
                 obj: inicio,
@@ -102,22 +119,35 @@
 
     function verificarAlertas() {
         const ahora = new Date();
-        const horaActual = ahora.getHours();
-        const minutoActual = ahora.getMinutes();
+        const horaAhora = ahora.getHours();
+        const minAhora = ahora.getMinutes();
 
         eventosHoy.forEach(ev => {
             const horaEv = ev.obj.getHours();
             const minEv = ev.obj.getMinutes();
 
-            // Si es la hora exacta y no hemos avisado este ID todavía
-            if (horaEv === horaActual && minEv === minutoActual && !idsAvisados.has(ev.id)) {
-                hablar(`Atención mamá, son las ${ev.horaV}. Te toca: ${ev.titulo}`);
-                idsAvisados.add(ev.id);
+            // Si coincide hora y minuto Y no se ha avisado
+            if (horaEv === horaAhora && minEv === minAhora) {
+                if (!idsAvisados.has(ev.id)) {
+                    console.log("¡Lanzando aviso de voz para:", ev.titulo);
+                    hablar(`Atención mamá, son las ${ev.horaV}. Tienes: ${ev.titulo}`);
+                    idsAvisados.add(ev.id);
+                }
             }
         });
+    }
+
+    function hablar(t) {
+        // Cancelar cualquier voz previa
+        window.speechSynthesis.cancel();
         
-        // Limpiar IDs antiguos a medianoche para que puedan volver a sonar mañana
-        if (horaActual === 0 && minutoActual === 0) idsAvisados.clear();
+        const m = new SpeechSynthesisUtterance(t);
+        m.lang = 'es-ES';
+        m.rate = 0.8;
+        m.volume = 1.0;
+
+        // Intentar hablar
+        window.speechSynthesis.speak(m);
     }
 
     function dibujarYEscalar() {
@@ -149,14 +179,6 @@
                 e.querySelector('p').style.fontSize = size + "vh";
             }
         }
-    }
-
-    function hablar(t) {
-        window.speechSynthesis.cancel();
-        const m = new SpeechSynthesisUtterance(t);
-        m.lang = 'es-ES';
-        m.rate = 0.9;
-        window.speechSynthesis.speak(m);
     }
 
     function repasarDia(dia) {
