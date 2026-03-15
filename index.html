@@ -7,7 +7,10 @@
 
 <style>
 
-:root { --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
+:root{
+--hoy-bg:#FFEB3B;
+--manana-bg:#1A237E;
+}
 
 body,html{
 margin:0;
@@ -16,6 +19,29 @@ height:100%;
 font-family:'Arial Black',sans-serif;
 overflow:hidden;
 background:#000;
+}
+
+#reloj{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+text-align:center;
+font-size:3vh;
+background:rgba(0,0,0,0.85);
+color:#fff;
+padding:8px 0;
+z-index:500;
+letter-spacing:1px;
+}
+
+.container{
+display:flex;
+height:100vh;
+width:100vw;
+flex-direction:row;
+display:none;
+padding-top:60px;
 }
 
 #btn-inicial{
@@ -34,21 +60,13 @@ cursor:pointer;
 text-transform:uppercase;
 }
 
-.container{
-display:flex;
-height:100vh;
-width:100vw;
-flex-direction:row;
-display:none;
-}
-
 .col{
 width:50%;
 padding:5px;
 display:flex;
 flex-direction:column;
 box-sizing:border-box;
-height:100vh;
+height:100%;
 }
 
 .col-hoy{
@@ -96,12 +114,11 @@ background:white;
 color:#000;
 padding:7px;
 border-radius:10px;
-border:2.5px solid #333;
+border:3px solid #333;
 display:flex;
 flex-direction:column;
 justify-content:center;
 flex-shrink:1;
-min-height:0;
 cursor:pointer;
 }
 
@@ -110,7 +127,6 @@ margin:0;
 color:#d32f2f;
 line-height:1;
 font-size:2.5vh;
-pointer-events:none;
 }
 
 .evento p{
@@ -118,49 +134,49 @@ margin:2px 0 0;
 font-weight:bold;
 line-height:1.1;
 font-size:2.8vh;
-pointer-events:none;
 }
 
 .urgente-perma{
-border:2.5px solid #ff0000 !important;
-animation:parpadeo-alerta 1s linear infinite !important;
+border:6px solid #ff0000 !important;
+animation:parpadeo-alerta 0.8s linear infinite !important;
 }
 
 @keyframes parpadeo-alerta{
 
 0%{
+background:#00ff00;
 border-color:#ff0000;
-background:#fff0f0;
 }
 
 50%{
-border-color:transparent;
 background:#ffffff;
+border-color:#ffffff;
 }
 
 100%{
+background:#00ff00;
 border-color:#ff0000;
-background:#fff0f0;
 }
 
 }
 
 #status-dot{
 position:fixed;
-top:3px;
-right:3px;
+top:5px;
+right:5px;
 width:8px;
 height:8px;
 border-radius:50%;
 background:#4CAF50;
 z-index:1000;
-border:1px solid #000;
 }
 
 </style>
 </head>
 
 <body>
+
+<div id="reloj"></div>
 
 <button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
 
@@ -190,8 +206,8 @@ const CALENDAR_ID='28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8
 let eventosHoy=[];
 let eventosManana=[];
 let idsAvisados=new Set();
-let audioContext;
 let alarmasActivas={};
+let audioContext;
 
 function iniciarSistema(){
 
@@ -205,32 +221,33 @@ document.documentElement.requestFullscreen();
 audioContext=new (window.AudioContext||window.webkitAudioContext)();
 audioContext.resume();
 
-const voicesReady=()=>new Promise(resolve=>{
-let voices=speechSynthesis.getVoices();
-if(voices.length>0) resolve();
-else speechSynthesis.onvoiceschanged=()=>resolve();
-});
-
-voicesReady().then(()=>{
+speechSynthesis.onvoiceschanged=()=>{};
 
 hablar("Sistema activado");
 
 cargarCalendario();
 
-setInterval(()=>{
-const osc=audioContext.createOscillator();
-const gain=audioContext.createGain();
-gain.gain.value=0.001;
-osc.connect(gain);
-gain.connect(audioContext.destination);
-osc.start();
-osc.stop(audioContext.currentTime+0.1);
-},30000);
-
 setInterval(verificarAlertas,5000);
 setInterval(cargarCalendario,60000);
+setInterval(actualizarReloj,1000);
 
-});
+}
+
+function actualizarReloj(){
+
+const ahora=new Date();
+
+let h=ahora.getHours();
+let m=ahora.getMinutes();
+
+if(h>12)h-=12;
+if(h===0)h=12;
+
+if(m<10)m="0"+m;
+
+const texto=ahora.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
+
+document.getElementById("reloj").innerText=texto+"   "+h+":"+m;
 
 }
 
@@ -242,13 +259,6 @@ let m=f.getMinutes();
 if(h>12)h-=12;
 if(h===0)h=12;
 return h+":"+(m<10?'0'+m:m);
-}
-
-function horaNatural(f){
-let h=f.getHours(),m=f.getMinutes(),p=h>=12?'de la tarde':'de la mañana';
-if(h>12)h-=12;
-if(h===0)h=12;
-return h+(m===0?'':' y '+m)+' '+p;
 }
 
 async function cargarCalendario(){
@@ -265,11 +275,11 @@ const d=await r.json();
 
 if(d.items) organizarEventos(d.items);
 
-document.getElementById('status-dot').style.backgroundColor='#4CAF50';
+document.getElementById('status-dot').style.background='#4CAF50';
 
-}catch(e){
+}catch{
 
-document.getElementById('status-dot').style.backgroundColor='#F44336';
+document.getElementById('status-dot').style.background='#F44336';
 
 }
 
@@ -290,13 +300,14 @@ const ev={
 id:item.id+inicio.getTime(),
 titulo:limpiarTexto(item.summary||"Sin título"),
 horaV:horaVisualLimpia(inicio),
-horaVoz:horaNatural(inicio),
 obj:inicio,
 esAlerta:(item.summary||"").includes("*")
 };
 
-if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
-else eventosManana.push(ev);
+if(inicio.toLocaleDateString()===hoyStr)
+eventosHoy.push(ev);
+else
+eventosManana.push(ev);
 
 });
 
@@ -317,11 +328,6 @@ document.getElementById('txt-manana').innerText="MAÑANA "+dMan.toLocaleDateStri
 renderLista(eventosHoy,'lista-hoy');
 renderLista(eventosManana,'lista-manana');
 
-setTimeout(()=>{
-ajustarTexto('lista-hoy');
-ajustarTexto('lista-manana');
-},100);
-
 }
 
 function renderLista(lista,id){
@@ -333,52 +339,30 @@ const ahora=new Date();
 
 lista.forEach(ev=>{
 
-const haTerminado=ahora.getTime()>(ev.obj.getTime()+3600000);
+const fin=ev.obj.getTime()+3600000;
 
-if(haTerminado) return;
+if(ahora.getTime()>fin) return;
 
 const div=document.createElement('div');
 
-let mostrarUrgente=false;
+let activo=ahora>=ev.obj && ahora<=fin;
 
-if(ev.esAlerta && ahora>=ev.obj && !haTerminado) mostrarUrgente=true;
-
-div.className="evento "+(mostrarUrgente?'urgente-perma':'');
+div.className="evento "+(activo?"urgente-perma":"");
 
 div.onclick=()=>{
 cancelarAlarma(ev.id);
-hablar((id==='lista-hoy'?"Hoy a las ":"Mañana a las ")+ev.horaVoz+", "+ev.titulo);
+hablar(ev.titulo);
 };
 
 div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
 
 cont.appendChild(div);
 
+if(activo && !alarmasActivas[ev.id]){
+iniciarAlarma(ev);
+}
+
 });
-
-}
-
-function ajustarTexto(id){
-
-const cont=document.getElementById(id);
-const eventos=cont.getElementsByClassName('evento');
-
-if(eventos.length===0) return;
-
-let fontSizeP=3.5;
-
-while(cont.scrollHeight>cont.clientHeight && fontSizeP>1.0){
-
-fontSizeP-=0.1;
-
-for(let ev of eventos){
-
-ev.querySelector('h2').style.fontSize=(fontSizeP*0.7)+"vh";
-ev.querySelector('p').style.fontSize=fontSizeP+"vh";
-
-}
-
-}
 
 }
 
@@ -389,26 +373,26 @@ window.speechSynthesis.cancel();
 const m=new SpeechSynthesisUtterance(t);
 m.lang='es-ES';
 m.rate=0.9;
-m.volume=1.0;
 
-window.speechSynthesis.speak(m);
+speechSynthesis.speak(m);
 
 }
 
 function hablarTresVeces(texto){
 
-let repeticiones=0;
+let rep=0;
 
 function repetir(){
 
-if(repeticiones>=3) return;
+if(rep>=3) return;
 
 const u=new SpeechSynthesisUtterance(texto);
+
 u.lang='es-ES';
 u.rate=0.9;
 
 u.onend=()=>{
-repeticiones++;
+rep++;
 repetir();
 };
 
@@ -422,18 +406,19 @@ repetir();
 
 function iniciarAlarma(ev){
 
-hablarTresVeces(`Atención mamá, son las ${ev.horaV}. Tienes: ${ev.titulo}`);
+hablarTresVeces(`Atención mamá, son las ${ev.horaV}. Tienes ${ev.titulo}`);
 
 alarmasActivas[ev.id]=setInterval(()=>{
 
 const ahora=new Date();
+const fin=ev.obj.getTime()+3600000;
 
-if(ahora.getTime()>ev.obj.getTime()+3600000){
+if(ahora.getTime()>fin){
 cancelarAlarma(ev.id);
 return;
 }
 
-hablarTresVeces(`Atención mamá, son las ${ev.horaV}. Tienes: ${ev.titulo}`);
+hablarTresVeces(`Atención mamá, son las ${ev.horaV}. Tienes ${ev.titulo}`);
 
 },120000);
 
@@ -452,12 +437,15 @@ function repasarDia(dia){
 
 const lista=(dia==='hoy'?eventosHoy:eventosManana);
 
-if(lista.length===0) return hablar("Nada anotado.");
+if(lista.length===0){
+hablar("Nada anotado");
+return;
+}
 
-let t=(dia==='hoy'?"Hoy tienes: ":"Mañana tienes: ");
+let t=(dia==='hoy'?"Hoy tienes ":"Mañana tienes ");
 
 lista.forEach(ev=>{
-t+=ev.horaVoz+", "+ev.titulo+". ";
+t+=ev.horaV+" "+ev.titulo+". ";
 });
 
 hablar(t);
@@ -467,9 +455,8 @@ hablar(t);
 function verificarAlertas(){
 
 const ahora=new Date();
-
-const horaAhora=ahora.getHours();
-const minAhora=ahora.getMinutes();
+const h=ahora.getHours();
+const m=ahora.getMinutes();
 
 [eventosHoy,eventosManana].forEach(lista=>{
 
@@ -478,7 +465,7 @@ lista.forEach(ev=>{
 const horaEv=ev.obj.getHours();
 const minEv=ev.obj.getMinutes();
 
-if(horaEv===horaAhora && minEv===minAhora && !idsAvisados.has(ev.id)){
+if(horaEv===h && minEv===m && !idsAvisados.has(ev.id)){
 
 idsAvisados.add(ev.id);
 
@@ -493,5 +480,6 @@ iniciarAlarma(ev);
 }
 
 </script>
+
 </body>
 </html>
