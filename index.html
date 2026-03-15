@@ -6,211 +6,199 @@
 <title>Calendario para Mamá</title>
 <style>
 :root { --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
-html, body { margin:0; padding:0; height:100%; font-family:'Arial Black', sans-serif; background:#000; overflow:hidden; }
-#btn-inicial { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999;
-  background:#ff0000; color:#fff; font-size:5vh; font-weight:bold; border:none; cursor:pointer; text-transform:uppercase; }
-#reloj { position:fixed; top:0; left:0; width:100%; text-align:center; font-size:3vh; color:#fff; z-index:1000;
-  background:rgba(0,0,0,0.5); padding:5px 0; }
-.container { display:flex; height:100vh; width:100vw; padding-top:6vh; box-sizing:border-box; }
-.col { width:50%; padding:5px; display:flex; flex-direction:column; box-sizing:border-box; }
-.col-hoy { background-color:var(--hoy-bg); color:#000; border-right:3px solid #000; }
-.col-manana { background-color:var(--manana-bg); color:#FFF; }
-h1 { font-size:2.2vh; margin:2px 0; text-align:center; text-transform:uppercase; white-space:nowrap; overflow:hidden; }
-.btn-repaso { width:100%; padding:8px 2px; font-size:1.6vh; font-weight:bold; border-radius:8px; border:2px solid #000; margin-bottom:5px; background:#fff; cursor:pointer; color:#000; flex-shrink:0; text-transform:uppercase; }
-.lista-eventos { flex-grow:1; display:flex; flex-direction:column; gap:4px; overflow:hidden; }
-.evento { background:white; color:#000; padding:7px; border-radius:10px; border:2.5px solid #333; display:flex; flex-direction:column; justify-content:center; flex-shrink:1; min-height:0; box-sizing:border-box; width:100%; background-clip:padding-box; cursor:pointer; }
-.evento h2 { margin:0; color:#d32f2f; line-height:1; font-size:2.5vh; pointer-events:none; }
-.evento p { margin:2px 0 0; font-weight:bold; line-height:1.1; font-size:2.8vh; pointer-events:none; }
-.urgente-perma { border:2.5px solid #ff0000 !important; animation:blinker-completo 1s linear infinite !important; background-color:#fff0f0; }
-@keyframes blinker-completo { 0%{border-color:#ff0000;}50%{border-color:transparent;}100%{border-color:#ff0000;} }
-#status-dot { position:fixed; top:3px; right:3px; width:8px; height:8px; border-radius:50%; background:#4CAF50; z-index:1000; border:1px solid #000; }
+body,html{margin:0;padding:0;height:100%;font-family:'Arial Black',sans-serif;overflow:hidden;background:#000;}
+#btn-inicial{
+    position:fixed;top:0;left:0;width:100vw;height:100vh;
+    background:#ff0000;color:white;font-size:5vh;font-weight:bold;
+    border:none;z-index:9999;cursor:pointer;text-transform:uppercase;
+}
+.container{display:flex;height:100vh;width:100vw;flex-direction:row;display:none;}
+.col{width:50%;padding:5px;display:flex;flex-direction:column;box-sizing:border-box;height:100vh;}
+.col-hoy{background-color:var(--hoy-bg);color:#000;border-right:3px solid #000;}
+.col-manana{background-color:var(--manana-bg);color:#FFF;}
+h1{font-size:2.2vh;margin:2px 0;text-align:center;text-transform:uppercase;}
+.btn-repaso{width:100%;padding:8px 2px;font-size:1.6vh;font-weight:bold;border-radius:8px;border:2px solid #000;margin-bottom:5px;background:#fff;cursor:pointer;color:#000;text-transform:uppercase;}
+.lista-eventos{flex-grow:1;display:flex;flex-direction:column;gap:4px;overflow:hidden;}
+.evento{background:white;color:#000;padding:7px;border-radius:10px;border:2.5px solid #333;display:flex;flex-direction:column;justify-content:center;flex-shrink:1;min-height:0;cursor:pointer;}
+.evento h2{margin:0;color:#d32f2f;line-height:1;font-size:2.5vh;pointer-events:none;}
+.evento p{margin:2px 0 0;font-weight:bold;line-height:1.1;font-size:2.8vh;pointer-events:none;}
+.urgente-perma{border:2.5px solid #ff0000 !important;animation:blinker-completo 1s linear infinite !important;background-color:#fff0f0;}
+@keyframes blinker-completo{0%{border-color:#ff0000;}50%{border-color:transparent;}100%{border-color:#ff0000;}}
+#status-dot{position:fixed;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#4CAF50;z-index:1000;border:1px solid #000;}
+#reloj{position:fixed;top:10px;width:100%;text-align:center;color:#FFF;font-size:3vh;font-weight:bold;z-index:1000;}
 </style>
 </head>
 <body>
 
+<button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
 <div id="status-dot"></div>
 <div id="reloj"></div>
-<button id="btn-inicial" onclick="iniciarApp()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
 
 <div class="container">
-  <div class="col col-hoy">
-    <h1 id="txt-hoy">HOY</h1>
-    <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
-    <div id="lista-hoy" class="lista-eventos"></div>
-  </div>
-  <div class="col col-manana">
-    <h1 id="txt-manana">MAÑANA</h1>
-    <button class="btn-repaso" onclick="repasarDia('manana')" style="border-color:#FFF;">🔊 TODO MAÑANA</button>
-    <div id="lista-manana" class="lista-eventos"></div>
-  </div>
+    <div class="col col-hoy">
+        <h1 id="txt-hoy">HOY</h1>
+        <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
+        <div id="lista-hoy" class="lista-eventos"></div>
+    </div>
+    <div class="col col-manana">
+        <h1 id="txt-manana">MAÑANA</h1>
+        <button class="btn-repaso" onclick="repasarDia('manana')" style="border-color:#FFF;">🔊 TODO MAÑANA</button>
+        <div id="lista-manana" class="lista-eventos"></div>
+    </div>
 </div>
 
 <script>
 const API_KEY='AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
 const CALENDAR_ID='28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
-let eventosHoy=[], eventosManana=[], audioContext, sistemaActivado=false;
+let eventosHoy=[],eventosManana=[],idsAvisados=new Set(),audioContext;
 
-function iniciarApp(){
-  document.getElementById('btn-inicial').style.display='none';
-  document.documentElement.requestFullscreen?.();
-  audioContext=new (window.AudioContext||window.webkitAudioContext)();
-  audioContext.resume();
-  window.speechSynthesis.getVoices();
-  if(!sistemaActivado){ hablar("Sistema activado"); sistemaActivado=true; }
+function iniciarSistema(){
+    document.getElementById('btn-inicial').style.display='none';
+    document.querySelector('.container').style.display='flex';
+    if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
 
-  setInterval(latidoSilencioso,30000);
-  cargarCalendario();
-  setInterval(cargarCalendario,60000);
-  setInterval(verificarAlertas,1000);
-  setInterval(actualizarReloj,1000);
-}
+    audioContext=new (window.AudioContext||window.webkitAudioContext)();
+    audioContext.resume();
 
-function latidoSilencioso(){
-  const osc=audioContext.createOscillator();
-  const gain=audioContext.createGain();
-  gain.gain.value=0.001;
-  osc.connect(gain); gain.connect(audioContext.destination);
-  osc.start(); osc.stop(audioContext.currentTime+0.1);
+    const voicesReady=()=>new Promise(resolve=>{
+        let voices=speechSynthesis.getVoices();
+        if(voices.length>0) resolve();
+        else speechSynthesis.onvoiceschanged=()=>resolve();
+    });
+
+    voicesReady().then(()=>{
+        hablar("Sistema activado");
+        cargarCalendario();
+
+        // Latido silencioso para desbloquear audio
+        setInterval(()=>{
+            const osc=audioContext.createOscillator();
+            const gain=audioContext.createGain();
+            gain.gain.value=0.001;
+            osc.connect(gain); gain.connect(audioContext.destination);
+            osc.start(); osc.stop(audioContext.currentTime+0.1);
+        },30000);
+
+        setInterval(verificarAlertas,5000);
+        setInterval(cargarCalendario,60000);
+        setInterval(actualizarReloj,1000);
+    });
 }
 
 function actualizarReloj(){
-  const d=new Date();
-  const dias=['DOMINGO','LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO'];
-  const dia=dias[d.getDay()]; const fecha=d.getDate();
-  let h=d.getHours(); let m=d.getMinutes();
-  if(h===0) h=12; else if(h>12) h-=12;
-  h=(h<10?'0':'')+h; m=(m<10?'0':'')+m;
-  document.getElementById('reloj').innerText=dia+" "+fecha+" - "+h+":"+m;
+    const ahora=new Date();
+    const h=(ahora.getHours()>12?ahora.getHours()-12:ahora.getHours()||12);
+    const m=(ahora.getMinutes()<10?'0':'')+ahora.getMinutes();
+    const s=(ahora.getSeconds()<10?'0':'')+ahora.getSeconds();
+    document.getElementById('reloj').innerText=`${h}:${m}:${s}`;
 }
 
 function limpiarTexto(t){ return t.replace(/\*/g,'').trim(); }
-function hora12(fecha){ let h=fecha.getHours(); let m=fecha.getMinutes(); if(h===0) h=12; else if(h>12) h-=12;
-return (h<10?'0':'')+h+":"+(m<10?'0':'')+m; }
+function horaVisualLimpia(f){ let h=f.getHours(); let m=f.getMinutes(); if(h>12)h-=12;if(h===0)h=12; return h+":"+(m<10?'0'+m:m); }
+function horaNatural(f){ let h=f.getHours(),m=f.getMinutes(),p=h>=12?'de la tarde':'de la mañana'; if(h>12)h-=12;if(h===0)h=12; return h+(m===0?'':' y '+m)+' '+p; }
 
 async function cargarCalendario(){
-  const min=new Date(); min.setHours(0,0,0,0);
-  const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
-  try{ const r=await fetch(url); const d=await r.json(); document.getElementById('status-dot').style.backgroundColor='#4CAF50';
-      if(d.items) organizarEventos(d.items);
-  }catch(e){ document.getElementById('status-dot').style.backgroundColor='#F44336'; }
+    const min=new Date(); min.setHours(0,0,0,0);
+    const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
+    try{
+        const r=await fetch(url);
+        const d=await r.json();
+        if(d.items) organizarEventos(d.items);
+        document.getElementById('status-dot').style.backgroundColor='#4CAF50';
+    }catch(e){document.getElementById('status-dot').style.backgroundColor='#F44336';}
 }
 
 function organizarEventos(items){
-  const hoyStr=new Date().toLocaleDateString();
-  eventosHoy=[]; eventosManana=[];
-  items.forEach(item=>{
-    const sum=item.summary||"";
-    const inicio=new Date(item.start.dateTime||item.start.date);
-    const fin=new Date(item.end.dateTime||item.end);
-    let ant=0;
-    if(sum.startsWith('***')) ant=3;
-    else if(sum.startsWith('**')) ant=2;
-    else if(sum.startsWith('*')) ant=0;
-    else ant=-1;
-    const ev={
-      id:item.id+inicio.getTime(),
-      titulo:limpiarTexto(sum),
-      horaV:hora12(inicio),
-      horaVoz:hora12(inicio),
-      obj:inicio,
-      objFin:fin,
-      antelacion:ant,
-      esAlerta:ant>=0,
-      avisado:false
-    };
-    if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
-    else eventosManana.push(ev);
-  });
-  dibujarYEscalar();
+    const hoyStr=new Date().toLocaleDateString();
+    eventosHoy=[];eventosManana=[];
+    items.forEach(item=>{
+        const inicio=new Date(item.start.dateTime||item.start.date);
+        const ev={
+            id:item.id+inicio.getTime(),
+            titulo:limpiarTexto(item.summary||"Sin título"),
+            horaV:horaVisualLimpia(inicio),
+            horaVoz:horaNatural(inicio),
+            obj:inicio,
+            esAlerta:(item.summary||"").includes("*")
+        };
+        if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
+        else eventosManana.push(ev);
+    });
+    dibujarYEscalar();
 }
 
 function dibujarYEscalar(){
-  const opc={weekday:'long'}; const dHoy=new Date();
-  document.getElementById('txt-hoy').innerText="HOY "+dHoy.toLocaleDateString('es-ES',opc).toUpperCase();
-  const dMan=new Date(); dMan.setDate(dMan.getDate()+1);
-  document.getElementById('txt-manana').innerText="MAÑANA "+dMan.toLocaleDateString('es-ES',opc).toUpperCase();
-  renderLista(eventosHoy,'lista-hoy','hoy');
-  renderLista(eventosManana,'lista-manana','manana');
-  setTimeout(()=>{ajustarTexto('lista-hoy'); ajustarTexto('lista-manana');},50);
+    const dHoy=new Date();
+    document.getElementById('txt-hoy').innerText="HOY "+dHoy.toLocaleDateString('es-ES',{weekday:'long'}).toUpperCase();
+    const dMan=new Date(); dMan.setDate(dMan.getDate()+1);
+    document.getElementById('txt-manana').innerText="MAÑANA "+dMan.toLocaleDateString('es-ES',{weekday:'long'}).toUpperCase();
+    renderLista(eventosHoy,'lista-hoy'); renderLista(eventosManana,'lista-manana');
+    setTimeout(()=>{ ajustarTexto('lista-hoy'); ajustarTexto('lista-manana'); },100);
 }
 
-function renderLista(lista,id,dia){
-  const cont=document.getElementById(id); cont.innerHTML='';
-  const ahora=new Date();
-  lista.forEach(ev=>{
-    const div=document.createElement('div');
-    let haTerminado=ahora.getTime()>(ev.objFin.getTime()+60000);
-    let mostrarUrgente=false;
-    if(ev.esAlerta && !haTerminado){
-      const inicioAviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
-      if(ahora>=inicioAviso) mostrarUrgente=true;
-    }
-    div.className="evento "+(mostrarUrgente?'urgente-perma':'');
-    div.onclick=()=>{ hablarTriple(dia==='hoy'?"Hoy a las "+ev.horaVoz+", ":"Mañana a las "+ev.horaVoz+", "+ev.titulo); ev.avisado=true; };
-    div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
-    cont.appendChild(div);
-  });
+function renderLista(lista,id){
+    const cont=document.getElementById(id); cont.innerHTML="";
+    const ahora=new Date();
+    lista.forEach(ev=>{
+        const div=document.createElement('div');
+        const haTerminado = ahora.getTime()>(ev.obj.getTime()+60000);
+        let mostrarUrgente=false;
+        if(ev.esAlerta&&!haTerminado) mostrarUrgente=true;
+        div.className="evento "+(mostrarUrgente?'urgente-perma':'');
+        div.onclick=()=>hablar((id==='lista-hoy'?"Hoy a las ":"Mañana a las ")+ev.horaVoz+", "+ev.titulo);
+        div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
+        cont.appendChild(div);
+    });
 }
 
 function ajustarTexto(id){
-  const cont=document.getElementById(id);
-  const eventos=cont.getElementsByClassName('evento'); if(eventos.length===0) return;
-  let fontSizeP=3.5; while(cont.scrollHeight>cont.clientHeight && fontSizeP>1.0){ fontSizeP-=0.1;
-    for(let ev of eventos){ ev.querySelector('h2').style.fontSize=(fontSizeP*0.7)+"vh"; ev.querySelector('p').style.fontSize=fontSizeP+"vh"; }
-  }
+    const cont=document.getElementById(id);
+    const eventos=cont.getElementsByClassName('evento');
+    if(eventos.length===0) return;
+    let fontSizeP=3.5;
+    while(cont.scrollHeight>cont.clientHeight && fontSizeP>1.0){
+        fontSizeP-=0.1;
+        for(let ev of eventos){
+            ev.querySelector('h2').style.fontSize=(fontSizeP*0.7)+"vh";
+            ev.querySelector('p').style.fontSize=fontSizeP+"vh";
+        }
+    }
 }
 
-function hablar(t){ window.speechSynthesis.cancel(); const m=new SpeechSynthesisUtterance(t); m.lang='es-ES'; m.rate=0.8; window.speechSynthesis.speak(m); }
-
-function sonarCampana(callback){
-  if(!audioContext) return callback();
-  const duration=15; const startTime=audioContext.currentTime;
-  for(let i=0;i<duration;i+=0.8){
-    [880,1100].forEach((freq,idx)=>{
-      const osc=audioContext.createOscillator();
-      const gain=audioContext.createGain();
-      osc.type='square'; osc.frequency.setValueAtTime(freq,startTime+i+(idx*0.1));
-      gain.gain.setValueAtTime(0,startTime+i+(idx*0.1));
-      gain.gain.linearRampToValueAtTime(0.3,startTime+i+(idx*0.1)+0.05);
-      gain.gain.linearRampToValueAtTime(0,startTime+i+(idx*0.1)+0.4);
-      osc.connect(gain); gain.connect(audioContext.destination);
-      osc.start(startTime+i+(idx*0.1)); osc.stop(startTime+i+(idx*0.1)+0.4);
-    });
-  }
-  setTimeout(callback,duration*1000);
-}
-
-function hablarTriple(msg){
-  let veces=0;
-  function repetir(){ if(veces<3){ const m=new SpeechSynthesisUtterance(msg); m.lang='es-ES'; m.rate=0.8;
-    m.onend=()=>{ veces++; setTimeout(repetir,1500); };
-    window.speechSynthesis.speak(m); }
-  }
-  repetir();
+function hablar(t){
+    window.speechSynthesis.cancel();
+    let veces=0;
+    function repetir(){
+        if(veces<3){
+            const m=new SpeechSynthesisUtterance(t);
+            m.lang='es-ES'; m.rate=0.9; m.volume=1.0;
+            m.onend=()=>{veces++; setTimeout(repetir,500);};
+            window.speechSynthesis.speak(m);
+        }
+    }
+    repetir();
 }
 
 function repasarDia(dia){
-  const lista=dia==='hoy'?eventosHoy:eventosManana;
-  if(lista.length===0) return hablar("Nada anotado.");
-  let t=dia==='hoy'?"Hoy tienes: ":"Mañana tienes: ";
-  lista.forEach(ev=>{ t+=`${ev.horaVoz}, ${ev.titulo}. `; });
-  hablar(t);
+    const lista=(dia==='hoy'?eventosHoy:eventosManana);
+    if(lista.length===0) return hablar("Nada anotado.");
+    let t=(dia==='hoy'?"Hoy tienes: ":"Mañana tienes: ");
+    lista.forEach(ev=>{ t+=ev.horaVoz+", "+ev.titulo+". "; });
+    hablar(t);
 }
 
 function verificarAlertas(){
-  const ahora=new Date();
-  const hora=ahora.getHours(); const min=ahora.getMinutes();
-  eventosHoy.concat(eventosManana).forEach(ev=>{
-    if(!ev.esAlerta) return;
-    const inicioAviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
-    if(hora===inicioAviso.getHours() && min===inicioAviso.getMinutes() && !ev.avisado){
-      sonarCampana(()=>{ hablarTriple(ev.antelacion>0?"Aviso importante mamá. En "+ev.antelacion+" horas ":"Atención mamá. Es hora de: "+ev.titulo); });
-      ev.avisado=true;
-    }
-    if(ev.avisado===false && ahora>=inicioAviso && ahora<=ev.objFin){
-      if(!ev._repetido){ sonarCampana(()=>{ hablarTriple("Recuerda: "+ev.titulo); }); ev._repetido=true; setTimeout(()=>{ev._repetido=false;},60000); }
-    }
-  });
+    const ahora=new Date();
+    const horaAhora=ahora.getHours(),minAhora=ahora.getMinutes();
+    [eventosHoy,eventosManana].forEach(lista=>{
+        lista.forEach(ev=>{
+            const horaEv=ev.obj.getHours(),minEv=ev.obj.getMinutes();
+            if(horaEv===horaAhora && minEv===minAhora && !idsAvisados.has(ev.id)){
+                idsAvisados.add(ev.id);
+                hablar(`Atención mamá, son las ${ev.horaV}. Tienes: ${ev.titulo}`);
+            }
+        });
+    });
 }
 </script>
 </body>
