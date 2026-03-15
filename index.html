@@ -5,32 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Calendario para Mamá</title>
 <style>
-:root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
-body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', sans-serif; overflow: hidden; background: #000; }
-#btn-inicial {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: #ff0000; color: white; font-size: 5vh; font-weight: bold;
-    border: none; z-index: 9999; cursor: pointer; text-transform: uppercase;
+:root { --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
+body,html{margin:0;padding:0;height:100%;font-family:'Arial Black',sans-serif;overflow:hidden;background:#000;}
+#btn-inicial{
+    position:fixed;top:0;left:0;width:100vw;height:100vh;
+    background:#ff0000;color:white;font-size:5vh;font-weight:bold;
+    border:none;z-index:9999;cursor:pointer;text-transform:uppercase;
 }
-.container { display: flex; height: 100vh; width: 100vw; flex-direction: row; display:none; }
-.col { width: 50%; padding: 5px; display: flex; flex-direction: column; box-sizing: border-box; height: 100vh; }
-.col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 3px solid #000; }
-.col-manana { background-color: var(--manana-bg); color: #FFF; }
-h1 { font-size: 2.2vh; margin: 2px 0; text-align: center; text-transform: uppercase; }
-.btn-repaso { width: 100%; padding: 8px 2px; font-size: 1.6vh; font-weight: bold; border-radius: 8px; border: 2px solid #000; margin-bottom: 5px; background: #fff; cursor: pointer; color: #000; text-transform: uppercase; }
-.lista-eventos { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
-.evento { background: white; color: #000; padding: 7px; border-radius: 10px; border: 2.5px solid #333; display: flex; flex-direction: column; justify-content: center; flex-shrink: 1; min-height: 0; cursor: pointer; }
-.evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; pointer-events: none; }
-.evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 2.8vh; pointer-events: none; }
-.urgente-perma { border: 2.5px solid #ff0000 !important; animation: blinker-completo 1s linear infinite !important; background-color: #fff0f0; }
-@keyframes blinker-completo { 0% { border-color: #ff0000; } 50% { border-color: transparent; } 100% { border-color: #ff0000; } }
-#status-dot { position: fixed; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 1px solid #000; }
+.container{display:flex;height:100vh;width:100vw;flex-direction:row;display:none;}
+.col{width:50%;padding:5px;display:flex;flex-direction:column;box-sizing:border-box;height:100vh;}
+.col-hoy{background-color:var(--hoy-bg);color:#000;border-right:3px solid #000;}
+.col-manana{background-color:var(--manana-bg);color:#FFF;}
+h1{font-size:2.2vh;margin:2px 0;text-align:center;text-transform:uppercase;}
+.btn-repaso{width:100%;padding:8px 2px;font-size:1.6vh;font-weight:bold;border-radius:8px;border:2px solid #000;margin-bottom:5px;background:#fff;cursor:pointer;color:#000;text-transform:uppercase;}
+.lista-eventos{flex-grow:1;display:flex;flex-direction:column;gap:4px;overflow:hidden;}
+.evento{background:white;color:#000;padding:7px;border-radius:10px;border:2.5px solid #333;display:flex;flex-direction:column;justify-content:center;flex-shrink:1;min-height:0;cursor:pointer;}
+.evento h2{margin:0;color:#d32f2f;line-height:1;font-size:2.5vh;pointer-events:none;}
+.evento p{margin:2px 0 0;font-weight:bold;line-height:1.1;font-size:2.8vh;pointer-events:none;}
+.urgente-perma{border:2.5px solid #ff0000 !important;animation:blinker-completo 1s linear infinite !important;background-color:#fff0f0;}
+@keyframes blinker-completo{0%{border-color:#ff0000;}50%{border-color:transparent;}100%{border-color:#ff0000;}}
+#status-dot{position:fixed;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#4CAF50;z-index:1000;border:1px solid #000;}
+#reloj{position:fixed;top:10px;width:100%;text-align:center;color:#FFF;font-size:3vh;font-weight:bold;z-index:1000;}
 </style>
 </head>
 <body>
 
-<button id="btn-inicial" onclick="iniciarSistema()">PULSAR PARA ACTIVAR CALENDARIO Y SONIDO</button>
+<button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
 <div id="status-dot"></div>
+<div id="reloj"></div>
 
 <div class="container">
     <div class="col col-hoy">
@@ -40,57 +42,64 @@ h1 { font-size: 2.2vh; margin: 2px 0; text-align: center; text-transform: upperc
     </div>
     <div class="col col-manana">
         <h1 id="txt-manana">MAÑANA</h1>
-        <button class="btn-repaso" onclick="repasarDia('manana')" style="border-color: #FFF;">🔊 TODO MAÑANA</button>
+        <button class="btn-repaso" onclick="repasarDia('manana')" style="border-color:#FFF;">🔊 TODO MAÑANA</button>
         <div id="lista-manana" class="lista-eventos"></div>
     </div>
 </div>
 
 <script>
-const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
-const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
+const API_KEY='AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
+const CALENDAR_ID='28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
+let eventosHoy=[],eventosManana=[],idsAvisados=new Set(),audioContext;
 
-let eventosHoy = [], eventosManana = [], idsAvisados = new Set(), audioContext;
+function iniciarSistema(){
+    document.getElementById('btn-inicial').style.display='none';
+    document.querySelector('.container').style.display='flex';
+    if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
 
-function iniciarSistema() {
-    document.getElementById('btn-inicial').style.display = 'none';
-    document.querySelector('.container').style.display = 'flex';
-
-    // Activar audio
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    audioContext=new (window.AudioContext||window.webkitAudioContext)();
     audioContext.resume();
 
-    // Esperar voces listas
-    const voicesReady = () => new Promise(resolve => {
-        let voices = speechSynthesis.getVoices();
+    const voicesReady=()=>new Promise(resolve=>{
+        let voices=speechSynthesis.getVoices();
         if(voices.length>0) resolve();
-        else speechSynthesis.onvoiceschanged = () => resolve();
+        else speechSynthesis.onvoiceschanged=()=>resolve();
     });
 
-    voicesReady().then(()=> {
+    voicesReady().then(()=>{
         hablar("Sistema activado");
         cargarCalendario();
 
-        // Latido silencioso
-        setInterval(()=> {
-            const osc = audioContext.createOscillator();
-            const gain = audioContext.createGain();
-            gain.gain.value = 0.001;
+        // Latido silencioso para desbloquear audio
+        setInterval(()=>{
+            const osc=audioContext.createOscillator();
+            const gain=audioContext.createGain();
+            gain.gain.value=0.001;
             osc.connect(gain); gain.connect(audioContext.destination);
             osc.start(); osc.stop(audioContext.currentTime+0.1);
         },30000);
 
-        setInterval(verificarAlertas, 5000);
-        setInterval(cargarCalendario, 60000);
+        setInterval(verificarAlertas,5000);
+        setInterval(cargarCalendario,60000);
+        setInterval(actualizarReloj,1000);
     });
+}
+
+function actualizarReloj(){
+    const ahora=new Date();
+    const h=(ahora.getHours()>12?ahora.getHours()-12:ahora.getHours()||12);
+    const m=(ahora.getMinutes()<10?'0':'')+ahora.getMinutes();
+    const s=(ahora.getSeconds()<10?'0':'')+ahora.getSeconds();
+    document.getElementById('reloj').innerText=`${h}:${m}:${s}`;
 }
 
 function limpiarTexto(t){ return t.replace(/\*/g,'').trim(); }
 function horaVisualLimpia(f){ let h=f.getHours(); let m=f.getMinutes(); if(h>12)h-=12;if(h===0)h=12; return h+":"+(m<10?'0'+m:m); }
 function horaNatural(f){ let h=f.getHours(),m=f.getMinutes(),p=h>=12?'de la tarde':'de la mañana'; if(h>12)h-=12;if(h===0)h=12; return h+(m===0?'':' y '+m)+' '+p; }
 
-async function cargarCalendario() {
-    const min = new Date(); min.setHours(0,0,0,0);
-    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
+async function cargarCalendario(){
+    const min=new Date(); min.setHours(0,0,0,0);
+    const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
     try{
         const r=await fetch(url);
         const d=await r.json();
@@ -101,10 +110,17 @@ async function cargarCalendario() {
 
 function organizarEventos(items){
     const hoyStr=new Date().toLocaleDateString();
-    eventosHoy=[]; eventosManana=[];
+    eventosHoy=[];eventosManana=[];
     items.forEach(item=>{
         const inicio=new Date(item.start.dateTime||item.start.date);
-        const ev={ id:item.id+inicio.getTime(), titulo:limpiarTexto(item.summary||"Sin título"), horaV:horaVisualLimpia(inicio), horaVoz:horaNatural(inicio), obj:inicio, esAlerta:(item.summary||"").includes("*") };
+        const ev={
+            id:item.id+inicio.getTime(),
+            titulo:limpiarTexto(item.summary||"Sin título"),
+            horaV:horaVisualLimpia(inicio),
+            horaVoz:horaNatural(inicio),
+            obj:inicio,
+            esAlerta:(item.summary||"").includes("*")
+        };
         if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
         else eventosManana.push(ev);
     });
@@ -121,14 +137,13 @@ function dibujarYEscalar(){
 }
 
 function renderLista(lista,id){
-    const cont=document.getElementById(id);
-    cont.innerHTML="";
+    const cont=document.getElementById(id); cont.innerHTML="";
     const ahora=new Date();
     lista.forEach(ev=>{
         const div=document.createElement('div');
-        const haTerminado = ahora.getTime() > (ev.obj.getTime()+60000);
+        const haTerminado = ahora.getTime()>(ev.obj.getTime()+60000);
         let mostrarUrgente=false;
-        if(ev.esAlerta && !haTerminado) mostrarUrgente=true;
+        if(ev.esAlerta&&!haTerminado) mostrarUrgente=true;
         div.className="evento "+(mostrarUrgente?'urgente-perma':'');
         div.onclick=()=>hablar((id==='lista-hoy'?"Hoy a las ":"Mañana a las ")+ev.horaVoz+", "+ev.titulo);
         div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
@@ -152,9 +167,16 @@ function ajustarTexto(id){
 
 function hablar(t){
     window.speechSynthesis.cancel();
-    const m=new SpeechSynthesisUtterance(t);
-    m.lang='es-ES'; m.rate=0.9; m.volume=1.0;
-    window.speechSynthesis.speak(m);
+    let veces=0;
+    function repetir(){
+        if(veces<3){
+            const m=new SpeechSynthesisUtterance(t);
+            m.lang='es-ES'; m.rate=0.9; m.volume=1.0;
+            m.onend=()=>{veces++; setTimeout(repetir,500);};
+            window.speechSynthesis.speak(m);
+        }
+    }
+    repetir();
 }
 
 function repasarDia(dia){
@@ -167,10 +189,10 @@ function repasarDia(dia){
 
 function verificarAlertas(){
     const ahora=new Date();
-    const horaAhora=ahora.getHours(), minAhora=ahora.getMinutes();
+    const horaAhora=ahora.getHours(),minAhora=ahora.getMinutes();
     [eventosHoy,eventosManana].forEach(lista=>{
         lista.forEach(ev=>{
-            const horaEv=ev.obj.getHours(), minEv=ev.obj.getMinutes();
+            const horaEv=ev.obj.getHours(),minEv=ev.obj.getMinutes();
             if(horaEv===horaAhora && minEv===minAhora && !idsAvisados.has(ev.id)){
                 idsAvisados.add(ev.id);
                 hablar(`Atención mamá, son las ${ev.horaV}. Tienes: ${ev.titulo}`);
