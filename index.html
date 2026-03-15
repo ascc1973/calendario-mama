@@ -349,7 +349,22 @@ function avisoEvento(ev){
   setTimeout(()=>hablar("Recuerda "+ev.titulo),120000);
   setTimeout(()=>hablar("No olvides "+ev.titulo),300000);
 }
-
+function repasarDia(dia){
+    let lista = dia === 'hoy' ? eventosHoy : eventosManana;
+    if(!lista.length) {
+        hablar("No hay eventos para " + dia);
+        return;
+    }
+    
+    // Hablar cada evento con un pequeño retraso entre ellos
+    let delay = 0;
+    lista.forEach(ev => {
+        setTimeout(()=>{
+            hablar(`A las ${ev.horaVoz}, ${ev.titulo}`);
+        }, delay);
+        delay += 4000; // 4 segundos entre eventos, puedes ajustar
+    });
+}
 setInterval(()=>{
   const ahora=new Date();
   const seg=ahora.getSeconds();
