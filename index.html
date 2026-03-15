@@ -19,13 +19,18 @@ background:#000;
 
 #reloj{
 position:fixed;
-top:5px;
-left:5px;
+top:0;
+left:0;
+width:100%;
+padding:5px;
 font-size:3vh;
 font-weight:bold;
 color:white;
 z-index:1000;
-text-align:left;
+text-align:center;
+background:rgba(0,0,0,0.6);
+line-height:1.2em;
+white-space:pre-line;
 }
 
 #btn-inicial{
@@ -49,6 +54,8 @@ display:flex;
 height:100vh;
 width:100vw;
 flex-direction:row;
+padding-top:5vh; /* espacio para reloj */
+box-sizing:border-box;
 }
 
 .col{
@@ -57,7 +64,7 @@ padding:5px;
 display:flex;
 flex-direction:column;
 box-sizing:border-box;
-height:100vh;
+height:100%;
 }
 
 .col-hoy{background-color:var(--hoy-bg);color:#000;border-right:3px solid #000;}
@@ -200,7 +207,6 @@ let audioContext;
 let ultimoOK=Date.now();
 
 function iniciarApp(){
-
 let elem=document.documentElement;
 if(elem.requestFullscreen)elem.requestFullscreen();
 
@@ -216,12 +222,9 @@ hablar("Sistema activado");
 document.getElementById('btn-inicial').style.display='none';
 
 cargarCalendario();
-
 }
 
-function limpiarTexto(t){
-return t.replace(/\*/g,'').trim();
-}
+function limpiarTexto(t){return t.replace(/\*/g,'').trim();}
 
 function horaNatural(fecha){
 let h=fecha.getHours();
@@ -242,56 +245,39 @@ return h+':'+(m<10?'0'+m:m);
 
 function detectarTipo(t){
 t=t.toLowerCase();
-
 if(t.includes("pastilla")||t.includes("medicina")||t.includes("insulina")) return "tipo-medicina";
 if(t.includes("médico")||t.includes("doctor")) return "tipo-medico";
 if(t.includes("hijo")||t.includes("familia")) return "tipo-familiar";
-
 return "";
 }
 
 async function cargarCalendario(){
-
 const min=new Date();
 min.setHours(0,0,0,0);
-
 const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
 
 try{
-
 const r=await fetch(url,{cache:'no-store'});
 const d=await r.json();
-
 document.getElementById('status-dot').style.backgroundColor='#4CAF50';
-
 ultimoOK=Date.now();
-
 if(d.items)organizarEventos(d.items);
-
 }catch(e){
-
 document.getElementById('status-dot').style.backgroundColor='#F44336';
-
 }
-
 }
 
 function organizarEventos(items){
-
 const hoyStr=new Date().toLocaleDateString();
-
 eventosHoy=[];
 eventosManana=[];
 
 items.forEach(item=>{
-
 const sum=item.summary||"";
-
 const inicio=new Date(item.start.dateTime||item.start.date);
 const fin=new Date(item.end.dateTime||item.end.date);
 
 let antelacionHoras=0;
-
 if(sum.startsWith("***"))antelacionHoras=3;
 else if(sum.startsWith("**"))antelacionHoras=2;
 else if(sum.startsWith("*"))antelacionHoras=0;
@@ -310,50 +296,32 @@ tipo:detectarTipo(sum)
 
 if(inicio.toLocaleDateString()===hoyStr)eventosHoy.push(ev);
 else eventosManana.push(ev);
-
 });
 
 dibujar();
-
 }
 
 function dibujar(){
-
 renderLista(eventosHoy,'lista-hoy','hoy');
 renderLista(eventosManana,'lista-manana','manana');
-
 }
 
 function renderLista(lista,id,diaClave){
-
 const cont=document.getElementById(id);
 cont.innerHTML="";
-
 const ahora=new Date();
-
 let proximo=null;
-
 const futuro=lista.filter(e=>e.obj>ahora);
-
-if(futuro.length){
-futuro.sort((a,b)=>a.obj-b.obj);
-proximo=futuro[0];
-}
+if(futuro.length){futuro.sort((a,b)=>a.obj-b.obj); proximo=futuro[0];}
 
 lista.forEach(ev=>{
-
 if(ahora>ev.objFin)return;
 
 const div=document.createElement('div');
-
 const ahoraMismo=ahora>=ev.obj && ahora<=ev.objFin;
 
-let mostrarUrgente=false;
-
-if(ev.esAlerta){
-const inicioAviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
-if(ahora>=inicioAviso)mostrarUrgente=true;
-}
+// Mostrar borde rojo para eventos con *
+let mostrarUrgente=ev.esAlerta;
 
 div.className="evento "
 +(mostrarUrgente?'urgente-perma ':'')
@@ -367,41 +335,28 @@ hablar(prefijo+ev.horaVoz+", "+ev.titulo);
 };
 
 div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
-
 cont.appendChild(div);
-
 });
-
 }
 
 function hablar(t){
-
 window.speechSynthesis.cancel();
-
 const m=new SpeechSynthesisUtterance(t);
-
 m.lang='es-ES';
-m.rate=0.75;
+m.rate=1.05; // más rápido que antes
 m.pitch=1;
 m.volume=1;
-
 window.speechSynthesis.speak(m);
-
 }
 
 function avisoEvento(ev){
-
 const mensaje=`Mamá. Son las ${ev.horaVoz}. Ahora toca ${ev.titulo}`;
-
 hablar(mensaje);
-
 setTimeout(()=>hablar("Recuerda "+ev.titulo),120000);
 setTimeout(()=>hablar("No olvides "+ev.titulo),300000);
-
 }
 
 setInterval(()=>{
-
 const ahora=new Date();
 const seg=ahora.getSeconds();
 const min=ahora.getMinutes();
@@ -410,44 +365,32 @@ const hora=ahora.getHours();
 if(audioContext && audioContext.state==="suspended")audioContext.resume();
 
 eventosHoy.forEach(ev=>{
-
 if(!ev.esAlerta)return;
-
 const esHoraReal=(ev.obj.getHours()===hora && ev.obj.getMinutes()===min && seg===0);
-
 let esHoraAntelacion=false;
-
 if(ev.antelacion>0){
-
 const aviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
-
 esHoraAntelacion=(aviso.getHours()===hora && aviso.getMinutes()===min && seg===0);
-
 }
-
 if(esHoraReal||esHoraAntelacion)avisoEvento(ev);
-
 });
 
 if(seg===0)dibujar();
-
 },1000);
 
 setInterval(cargarCalendario,300000);
-
 setInterval(()=>{
 if(Date.now()-ultimoOK>900000)location.reload();
 },60000);
-
 setInterval(()=>{
 if(window.speechSynthesis.speaking)window.speechSynthesis.cancel();
 },60000);
-
 setInterval(()=>{
 document.body.style.opacity="0.99";
 setTimeout(()=>document.body.style.opacity="1",50);
 },300000);
 
+// Reloj con fecha completa arriba
 setInterval(()=>{
 const n=new Date();
 document.getElementById("reloj").innerText=
@@ -455,6 +398,7 @@ n.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUppe
 +"\n"+n.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
 },1000);
 
+// Recarga diaria 4:00
 setInterval(()=>{
 const ahora=new Date();
 if(ahora.getHours()===4 && ahora.getMinutes()===0 && ahora.getSeconds()===0)location.reload();
