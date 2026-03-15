@@ -1,193 +1,191 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Calendario Mamá</title>
-    <style>
-        :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', sans-serif; overflow: hidden; background: #000; }
-        #btn-f-screen {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: 9999; font-size: 30px; font-weight: bold;
-            background: #ff0000; color: white; border: none; cursor: pointer;
-        }
-        .container { display: flex; height: 100vh; width: 100vw; }
-        .col { width: 50%; padding: 8px; display: flex; flex-direction: column; box-sizing: border-box; }
-        .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 4px solid #000; }
-        .col-manana { background-color: var(--manana-bg); color: #FFF; }
-        h1 { font-size: 2.5vh; margin: 5px 0; text-align: center; }
-        .btn-repaso { width: 100%; padding: 12px 2px; font-size: 2vh; font-weight: bold; border-radius: 10px; border: 3px solid #000; margin-bottom: 10px; background: #fff; }
-        .lista-eventos { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
-        .evento { background: white; color: #000; padding: 10px; border-radius: 15px; border: 4px solid #333; }
-        .evento h2 { margin: 0; color: #d32f2f; font-size: 3vh; }
-        .evento p { margin: 4px 0 0; font-weight: bold; font-size: 3.5vh; }
-        .urgente-siempre { border: 10px solid #ff0000 !important; animation: blinker 0.8s linear infinite !important; }
-        @keyframes blinker { 0% { border-color: #ff0000; } 50% { border-color: transparent; } 100% { border-color: #ff0000; } }
-        #status-dot { position: fixed; top: 10px; right: 10px; width: 12px; height: 12px; border-radius: 50%; background: #4CAF50; z-index: 1000; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Calendario para Mamá</title>
+<style>
+    :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
+    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', sans-serif; overflow: hidden; background: #000; }
+
+    #btn-inicial {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #ff0000; color: white; font-size: 5vh; font-weight: bold;
+        border: none; z-index: 9999; cursor: pointer; text-transform: uppercase;
+    }
+
+    .container { display: flex; height: 100vh; width: 100vw; flex-direction: row; }
+    .col { width: 50%; padding: 5px; display: flex; flex-direction: column; box-sizing: border-box; height: 100vh; }
+    .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 3px solid #000; }
+    .col-manana { background-color: var(--manana-bg); color: #FFF; }
+
+    h1 { font-size: 2.2vh; margin: 2px 0; text-align: center; text-transform: uppercase; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 8px; }
+
+    .btn-repaso { 
+        width: 100%; padding: 8px 2px; font-size: 1.6vh; font-weight: bold; 
+        border-radius: 8px; border: 2px solid #000; margin-bottom: 5px;
+        background: #fff; cursor: pointer; color: #000; flex-shrink: 0; text-transform: uppercase;
+    }
+
+    .lista-eventos { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+
+    .evento { 
+        background: white; color: #000; padding: 7px; border-radius: 10px; 
+        border: 2.5px solid #333; display: flex; flex-direction: column;
+        justify-content: center; flex-shrink: 1; min-height: 0; box-sizing: border-box;
+        width: 100%; background-clip: padding-box; cursor: pointer;
+    }
+
+    .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; pointer-events: none; }
+    .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 2.8vh; word-wrap: break-word; pointer-events: none; }
+
+    .urgente-perma { 
+        border: 2.5px solid #ff0000 !important; 
+        animation: blinker-completo 1s linear infinite !important;
+        background-color: #fff0f0; 
+    }
+
+    @keyframes blinker-completo { 
+        0% { border-color: #ff0000; box-shadow: 0 0 0 0.5px #ff0000 inset; }
+        50% { border-color: transparent; box-shadow: 0 0 0 0.5px transparent inset; }
+        100% { border-color: #ff0000; box-shadow: 0 0 0 0.5px #ff0000 inset; }
+    }
+
+    #status-dot { position: fixed; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 1px solid #000; }
+</style>
 </head>
 <body>
 
+<button id="btn-inicial" onclick="iniciarApp()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
 <div id="status-dot"></div>
-<button id="btn-f-screen" onclick="iniciarSistema()">PULSA AQUÍ PARA EMPEZAR</button>
 
 <div class="container">
     <div class="col col-hoy">
-        <h1>HOY</h1>
-        <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 ESCUCHAR HOY</button>
+        <h1 id="txt-hoy">HOY</h1>
+        <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
         <div id="lista-hoy" class="lista-eventos"></div>
     </div>
     <div class="col col-manana">
-        <h1>MAÑANA</h1>
-        <button class="btn-repaso" onclick="repasarDia('manana')" style="border-color: #FFF;">🔊 ESCUCHAR MAÑANA</button>
+        <h1 id="txt-manana">MAÑANA</h1>
+        <button class="btn-repaso" onclick="repasarDia('manana')" style="border-color: #FFF;">🔊 TODO MAÑANA</button>
         <div id="lista-manana" class="lista-eventos"></div>
     </div>
 </div>
 
 <script>
-    const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
-    const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
+const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
+const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
 
-    let eventosHoy = [];
-    let eventosManana = [];
-    let idsAvisados = new Set();
-    let audioContext;
+let eventosHoy = [], eventosManana = [], idsAvisados = new Set();
+let audioContext;
 
-    async function iniciarSistema() {
-        // 1. Ocultar botón
-        document.getElementById('btn-f-screen').style.display = 'none';
+function iniciarApp() {
+    document.getElementById('btn-inicial').style.display = 'none';
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    window.speechSynthesis.getVoices();
 
-        // 2. Activar Audio Context para "engañar" al navegador
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // 3. Forzar carga de voces
-        window.speechSynthesis.getVoices();
-        
-        // 4. Latido de silencio cada 30 seg para mantener la web despierta
-        setInterval(() => {
-            if(audioContext) {
-                const osc = audioContext.createOscillator();
-                const gain = audioContext.createGain();
-                gain.gain.value = 0.001; // Casi inaudible
-                osc.connect(gain);
-                gain.connect(audioContext.destination);
-                osc.start();
-                osc.stop(audioContext.currentTime + 0.1);
-            }
-        }, 30000);
+    // Latido invisible cada 30s para mantener audio activo
+    setInterval(()=> {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        gain.gain.value = 0.001;
+        osc.connect(gain); gain.connect(audioContext.destination);
+        osc.start(); osc.stop(audioContext.currentTime + 0.1);
+    },30000);
 
-        hablar("Sistema encendido");
-        cargarCalendario();
-        
-        // Verificación continua
-        setInterval(verificarAlertas, 5000); // Cada 5 segundos para no perder el minuto
-        setInterval(cargarCalendario, 60000); // Recargar datos cada minuto
-    }
+    hablar("Sistema activado");
+    cargarCalendario();
+    setInterval(verificarAlertas,5000);
+    setInterval(cargarCalendario,60000);
+}
 
-    async function cargarCalendario() {
-        const min = new Date(); min.setHours(0,0,0,0);
-        const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
-        try {
-            const r = await fetch(url);
-            const d = await r.json();
-            if(d.items) organizarEventos(d.items);
-            document.getElementById('status-dot').style.backgroundColor = '#4CAF50';
-        } catch (e) { 
-            document.getElementById('status-dot').style.backgroundColor = '#F44336'; 
-        }
-    }
+async function cargarCalendario() {
+    const min = new Date(); min.setHours(0,0,0,0);
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
+    try {
+        const r = await fetch(url,{cache:'no-store'});
+        const d = await r.json();
+        if(d.items) organizarEventos(d.items);
+        document.getElementById('status-dot').style.backgroundColor = '#4CAF50';
+    } catch(e) { document.getElementById('status-dot').style.backgroundColor = '#F44336'; }
+}
 
-    function organizarEventos(items) {
-        const hoyStr = new Date().toLocaleDateString();
-        eventosHoy = []; eventosManana = [];
-        
-        items.forEach(item => {
-            const inicio = new Date(item.start.dateTime || item.start.date);
-            const ev = {
-                id: item.id + inicio.getTime(), // ID único combinado con tiempo
-                titulo: (item.summary || "Sin título").replace(/\*/g, '').trim(),
-                horaV: inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true }),
-                obj: inicio,
-                esAlerta: (item.summary || "").includes("*")
-            };
-            if (inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
-            else eventosManana.push(ev);
-        });
-        dibujarYEscalar();
-    }
+function organizarEventos(items) {
+    const hoyStr = new Date().toLocaleDateString();
+    eventosHoy = []; eventosManana = [];
+    items.forEach(item => {
+        const inicio = new Date(item.start.dateTime || item.start.date);
+        const ev = {
+            id: item.id+inicio.getTime(),
+            titulo: (item.summary||"Sin título").replace(/\*/g,'').trim(),
+            horaV: inicio.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',hour12:true}),
+            obj: inicio,
+            esAlerta: (item.summary||"").includes("*")
+        };
+        if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
+        else eventosManana.push(ev);
+    });
+    dibujarYEscalar();
+}
 
-    function verificarAlertas() {
-        const ahora = new Date();
-        const horaAhora = ahora.getHours();
-        const minAhora = ahora.getMinutes();
-
-        eventosHoy.forEach(ev => {
-            const horaEv = ev.obj.getHours();
-            const minEv = ev.obj.getMinutes();
-
-            // Si coincide hora y minuto Y no se ha avisado
-            if (horaEv === horaAhora && minEv === minAhora) {
-                if (!idsAvisados.has(ev.id)) {
-                    console.log("¡Lanzando aviso de voz para:", ev.titulo);
-                    hablar(`Atención mamá, son las ${ev.horaV}. Tienes: ${ev.titulo}`);
-                    idsAvisados.add(ev.id);
-                }
-            }
-        });
-    }
-
-    function hablar(t) {
-        // Cancelar cualquier voz previa
-        window.speechSynthesis.cancel();
-        
-        const m = new SpeechSynthesisUtterance(t);
-        m.lang = 'es-ES';
-        m.rate = 0.8;
-        m.volume = 1.0;
-
-        // Intentar hablar
-        window.speechSynthesis.speak(m);
-    }
-
-    function dibujarYEscalar() {
-        renderLista(eventosHoy, 'lista-hoy');
-        renderLista(eventosManana, 'lista-manana');
-        setTimeout(() => { ajustarTexto('lista-hoy'); ajustarTexto('lista-manana'); }, 100);
-    }
-
-    function renderLista(lista, id) {
-        const cont = document.getElementById(id);
-        cont.innerHTML = "";
-        lista.forEach(ev => {
-            const div = document.createElement('div');
-            div.className = "evento " + (ev.esAlerta ? "urgente-siempre" : "");
-            div.onclick = () => hablar("A las " + ev.horaV + " tienes " + ev.titulo);
-            div.innerHTML = `<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
-            cont.appendChild(div);
-        });
-    }
-
-    function ajustarTexto(id) {
-        const cont = document.getElementById(id);
-        const eventos = cont.getElementsByClassName('evento');
-        let size = 4;
-        while (cont.scrollHeight > cont.clientHeight && size > 1.5) {
-            size -= 0.1;
-            for (let e of eventos) {
-                e.querySelector('h2').style.fontSize = (size * 0.7) + "vh";
-                e.querySelector('p').style.fontSize = size + "vh";
+function verificarAlertas() {
+    const ahora = new Date();
+    eventosHoy.forEach(ev => {
+        if(ev.esAlerta && !idsAvisados.has(ev.id)) {
+            const diff = Math.abs(ev.obj.getTime() - ahora.getTime());
+            if(diff < 60000) { // margen 60s
+                idsAvisados.add(ev.id);
+                hablar(`Atención mamá, son las ${ev.horaV}. Tienes: ${ev.titulo}`);
             }
         }
-    }
+    });
+}
 
-    function repasarDia(dia) {
-        const lista = (dia === 'hoy' ? eventosHoy : eventosManana);
-        if (lista.length === 0) return hablar("No hay eventos.");
-        let t = (dia === 'hoy' ? "Para hoy tienes: " : "Para mañana tienes: ");
-        lista.forEach(ev => { t += `${ev.horaV}, ${ev.titulo}. `; });
-        hablar(t);
+function hablar(t) {
+    window.speechSynthesis.cancel();
+    const m = new SpeechSynthesisUtterance(t);
+    m.lang='es-ES'; m.rate=0.8; m.volume=1.0;
+    window.speechSynthesis.speak(m);
+}
+
+function dibujarYEscalar() {
+    renderLista(eventosHoy,'lista-hoy');
+    renderLista(eventosManana,'lista-manana');
+    setTimeout(()=>{ajustarTexto('lista-hoy');ajustarTexto('lista-manana');},100);
+}
+
+function renderLista(lista,id){
+    const cont=document.getElementById(id);
+    cont.innerHTML="";
+    lista.forEach(ev=>{
+        const div=document.createElement('div');
+        div.className="evento "+(ev.esAlerta?'urgente-perma':'');
+        div.onclick=()=>hablar(`A las ${ev.horaV} tienes ${ev.titulo}`);
+        div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
+        cont.appendChild(div);
+    });
+}
+
+function ajustarTexto(id){
+    const cont=document.getElementById(id);
+    const eventos=cont.getElementsByClassName('evento');
+    let size=3.5;
+    while(cont.scrollHeight>cont.clientHeight && size>1.2){
+        size-=0.1;
+        for(let e of eventos){
+            e.querySelector('h2').style.fontSize=(size*0.7)+"vh";
+            e.querySelector('p').style.fontSize=size+"vh";
+        }
     }
+}
+
+function repasarDia(dia){
+    const lista=dia==='hoy'?eventosHoy:eventosManana;
+    if(lista.length===0) return hablar("No hay eventos.");
+    let t=dia==='hoy'?"Hoy tienes: ":"Mañana tienes: ";
+    lista.forEach(ev)=>{ t+=`${ev.horaV}, ${ev.titulo}. `; });
+    hablar(t);
+}
 </script>
 </body>
 </html>
