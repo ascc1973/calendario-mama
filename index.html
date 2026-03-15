@@ -20,13 +20,17 @@ background:#000;
 #reloj{
 position:fixed;
 top:5px;
-left:5px;
+left:50%;
+transform:translateX(-50%);
 font-size:3vh;
 font-weight:bold;
-color:white;
+color:#FFF;
 z-index:1000;
-text-align:left;
+text-align:center;
 white-space:pre-line;
+background:rgba(0,0,0,0.5);
+padding:5px 10px;
+border-radius:8px;
 }
 
 #btn-inicial{
@@ -50,6 +54,7 @@ display:flex;
 height:100vh;
 width:100vw;
 flex-direction:row;
+padding-top:90px; /* espacio para fecha y hora */
 }
 
 .col{
@@ -71,20 +76,6 @@ text-align:center;
 text-transform:uppercase;
 white-space:nowrap;
 overflow:hidden;
-}
-
-h2.fecha-dia{
-font-size:2.8vh;
-color:#FFF;
-margin:0;
-text-align:center;
-}
-
-h2.fecha-hora{
-font-size:3.5vh;
-color:#FFF;
-margin:0;
-text-align:center;
 }
 
 .btn-repaso{
@@ -205,7 +196,6 @@ border:1px solid #000;
 </div>
 
 <script>
-
 const API_KEY='AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
 const CALENDAR_ID='28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
 
@@ -217,103 +207,66 @@ let audioContext;
 let ultimoOK=Date.now();
 
 function iniciarApp(){
-
 let elem=document.documentElement;
 if(elem.requestFullscreen)elem.requestFullscreen();
-
 audioContext=new(window.AudioContext||window.webkitAudioContext)();
 audioContext.resume();
-
 navigator.wakeLock?.request('screen');
-
 window.speechSynthesis.getVoices();
-
 hablar("Sistema activado");
-
 document.getElementById('btn-inicial').style.display='none';
-
 cargarCalendario();
-
 }
 
-function limpiarTexto(t){
-return t.replace(/\*/g,'').trim();
-}
+function limpiarTexto(t){ return t.replace(/\*/g,'').trim(); }
 
 function horaNatural(fecha){
-let h=fecha.getHours();
-let m=fecha.getMinutes();
+let h=fecha.getHours(); let m=fecha.getMinutes();
 let period=h>=12?'de la tarde':'de la mañana';
-if(h>12)h-=12;
-if(h===0)h=12;
+if(h>12)h-=12; if(h===0)h=12;
 return h+(m===0?"":" y "+m)+" "+period;
 }
 
 function horaVisual(fecha){
-let h=fecha.getHours();
-let m=fecha.getMinutes();
-if(h>12)h-=12;
-if(h===0)h=12;
+let h=fecha.getHours(); let m=fecha.getMinutes();
+if(h>12)h-=12; if(h===0)h=12;
 return h+':'+(m<10?'0'+m:m);
 }
 
 function detectarTipo(t){
 t=t.toLowerCase();
-
 if(t.includes("pastilla")||t.includes("medicina")||t.includes("insulina")) return "tipo-medicina";
 if(t.includes("médico")||t.includes("doctor")) return "tipo-medico";
 if(t.includes("hijo")||t.includes("familia")) return "tipo-familiar";
-
 return "";
 }
 
 async function cargarCalendario(){
-
-const min=new Date();
-min.setHours(0,0,0,0);
-
+const min=new Date(); min.setHours(0,0,0,0);
 const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
-
 try{
-
 const r=await fetch(url,{cache:'no-store'});
 const d=await r.json();
-
 document.getElementById('status-dot').style.backgroundColor='#4CAF50';
-
 ultimoOK=Date.now();
-
 if(d.items)organizarEventos(d.items);
-
 }catch(e){
-
 document.getElementById('status-dot').style.backgroundColor='#F44336';
-
 }
-
 }
 
 function organizarEventos(items){
-
 const hoyStr=new Date().toLocaleDateString();
-
-eventosHoy=[];
-eventosManana=[];
-
+eventosHoy=[]; eventosManana=[];
 items.forEach(item=>{
-
 const sum=item.summary||"";
-
 const inicio=new Date(item.start.dateTime||item.start.date);
 const fin=new Date(item.end.dateTime||item.end.date);
-
 let antelacionHoras=0;
-
 if(sum.startsWith("***"))antelacionHoras=3;
 else if(sum.startsWith("**"))antelacionHoras=2;
 else if(sum.startsWith("*"))antelacionHoras=0;
 else antelacionHoras=-1;
-
 const ev={
 titulo:limpiarTexto(sum),
 horaV:horaVisual(inicio),
@@ -325,93 +278,57 @@ esAlerta:antelacionHoras>=0,
 tipo:detectarTipo(sum),
 _avisado:false
 };
-
 if(inicio.toLocaleDateString()===hoyStr)eventosHoy.push(ev);
 else eventosManana.push(ev);
-
 });
-
 dibujar();
-
 }
 
 function dibujar(){
-
 renderLista(eventosHoy,'lista-hoy','hoy');
 renderLista(eventosManana,'lista-manana','manana');
-
 }
 
 function renderLista(lista,id,diaClave){
-
 const cont=document.getElementById(id);
 cont.innerHTML="";
-
 const ahora=new Date();
-
 let proximo=null;
-
 const futuro=lista.filter(e=>e.obj>ahora);
-
-if(futuro.length){
-futuro.sort((a,b)=>a.obj-b.obj);
-proximo=futuro[0];
-}
-
+if(futuro.length){futuro.sort((a,b)=>a.obj-b.obj); proximo=futuro[0];}
 lista.forEach(ev=>{
-
 if(ahora>ev.objFin)return;
-
 const div=document.createElement('div');
-
 const ahoraMismo=ahora>=ev.obj && ahora<=ev.objFin;
-
-let mostrarUrgente=ev.esAlerta; // siempre muestra borde rojo
-
+let mostrarUrgente=ev.esAlerta; 
 div.className="evento "
 +(mostrarUrgente?'urgente-perma ':'')
 +(ahoraMismo?'evento-ahora ':'')
 +(proximo===ev?'evento-proximo ':'')
 +(ev.tipo);
-
 div.onclick=function(){
 const prefijo=(diaClave==='hoy'?"Hoy a las ":"Mañana a las ");
 hablar(prefijo+ev.horaVoz+", "+ev.titulo);
 };
-
 div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
-
 cont.appendChild(div);
-
 });
-
 }
 
 function hablar(t){
-
 window.speechSynthesis.cancel();
-
 const m=new SpeechSynthesisUtterance(t);
-
 m.lang='es-ES';
-m.rate=0.9; // más rápido y natural
-m.pitch=1;
-m.volume=1;
-
+m.rate=0.9; m.pitch=1; m.volume=1;
 window.speechSynthesis.speak(m);
-
 }
 
 function avisoEvento(ev){
-
 const mensaje=`Mamá. Son las ${ev.horaVoz}. Ahora toca: ${ev.titulo}`;
-
 hablar(mensaje);
-
 // Repetición espaciada
 setTimeout(()=>hablar("Recuerda: "+ev.titulo),120000);
 setTimeout(()=>hablar("No olvides: "+ev.titulo),300000);
-
 }
 
 function repasarDia(diaClave){
@@ -422,20 +339,16 @@ hablar(ev.horaVoz+" "+ev.titulo);
 });
 }
 
+// === Lógica de avisos exacta como en tu primer código ===
 setInterval(()=>{
-
 const ahora=new Date();
-
-// Recupera audio si está suspendido
 if(audioContext && audioContext.state==="suspended")audioContext.resume();
-
 [eventosHoy,eventosManana].forEach(lista=>{
 lista.forEach(ev=>{
 if(!ev.esAlerta)return;
-
 const inicioAviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
-
-if(ahora>=inicioAviso && ahora<=ev.objFin){
+const finAviso=ev.objFin;
+if(ahora>=inicioAviso && ahora<=finAviso){
 if(!ev._avisado){
 avisoEvento(ev);
 ev._avisado=true;
@@ -444,21 +357,16 @@ ev._avisado=true;
 if(ahora<inicioAviso) ev._avisado=false;
 });
 });
-
 dibujar();
-
 },1000);
 
 setInterval(cargarCalendario,300000);
-
 setInterval(()=>{
 if(Date.now()-ultimoOK>900000)location.reload();
 },60000);
-
 setInterval(()=>{
 if(window.speechSynthesis.speaking)window.speechSynthesis.cancel();
 },60000);
-
 setInterval(()=>{
 document.body.style.opacity="0.99";
 setTimeout(()=>document.body.style.opacity="1",50);
