@@ -355,15 +355,34 @@ function repasarDia(dia){
         hablar("No hay eventos para " + dia);
         return;
     }
-    
-    // Hablar cada evento con un pequeño retraso entre ellos
-    let delay = 0;
-    lista.forEach(ev => {
-        setTimeout(()=>{
-            hablar(`A las ${ev.horaVoz}, ${ev.titulo}`);
-        }, delay);
-        delay += 4000; // 4 segundos entre eventos, puedes ajustar
-    });
+
+    // Filtramos eventos cuya fecha coincide exactamente con hoy o mañana
+    const fechaHoy = new Date();
+    if(dia === 'hoy'){
+        lista = lista.filter(ev => ev.obj.toDateString() === fechaHoy.toDateString());
+    } else {
+        const fechaManana = new Date();
+        fechaManana.setDate(fechaHoy.getDate() + 1);
+        lista = lista.filter(ev => ev.obj.toDateString() === fechaManana.toDateString());
+    }
+
+    // Función recursiva para leer un evento tras otro sin cortarse
+    let idx = 0;
+    function leerSiguiente(){
+        if(idx >= lista.length) return;
+        const ev = lista[idx];
+        idx++;
+        const mensaje = `A las ${ev.horaVoz}, ${ev.titulo}`;
+        const utter = new SpeechSynthesisUtterance(mensaje);
+        utter.lang='es-ES';
+        utter.rate = 1.05;
+        utter.pitch = 1;
+        utter.volume = 1;
+        utter.onend = leerSiguiente; // llama al siguiente evento cuando termina
+        window.speechSynthesis.speak(utter);
+    }
+
+    leerSiguiente();
 }
 setInterval(()=>{
   const ahora=new Date();
