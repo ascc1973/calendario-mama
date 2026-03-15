@@ -66,11 +66,25 @@ height:100vh;
 
 h1{
 font-size:2.2vh;
-margin:40px 0 2px 0; /* espacio para fecha/hora arriba */
+margin:2px 0 2px 0;
 text-align:center;
 text-transform:uppercase;
 white-space:nowrap;
 overflow:hidden;
+}
+
+h2.fecha-dia{
+font-size:2.8vh;
+color:#FFF;
+margin:0;
+text-align:center;
+}
+
+h2.fecha-hora{
+font-size:3.5vh;
+color:#FFF;
+margin:0;
+text-align:center;
 }
 
 .btn-repaso{
@@ -194,6 +208,7 @@ border:1px solid #000;
 
 const API_KEY='AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
 const CALENDAR_ID='28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
+
 
 
 let eventosHoy=[];
@@ -351,7 +366,7 @@ const div=document.createElement('div');
 
 const ahoraMismo=ahora>=ev.obj && ahora<=ev.objFin;
 
-let mostrarUrgente=ev.esAlerta; // siempre muestra borde rojo para *,**,***
+let mostrarUrgente=ev.esAlerta; // siempre muestra borde rojo
 
 div.className="evento "
 +(mostrarUrgente?'urgente-perma ':'')
@@ -379,7 +394,7 @@ window.speechSynthesis.cancel();
 const m=new SpeechSynthesisUtterance(t);
 
 m.lang='es-ES';
-m.rate=0.85; // más rápido que antes
+m.rate=0.9; // más rápido y natural
 m.pitch=1;
 m.volume=1;
 
@@ -419,6 +434,7 @@ lista.forEach(ev=>{
 if(!ev.esAlerta)return;
 
 const inicioAviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
+
 if(ahora>=inicioAviso && ahora<=ev.objFin){
 if(!ev._avisado){
 avisoEvento(ev);
@@ -450,7 +466,7 @@ setTimeout(()=>document.body.style.opacity="1",50);
 
 setInterval(()=>{
 const n=new Date();
-document.getElementById("reloj").innerText=
+document.getElementById("reloj").innerHTML=
 n.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase()
 +"\n"+n.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
 },1000);
