@@ -1,172 +1,291 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendario Alzheimer</title>
-<style>
-:root { --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
-body,html{margin:0;padding:0;height:100%;font-family:'Arial Black',sans-serif;overflow:hidden;background:#000;}
-#reloj{position:fixed;top:5px;left:5px;color:#FFF;font-size:3vh;z-index:1000;text-align:left;}
-#btn-inicial{position:fixed;top:0;left:0;width:100vw;height:100vh;background:#f00;color:#fff;font-size:5vh;font-weight:bold;border:none;cursor:pointer;z-index:9999;text-transform:uppercase;}
-.container{display:flex;height:100vh;width:100vw;flex-direction:row;}
-.col{width:50%;padding:5px;display:flex;flex-direction:column;box-sizing:border-box;height:100vh;}
-.col-hoy{background:var(--hoy-bg);color:#000;border-right:3px solid #000;}
-.col-manana{background:var(--manana-bg);color:#FFF;}
-h1{font-size:2.2vh;margin:2px 0;text-align:center;text-transform:uppercase;white-space:nowrap;overflow:hidden;}
-.btn-repaso{width:100%;padding:8px 2px;font-size:1.6vh;font-weight:bold;border-radius:8px;border:2px solid #000;margin-bottom:5px;background:#fff;cursor:pointer;color:#000;flex-shrink:0;text-transform:uppercase;}
-.lista-eventos{flex-grow:1;display:flex;flex-direction:column;gap:4px;overflow:hidden;}
-.evento{background:#fff;color:#000;padding:7px;border-radius:10px;border:2.5px solid #333;display:flex;flex-direction:column;justify-content:center;flex-shrink:1;min-height:0;box-sizing:border-box;width:100%;cursor:pointer;}
-.evento h2{margin:0;color:#d32f2f;line-height:1;font-size:2.5vh;}
-.evento p{margin:2px 0 0;font-weight:bold;line-height:1.1;font-size:2.8vh;word-wrap:break-word;}
-.evento-ahora{transform:scale(1.15);border:4px solid #f00!important;background:#fff3cd;}
-.evento-proximo{border:3px solid #ff9800;}
-.tipo-medicina{background:#ffe5e5;}
-.tipo-medico{background:#fff2cc;}
-.tipo-familiar{background:#e5ffe5;}
-.urgente-perma{border:2.5px solid #f00!important;animation:blinker 1s linear infinite!important;background:#fff0f0;}
-@keyframes blinker{0%{border-color:#f00;}50%{border-color:transparent;}100%{border-color:#f00;}}
-#status-dot{position:fixed;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#4CAF50;z-index:1000;border:1px solid #000;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calendario para Mamá</title>
+    <style>
+        :root { --hoy-bg: #FFEB3B; --manana-bg: #1A237E; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Arial Black', Gadget, sans-serif; overflow: hidden; background: #000; }
+        
+        #btn-inicial {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #ff0000; color: white; font-size: 5vh; font-weight: bold;
+            border: none; z-index: 9999; cursor: pointer; text-transform: uppercase;
+        }
+
+        .container { display: flex; height: 100vh; width: 100vw; flex-direction: row; }
+        
+        .col { 
+            width: 50%; padding: 5px; display: flex; 
+            flex-direction: column; box-sizing: border-box; height: 100vh;
+        }
+
+        .col-hoy { background-color: var(--hoy-bg); color: #000; border-right: 3px solid #000; }
+        .col-manana { background-color: var(--manana-bg); color: #FFF; }
+
+        h1 { font-size: 2.2vh; margin: 2px 0; text-align: center; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+        
+        .btn-repaso { 
+            width: 100%; padding: 8px 2px; font-size: 1.6vh; font-weight: bold; 
+            border-radius: 8px; border: 2px solid #000; margin-bottom: 5px;
+            background: #fff; cursor: pointer; color: #000; flex-shrink: 0; text-transform: uppercase;
+        }
+
+        .lista-eventos { flex-grow: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+
+        .evento { 
+            background: white; color: #000; padding: 7px; border-radius: 10px; 
+            border: 2.5px solid #333; display: flex; flex-direction: column;
+            justify-content: center; flex-shrink: 1; min-height: 0; box-sizing: border-box;
+            width: 100%; background-clip: padding-box; cursor: pointer;
+        }
+
+        .evento h2 { margin: 0; color: #d32f2f; line-height: 1; font-size: 2.5vh; pointer-events: none; }
+        .evento p { margin: 2px 0 0; font-weight: bold; line-height: 1.1; font-size: 2.8vh; word-wrap: break-word; pointer-events: none; }
+        
+        .urgente-perma { 
+            border: 2.5px solid #ff0000 !important; 
+            animation: blinker-completo 1s linear infinite !important;
+            background-color: #fff0f0; 
+        }
+
+        @keyframes blinker-completo { 
+            0% { border-color: #ff0000; box-shadow: 0 0 0 0.5px #ff0000 inset; }
+            50% { border-color: transparent; box-shadow: 0 0 0 0.5px transparent inset; }
+            100% { border-color: #ff0000; box-shadow: 0 0 0 0.5px #ff0000 inset; }
+        }
+
+        #status-dot { position: fixed; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; z-index: 1000; border: 1px solid #000; }
+    </style>
 </head>
 <body>
-<div id="reloj"></div>
-<button id="btn-inicial">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
+
+<button id="btn-inicial" onclick="iniciarApp()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
 <div id="status-dot"></div>
+
 <div class="container">
-<div class="col col-hoy">
-<h1 id="txt-hoy">HOY</h1>
-<button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
-<div id="lista-hoy" class="lista-eventos"></div>
-</div>
-<div class="col col-manana">
-<h1 id="txt-manana">MAÑANA</h1>
-<button class="btn-repaso" onclick="repasarDia('manana')" style="border-color:#FFF;">🔊 TODO MAÑANA</button>
-<div id="lista-manana" class="lista-eventos"></div>
-</div>
+    <div class="col col-hoy">
+        <h1 id="txt-hoy">HOY</h1>
+        <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
+        <div id="lista-hoy" class="lista-eventos"></div>
+    </div>
+    <div class="col col-manana">
+        <h1 id="txt-manana">MAÑANA</h1>
+        <button class="btn-repaso" onclick="repasarDia('manana')" style="border-color: #FFF;">🔊 TODO MAÑANA</button>
+        <div id="lista-manana" class="lista-eventos"></div>
+    </div>
 </div>
 
 <script>
-const API_KEY='AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
-const CALENDAR_ID='28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
+    const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
+    const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
 
-let eventosHoy=[], eventosManana=[], audioContext, avisosActivos=new Set();
-let wakeLock=null;
+    let eventosHoy = [];
+    let eventosManana = [];
+    let audioContext;
 
-// PRIMERA INTERACCIÓN
-document.getElementById('btn-inicial').onclick = async function(){
-    audioContext=new (window.AudioContext||window.webkitAudioContext)();
-    await audioContext.resume();
-    navigator.wakeLock?.request('screen').then(lock=>wakeLock=lock);
-    window.speechSynthesis.getVoices();
-    hablar("Sistema activado");
-    this.style.display='none';
-    cargarCalendario();
-}
+    function iniciarApp() {
+        let elem = document.documentElement;
+        if (elem.requestFullscreen) { elem.requestFullscreen(); } 
+        else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioContext.resume();
+        window.speechSynthesis.getVoices();
+        hablar("Sistema activado");
+        document.getElementById('btn-inicial').style.display = 'none';
+        cargarCalendario();
+    }
 
-// UTILIDADES
-function limpiarTexto(t){ return t.replace(/\*/g,'').trim(); }
-function horaVisual(f){ let h=f.getHours(),m=f.getMinutes(); if(h>12)h-=12;if(h===0)h=12;return h+':'+(m<10?'0'+m:m);}
-function horaNatural(f){ let h=f.getHours(),m=f.getMinutes(),p=h>=12?'de la tarde':'de la mañana'; if(h>12)h-=12;if(h===0)h=12; return h+(m===0?"":" y "+m)+" "+p;}
-function detectarTipo(t){t=t.toLowerCase(); if(t.includes("pastilla")||t.includes("medicina"))return"tipo-medicina"; if(t.includes("médico")||t.includes("doctor"))return"tipo-medico"; if(t.includes("hijo")||t.includes("familia"))return"tipo-familiar"; return "";}
+    function limpiarTexto(t) { return t.replace(/\*/g, '').replace(/\[ALERTA\]/gi, '').trim(); }
 
-// CARGAR CALENDARIO
-async function cargarCalendario(){
-    const min=new Date(); min.setHours(0,0,0,0);
-    const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
-    try{
-        const r=await fetch(url,{cache:'no-store'}); const d=await r.json();
-        document.getElementById('status-dot').style.backgroundColor='#4CAF50';
-        if(d.items) organizarEventos(d.items);
-    }catch(e){document.getElementById('status-dot').style.backgroundColor='#F44336';}
-}
+    function horaNatural(fecha) {
+        let h = fecha.getHours(); let m = fecha.getMinutes();
+        let period = h >= 12 ? 'de la tarde' : 'de la mañana';
+        if (h > 12) h -= 12; if (h === 0) h = 12;
+        return h + (m === 0 ? "" : " y " + m) + " " + period;
+    }
 
-// ORGANIZAR EVENTOS
-function organizarEventos(items){
-    const hoyStr=new Date().toLocaleDateString();
-    eventosHoy=[]; eventosManana=[];
-    items.forEach(item=>{
-        const sum=item.summary||"";
-        const inicio=new Date(item.start.dateTime||item.start.date);
-        const fin=new Date(item.end.dateTime||item.end.date);
-        let antelacion=0;
-        if(sum.startsWith("***")) antelacion=3;
-        else if(sum.startsWith("**")) antelacion=2;
-        else if(sum.startsWith("*")) antelacion=0;
-        else antelacion=-1;
-        const ev={titulo:limpiarTexto(sum),horaV:horaVisual(inicio),horaVoz:horaNatural(inicio),obj:inicio,objFin:fin,antelacion,esAlerta:antelacion>=0,tipo:detectarTipo(sum)};
-        if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev); else eventosManana.push(ev);
-    });
-    dibujar();
-}
+    function horaVisualLimpia(fecha) {
+        let h = fecha.getHours(); let m = fecha.getMinutes();
+        if (h > 12) h -= 12; if (h === 0) h = 12;
+        return h + ':' + (m < 10 ? '0' + m : m);
+    }
 
-// DIBUJAR
-function dibujar(){
-    renderLista(eventosHoy,'lista-hoy','hoy');
-    renderLista(eventosManana,'lista-manana','manana');
-}
+    async function cargarCalendario() {
+        const min = new Date(); min.setHours(0,0,0,0);
+        const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${new Date().getTime()}`;
+        try {
+            const r = await fetch(url, { cache: 'no-store' });
+            const d = await r.json();
+            document.getElementById('status-dot').style.backgroundColor = '#4CAF50';
+            if(d.items) organizarEventos(d.items);
+        } catch (e) { document.getElementById('status-dot').style.backgroundColor = '#F44336'; }
+    }
 
-// RENDER
-function renderLista(lista,id,dia){
-    const cont=document.getElementById(id); cont.innerHTML="";
-    const ahora=new Date();
-    let proximo=null;
-    const futuros=lista.filter(e=>e.obj>ahora); if(futuros.length){futuros.sort((a,b)=>a.obj-b.obj); proximo=futuros[0];}
-    lista.forEach(ev=>{
-        if(ahora>ev.objFin) return;
-        const div=document.createElement('div');
-        const ahoraMismo=ahora>=ev.obj && ahora<=ev.objFin;
-        let mostrarUrgente=false;
-        if(ev.esAlerta){ const aviso=new Date(ev.obj.getTime()-ev.antelacion*3600000); if(ahora>=aviso) mostrarUrgente=true;}
-        div.className="evento "+(mostrarUrgente?'urgente-perma ':'')+(ahoraMismo?'evento-ahora ':'')+(proximo===ev?'evento-proximo ':'')+ev.tipo;
-        div.onclick=function(){ hablar((dia==='hoy'?"Hoy a las ":"Mañana a las ")+ev.horaVoz+", "+ev.titulo);}
-        div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
-        cont.appendChild(div);
-    });
-}
+    function organizarEventos(items) {
+        const hoyStr = new Date().toLocaleDateString();
+        eventosHoy = []; eventosManana = [];
+        items.forEach(item => {
+            const sum = item.summary || "";
+            const inicio = new Date(item.start.dateTime || item.start.date);
+            const fin = new Date(item.end.dateTime || item.end.date);
+            
+            // Lógica de asteriscos
+            let antelacionHoras = 0;
+            if (sum.startsWith("***")) antelacionHoras = 3;
+            else if (sum.startsWith("**")) antelacionHoras = 2;
+            else if (sum.startsWith("*")) antelacionHoras = 0;
+            else antelacionHoras = -1; // Sin asterisco = sin avisos automáticos
 
-// VOZ
-function hablar(t){window.speechSynthesis.cancel(); const m=new SpeechSynthesisUtterance(t); m.lang='es-ES'; m.rate=0.75; m.pitch=1; window.speechSynthesis.speak(m);}
+            const ev = {
+                titulo: limpiarTexto(sum),
+                horaV: horaVisualLimpia(inicio),
+                horaVoz: horaNatural(inicio),
+                obj: inicio,
+                objFin: fin,
+                antelacion: antelacionHoras,
+                esAlerta: antelacionHoras >= 0
+            };
+            if (inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
+            else eventosManana.push(ev);
+        });
+        dibujarYEscalar();
+    }
 
-// ALERTAS FIABLES
-function revisarAlertas(){
-    const ahora=new Date();
-    if(audioContext && audioContext.state==="suspended") audioContext.resume();
-    eventosHoy.forEach(ev=>{
-        if(!ev.esAlerta) return;
-        const inicio=ev.obj.getTime();
-        const fin=ev.objFin.getTime()+60000;
-        if(ahora.getTime()>=inicio && ahora.getTime()<fin){
-            if(!avisosActivos.has(ev.titulo)){ avisosActivos.add(ev.titulo);
-                const mensaje=`Mamá, son las ${ev.horaVoz}. Ahora toca ${ev.titulo}`;
-                hablar(mensaje);
-                setTimeout(()=>hablar("Recuerda "+ev.titulo),120000);
-                setTimeout(()=>hablar("No olvides "+ev.titulo),300000);
+    function dibujarYEscalar() {
+        const opc = { weekday: 'long' };
+        const dHoy = new Date();
+        document.getElementById('txt-hoy').innerText = "HOY " + dHoy.toLocaleDateString('es-ES', opc).toUpperCase();
+        const dMan = new Date(); dMan.setDate(dMan.getDate() + 1);
+        document.getElementById('txt-manana').innerText = "MAÑANA " + dMan.toLocaleDateString('es-ES', opc).toUpperCase();
+
+        renderLista(eventosHoy, 'lista-hoy', 'hoy');
+        renderLista(eventosManana, 'lista-manana', 'manana');
+        setTimeout(() => { ajustarTexto('lista-hoy'); ajustarTexto('lista-manana'); }, 50);
+    }
+
+    function renderLista(lista, id, diaClave) {
+        const cont = document.getElementById(id);
+        cont.innerHTML = "";
+        const ahora = new Date();
+        lista.forEach(ev => {
+            const div = document.createElement('div');
+            
+            // El parpadeo se activa si es alerta y aún no ha pasado el minuto de cortesía del fin
+            const haTerminado = ahora.getTime() > (ev.objFin.getTime() + 60000);
+            
+            // Activamos parpadeo si estamos en el rango de antelación
+            let mostrarUrgente = false;
+            if (ev.esAlerta && !haTerminado) {
+                const inicioAviso = new Date(ev.obj.getTime() - (ev.antelacion * 3600000));
+                if (ahora >= inicioAviso) mostrarUrgente = true;
             }
-        } else { avisosActivos.delete(ev.titulo);}
-    });
-}
 
-// REPASO
-function repasarDia(dia){
-    const lista=dia==='hoy'?eventosHoy:eventosManana;
-    if(lista.length===0) return hablar("Nada anotado.");
-    let t=(dia==='hoy'?"Hoy tienes: ":"Mañana tienes: ");
-    lista.forEach(ev=>t+=`${ev.horaVoz}, ${ev.titulo}. `);
-    hablar(t);
-}
+            div.className = "evento " + (mostrarUrgente ? 'urgente-perma' : '');
+            div.onclick = function() {
+                const prefijo = (diaClave === 'hoy' ? "Hoy a las " : "Mañana tienes a las ");
+                hablar(prefijo + ev.horaVoz + ", " + ev.titulo);
+            };
+            div.innerHTML = `<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
+            cont.appendChild(div);
+        });
+    }
 
-// INTERVALOS
-setInterval(revisarAlertas,10000);
-setInterval(cargarCalendario,300000);
-setInterval(dibujar,60000);
+    function ajustarTexto(idContenedor) {
+        const cont = document.getElementById(idContenedor);
+        const eventos = cont.getElementsByClassName('evento');
+        if (eventos.length === 0) return;
+        let fontSizeP = 3.5; 
+        while (cont.scrollHeight > cont.clientHeight && fontSizeP > 1.0) {
+            fontSizeP -= 0.1;
+            for (let ev of eventos) {
+                ev.querySelector('h2').style.fontSize = (fontSizeP * 0.7) + "vh";
+                ev.querySelector('p').style.fontSize = fontSizeP + "vh";
+            }
+        }
+    }
 
-// RELOJ
-setInterval(()=>{const n=new Date(); document.getElementById("reloj").innerText=
-n.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase()+"\n"+
-n.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});},1000);
+    function hablar(t) {
+        window.speechSynthesis.cancel();
+        const m = new SpeechSynthesisUtterance(t);
+        m.lang = 'es-ES'; m.rate = 0.8;
+        window.speechSynthesis.speak(m);
+    }
 
+    function sonarCampana(callback) {
+        if (!audioContext) return callback();
+        const duration = 15; const startTime = audioContext.currentTime;
+        for (let i = 0; i < duration; i += 0.8) {
+            [880, 1100].forEach((freq, idx) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(freq, startTime + i + (idx * 0.1));
+                gain.gain.setValueAtTime(0, startTime + i + (idx * 0.1));
+                gain.gain.linearRampToValueAtTime(0.3, startTime + i + (idx * 0.1) + 0.05);
+                gain.gain.linearRampToValueAtTime(0, startTime + i + (idx * 0.1) + 0.4);
+                osc.connect(gain); gain.connect(audioContext.destination);
+                osc.start(startTime + i + (idx * 0.1)); osc.stop(startTime + i + (idx * 0.1) + 0.4);
+            });
+        }
+        setTimeout(callback, duration * 1000);
+    }
+
+    function hablarTriple(mensaje) {
+        let veces = 0;
+        function repetir() {
+            if (veces < 3) {
+                const m = new SpeechSynthesisUtterance(mensaje);
+                m.lang = 'es-ES'; m.rate = 0.8;
+                m.onend = () => { veces++; setTimeout(repetir, 1500); };
+                window.speechSynthesis.speak(m);
+            }
+        }
+        repetir();
+    }
+
+    function repasarDia(dia) {
+        const lista = dia === 'hoy' ? eventosHoy : eventosManana;
+        if (lista.length === 0) return hablar("Nada anotado.");
+        let t = (dia === 'hoy' ? "Hoy tienes: " : "Mañana tienes: ");
+        lista.forEach(ev => { t += `${ev.horaVoz}, ${ev.titulo}. `; });
+        hablar(t);
+    }
+
+    setInterval(() => {
+        const ahora = new Date();
+        const seg = ahora.getSeconds();
+        const min = ahora.getMinutes();
+        const hora = ahora.getHours();
+
+        eventosHoy.forEach(ev => {
+            if (!ev.esAlerta) return;
+
+            // 1. Aviso a la hora real
+            const esHoraReal = (ev.obj.getHours() === hora && ev.obj.getMinutes() === min && seg === 0);
+            
+            // 2. Aviso con antelación (solo si tiene 2 o 3 asteriscos)
+            let esHoraAntelacion = false;
+            if (ev.antelacion > 0) {
+                const horaAviso = new Date(ev.obj.getTime() - (ev.antelacion * 3600000));
+                esHoraAntelacion = (horaAviso.getHours() === hora && horaAviso.getMinutes() === min && seg === 0);
+            }
+
+            if (esHoraReal || esHoraAntelacion) {
+                const mensaje = esHoraAntelacion ? 
+                    `Aviso importante mamá. En ${ev.antelacion} horas tienes: ${ev.titulo}` : 
+                    `Atención mamá. Es hora de: ${ev.titulo}`;
+                
+                sonarCampana(() => { hablarTriple(mensaje); });
+            }
+        });
+
+        if (seg === 0) dibujarYEscalar();
+    }, 1000);
+
+    setInterval(cargarCalendario, 300000);
+    window.onload = cargarCalendario;
 </script>
 </body>
 </html>
