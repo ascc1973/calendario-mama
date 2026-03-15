@@ -385,27 +385,26 @@ function repasarDia(dia){
     leerSiguiente();
 }
 setInterval(()=>{
-  const ahora=new Date();
-  const seg=ahora.getSeconds();
-  const min=ahora.getMinutes();
-  const hora=ahora.getHours();
+    const ahora = new Date();
+    const hora = ahora.getHours();
+    const min = ahora.getMinutes();
 
-  if(audioContext && audioContext.state==="suspended")audioContext.resume();
+    if(audioContext && audioContext.state==="suspended") audioContext.resume();
 
-  eventosHoy.forEach(ev=>{
-    if(!ev.esAlerta)return;
-    const esHoraReal=(ev.obj.getHours()===hora && ev.obj.getMinutes()===min && seg===0);
-    let esHoraAntelacion=false;
-    if(ev.antelacion>0){
-      const aviso=new Date(ev.obj.getTime()-(ev.antelacion*3600000));
-      esHoraAntelacion=(aviso.getHours()===hora && aviso.getMinutes()===min && seg===0);
-    }
-    if(esHoraReal||esHoraAntelacion)avisoEvento(ev);
-  });
+    eventosHoy.forEach(ev=>{
+        if(!ev.esAlerta) return;
 
-  if(seg===0)dibujar();
-},1000);
+        // Calculamos inicio de aviso según antelación
+        const inicioAviso = new Date(ev.obj.getTime() - (ev.antelacion * 3600000));
 
+        // Si estamos dentro del rango de aviso o es hora exacta del evento
+        if(ahora >= inicioAviso && ahora <= ev.objFin){
+            // Llamamos a la función de aviso de voz
+            avisoEvento(ev);
+        }
+    });
+
+}, 60000); // revisa cada minuto
 setInterval(cargarCalendario,300000);
 setInterval(()=>{if(Date.now()-ultimoOK>900000)location.reload();},60000);
 setInterval(()=>{if(window.speechSynthesis.speaking)window.speechSynthesis.cancel();},60000);
