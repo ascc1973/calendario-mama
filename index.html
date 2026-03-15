@@ -46,7 +46,7 @@ display:none;
 flex-direction:row;
 height:100vh;
 width:100vw;
-padding-top:85px;
+padding-top:90px;
 }
 
 #btn-inicial{
@@ -183,6 +183,10 @@ document.getElementById("btn-inicial").onclick=iniciarSistema;
 
 function iniciarSistema(){
 
+const el=document.documentElement;
+
+if(el.requestFullscreen) el.requestFullscreen();
+
 document.getElementById('btn-inicial').style.display='none';
 document.querySelector('.container').style.display='flex';
 
@@ -218,13 +222,13 @@ document.getElementById("hora").innerText=h+":"+m;
 
 }
 
+function limpiarTexto(t){
+return t.replace(/\*/g,'').trim();
+}
+
 function contarAsteriscos(t){
 const m=t.match(/^\*+/);
 return m?m[0].length:0;
-}
-
-function limpiarTexto(t){
-return t.replace(/\*/g,'').trim();
 }
 
 function horaVisual(f){
@@ -297,16 +301,20 @@ const fin=ev.obj.getTime()+3600000;
 
 if(ahora.getTime()>fin) return;
 
-const div=document.createElement('div');
-
 const activo=ahora>=ev.obj && ahora<=fin;
+
+const div=document.createElement('div');
 
 div.className="evento "+(activo?"urgente-perma":"");
 
 div.onclick=()=>{
+
 eventosAtendidos.add(ev.id);
+
+speechSynthesis.cancel();
+
 cancelarAlarma(ev.id);
-hablar(ev.titulo);
+
 };
 
 div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
@@ -314,20 +322,6 @@ div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
 cont.appendChild(div);
 
 });
-
-}
-
-function horaActualVoz(){
-
-const ahora=new Date();
-
-let h=ahora.getHours();
-let m=ahora.getMinutes();
-
-if(h>12)h-=12;
-if(h===0)h=12;
-
-return h+" y "+m;
 
 }
 
@@ -366,6 +360,20 @@ repetir();
 
 }
 
+function horaActualVoz(){
+
+const ahora=new Date();
+
+let h=ahora.getHours();
+let m=ahora.getMinutes();
+
+if(h>12)h-=12;
+if(h===0)h=12;
+
+return h+" y "+m;
+
+}
+
 function iniciarAlarma(ev){
 
 const mensaje=()=>`Atención mamá. Son las ${horaActualVoz()}. ${ev.titulo}`;
@@ -393,6 +401,34 @@ delete alarmasActivas[id];
 
 }
 
+function verificarAlertas(){
+
+const ahora=new Date();
+
+const h=ahora.getHours();
+const m=ahora.getMinutes();
+
+[eventosHoy,eventosManana].forEach(lista=>{
+
+lista.forEach(ev=>{
+
+const eh=ev.obj.getHours();
+const em=ev.obj.getMinutes();
+
+if(h===eh && m===em && !idsAvisados.has(ev.id)){
+
+idsAvisados.add(ev.id);
+
+iniciarAlarma(ev);
+
+}
+
+});
+
+});
+
+}
+
 function repasarDia(dia){
 
 const lista=(dia==='hoy'?eventosHoy:eventosManana);
@@ -409,30 +445,6 @@ t+=ev.horaV+" "+ev.titulo+". ";
 });
 
 hablar(t);
-
-}
-
-function verificarAlertas(){
-
-const ahora=new Date();
-
-[eventosHoy,eventosManana].forEach(lista=>{
-
-lista.forEach(ev=>{
-
-const inicio=ev.obj.getTime();
-
-if(Math.abs(inicio-ahora.getTime())<60000 && !idsAvisados.has(ev.id)){
-
-idsAvisados.add(ev.id);
-
-iniciarAlarma(ev);
-
-}
-
-});
-
-});
 
 }
 
