@@ -156,6 +156,7 @@ PULSA PARA ACTIVAR CALENDARIO Y SONIDO
  const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
     const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
 
+
 let eventosHoy=[];
 let eventosManana=[];
 let alarmasActivas={};
@@ -271,11 +272,11 @@ div.className="evento "+(activo?"urgente":"");
 
 div.onclick=()=>{
 
+speechSynthesis.cancel();
+
 hablar(`Evento: ${ev.titulo}. Hora ${ev.horaV}`);
 
 eventosAtendidos.add(ev.id);
-
-speechSynthesis.cancel();
 
 if(alarmasActivas[ev.id]){
 clearInterval(alarmasActivas[ev.id]);
@@ -388,14 +389,21 @@ function repasarDia(dia){
 
 const lista=(dia==="hoy"?eventosHoy:eventosManana);
 
-if(lista.length===0){
-hablar("Nada anotado");
+const ahora=new Date();
+
+const eventosValidos=lista.filter(ev=>{
+const fin=ev.obj.getTime()+3600000;
+return ahora.getTime()<fin;
+});
+
+if(eventosValidos.length===0){
+hablar("Nada anotado.");
 return;
 }
 
 let t=(dia==="hoy"?"Hoy tienes: ":"Mañana tienes: ");
 
-lista.forEach(ev=>{
+eventosValidos.forEach(ev=>{
 t+=ev.horaV+", "+ev.titulo+". ";
 });
 
