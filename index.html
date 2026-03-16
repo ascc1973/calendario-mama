@@ -33,13 +33,8 @@ padding:10px 0;
 z-index:1000;
 }
 
-#fecha{
-font-size:2.3vh;
-}
-
-#hora{
-font-size:4.2vh;
-}
+#fecha{font-size:2.3vh;}
+#hora{font-size:4.2vh;}
 
 .container{
 display:none;
@@ -155,13 +150,13 @@ animation:parpadeo-alerta 0.8s linear infinite !important;
 <div class="container">
 
 <div class="col col-hoy">
-<h1 id="txt-hoy">HOY</h1>
+<h1>HOY</h1>
 <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
 <div id="lista-hoy" class="lista-eventos"></div>
 </div>
 
 <div class="col col-manana">
-<h1 id="txt-manana">MAÑANA</h1>
+<h1>MAÑANA</h1>
 <button class="btn-repaso" onclick="repasarDia('manana')">🔊 TODO MAÑANA</button>
 <div id="lista-manana" class="lista-eventos"></div>
 </div>
@@ -178,12 +173,14 @@ let eventosManana=[];
 let alarmasActivas={};
 let eventosAtendidos=new Set();
 let idsAvisados=new Set();
+let avisosPrevios=new Set();
 
 document.getElementById("btn-inicial").onclick=iniciarSistema;
 
 function iniciarSistema(){
-const el=document.documentElement;
-if(el.requestFullscreen) el.requestFullscreen();
+
+if(document.documentElement.requestFullscreen)
+document.documentElement.requestFullscreen();
 
 document.getElementById('btn-inicial').style.display='none';
 document.querySelector('.container').style.display='flex';
@@ -195,138 +192,141 @@ cargarCalendario();
 setInterval(verificarAlertas,5000);
 setInterval(cargarCalendario,60000);
 setInterval(actualizarReloj,1000);
+
 }
 
 function actualizarReloj(){
+
 const ahora=new Date();
+
 const fecha=ahora.toLocaleDateString('es-ES',{
 weekday:'long',
 day:'numeric',
 month:'long'
 }).toUpperCase();
+
+let h=ahora.getHours();
+let m=ahora.getMinutes();
+
+if(h>12)h-=12;
+if(h===0)h=12;
+if(m<10)m="0"+m;
+
+document.getElementById("fecha").innerText=fecha;
+document.getElementById("hora").innerText=h+":"+m;
+
+}
+
+function contarAsteriscos(t){
+const m=t.match(/^\*+/);
+return m?m[0].length:0;
+}
+
+function limpiarTexto(t){
+return t.replace(/\*/g,'').trim();
+}
+
+function horaActualVoz(){
+let ahora=new Date();
 let h=ahora.getHours();
 let m=ahora.getMinutes();
 if(h>12)h-=12;
 if(h===0)h=12;
-if(m<10)m="0"+m;
-document.getElementById("fecha").innerText=fecha;
-document.getElementById("hora").innerText=h+":"+m;
+return h+" y "+m;
 }
 
-function limpiarTexto(t){return t.replace(/\*/g,'').trim();}
-function contarAsteriscos(t){const m=t.match(/^\*+/);return m?m[0].length:0;}
-function horaVisual(f){let h=f.getHours();let m=f.getMinutes();if(h>12)h-=12;if(h===0)h=12;return h+":"+(m<10?'0'+m:m);}
-function horaActualVoz(){let ahora=new Date();let h=ahora.getHours();let m=ahora.getMinutes();if(h>12)h-=12;if(h===0)h=12;return h+" y "+m;}
-
-async function cargarCalendario(){
-const min=new Date();min.setHours(0,0,0,0);
-const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime`;
-const r=await fetch(url);
-const d=await r.json();
-if(d.items) organizarEventos(d.items);
-}
-
-function organizarEventos(items){
-const hoyStr=new Date().toLocaleDateString();
-eventosHoy=[];eventosManana=[];
-items.forEach(item=>{
-const inicio=new Date(item.start.dateTime||item.start.date);
-const ev={
-id:item.id+inicio.getTime(),
-titulo:limpiarTexto(item.summary||"Sin título"),
-horaV:horaVisual(inicio),
-obj:inicio,
-asteriscos:contarAsteriscos(item.summary||"")
-};
-if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
-else eventosManana.push(ev);
-});
-renderLista(eventosHoy,'lista-hoy');
-renderLista(eventosManana,'lista-manana');
-}
-
-// Renderizar eventos
-function renderLista(lista,id){
-const cont=document.getElementById(id);
-cont.innerHTML="";
-const ahora=new Date();
-lista.forEach(ev=>{
-const fin=ev.obj.getTime()+3600000;
-const activo=(ahora.getTime()>=ev.obj.getTime() && ahora.getTime()<=fin);
-if(ahora.getTime()>fin) return;
-const div=document.createElement('div');
-div.className="evento "+(activo?"urgente-perma":"");
-div.onclick=()=>{
-eventosAtendidos.add(ev.id);
-speechSynthesis.cancel();
-cancelarAlarma(ev.id);
-};
-div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
-cont.appendChild(div);
-
-// Si evento activo al reiniciar la web → iniciar alarma de inmediato
-if(activo && !alarmasActivas[ev.id]) iniciarAlarma(ev);
-});
-}
-
-// Hablar
 function hablar(t){
 const u=new SpeechSynthesisUtterance(t);
-u.lang='es-ES'; u.rate=0.9;
+u.lang='es-ES';
+u.rate=0.9;
 speechSynthesis.speak(u);
 }
 
-// Hablar tres veces consecutivas
 function hablarTresVeces(texto){
+
 let n=0;
+
 function repetir(){
+
 if(n>=3) return;
+
 const u=new SpeechSynthesisUtterance(texto);
-u.lang='es-ES'; u.rate=0.9;
-u.onend=()=>{n++;repetir();}
-speechSynthesis.speak(u);
-}
+u.lang='es-ES';
+
+u.onend=()=>{
+n++;
 repetir();
+};
+
+speechSynthesis.speak(u);
+
 }
 
-// Iniciar alarma con repetición cada 2 min
+repetir();
+
+}
+
 function iniciarAlarma(ev){
-const mensaje=()=>`Atención mamá. Son las ${horaActualVoz()}. ${ev.titulo}`;
-if(!eventosAtendidos.has(ev.id)) hablarTresVeces(mensaje());
-alarmasActivas[ev.id]=setInterval(()=>{
-if(!eventosAtendidos.has(ev.id)) hablarTresVeces(mensaje());
-},120000);
-}
 
-function cancelarAlarma(id){
-if(alarmasActivas[id]){
-clearInterval(alarmasActivas[id]);
-delete alarmasActivas[id];
-}
+const mensaje=()=>`Atención mamá. Son las ${horaActualVoz()}. ${ev.titulo}`;
+
+if(!eventosAtendidos.has(ev.id))
+hablarTresVeces(mensaje());
+
+alarmasActivas[ev.id]=setInterval(()=>{
+
+if(!eventosAtendidos.has(ev.id))
+hablarTresVeces(mensaje());
+
+},120000);
+
 }
 
 function verificarAlertas(){
+
 const ahora=new Date();
-const h=ahora.getHours();
-const m=ahora.getMinutes();
+
 [eventosHoy,eventosManana].forEach(lista=>{
+
 lista.forEach(ev=>{
-const eh=ev.obj.getHours();
-const em=ev.obj.getMinutes();
-if(h===eh && m===em && !idsAvisados.has(ev.id)){
+
+const inicio=ev.obj.getTime();
+const diff=inicio-ahora.getTime();
+
+const minutos=Math.floor(diff/60000);
+
+if(ev.asteriscos===2 && (minutos===120 || minutos===60))
+activarSecuencia(ev);
+
+if(ev.asteriscos===3 && (minutos===180 || minutos===120 || minutos===60))
+activarSecuencia(ev);
+
+if(Math.abs(diff)<60000 && !idsAvisados.has(ev.id)){
+
 idsAvisados.add(ev.id);
 iniciarAlarma(ev);
-}
-});
-});
+
 }
 
-function repasarDia(dia){
-const lista=(dia==='hoy'?eventosHoy:eventosManana);
-if(lista.length===0){hablar("Nada anotado");return;}
-let t=(dia==='hoy'?"Hoy tienes ":"Mañana tienes ");
-lista.forEach(ev=>{t+=ev.horaV+" "+ev.titulo+". ";});
-hablar(t);
+});
+
+});
+
+}
+
+function activarSecuencia(ev){
+
+if(avisosPrevios.has(ev.id)) return;
+
+avisosPrevios.add(ev.id);
+
+const mensaje=`Recordatorio. ${ev.titulo}`;
+
+hablarTresVeces(mensaje);
+
+setTimeout(()=>hablarTresVeces(mensaje),60000);
+setTimeout(()=>hablarTresVeces(mensaje),120000);
+
 }
 
 </script>
