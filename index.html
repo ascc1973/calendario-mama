@@ -153,9 +153,8 @@ PULSA PARA ACTIVAR CALENDARIO Y SONIDO
 
 <script>
 
-const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
-const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
-
+ const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
+    const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
 
 let eventosHoy=[];
 let eventosManana=[];
@@ -271,6 +270,8 @@ const div=document.createElement("div");
 div.className="evento "+(activo?"urgente":"");
 
 div.onclick=()=>{
+
+hablar(`Evento: ${ev.titulo}. Hora ${ev.horaV}`);
 
 eventosAtendidos.add(ev.id);
 
