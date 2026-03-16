@@ -274,7 +274,7 @@ div.onclick=()=>{
 
 speechSynthesis.cancel();
 
-hablar(`Evento: ${ev.titulo}. Hora ${ev.horaV}`);
+hablar(`Mamá hoy tienes a las: ${ev.horaV}. ${ev.titulo}`);
 
 eventosAtendidos.add(ev.id);
 
@@ -397,11 +397,11 @@ return ahora.getTime()<fin;
 });
 
 if(eventosValidos.length===0){
-hablar("Nada anotado.");
+hablar("Hoy no tienes nada apuntado.");
 return;
 }
 
-let t=(dia==="hoy"?"Hoy tienes: ":"Mañana tienes: ");
+let t=(dia==="hoy"?"Hoy tienes a las: ":"Mañana tienes a las: ");
 
 eventosValidos.forEach(ev=>{
 t+=ev.horaV+", "+ev.titulo+". ";
