@@ -279,10 +279,11 @@ eventosManana=[];
 items.forEach(item=>{
 const inicio=new Date(item.start.dateTime||item.start.date);
 const ev={
-id:item.id+inicio.getTime(),
-titulo:limpiarTexto(item.summary||"Sin título"),
-hora:inicio,
-horaV:horaVisual(inicio),
+id: item.id + inicio.getTime(),
+    titulo: limpiarTexto(item.summary || "Sin título") || "Sin título",
+    hora: inicio,
+    horaV: horaVisual(inicio),
+    asteriscos: contarAsteriscos(item.summary || "")
 asteriscos:contarAsteriscos(item.summary||"")
 };
 if(esHoy(inicio)) eventosHoy.push(ev);
