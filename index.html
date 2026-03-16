@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Calendario para Mamá</title>
 
 <style>
@@ -17,8 +18,8 @@ margin:0;
 padding:0;
 height:100%;
 font-family:'Arial Black',sans-serif;
-overflow:hidden;
 background:#000;
+overflow:hidden;
 }
 
 /* BARRA SUPERIOR */
@@ -31,7 +32,6 @@ width:100%;
 background:#000;
 color:#fff;
 text-align:center;
-padding:5px 0;
 z-index:1000;
 }
 
@@ -42,14 +42,11 @@ z-index:1000;
 
 #btn-inicial{
 position:fixed;
-top:0;
-left:0;
 width:100vw;
 height:100vh;
 background:#ff0000;
 color:white;
 font-size:5vh;
-font-weight:bold;
 border:none;
 z-index:9999;
 }
@@ -59,7 +56,6 @@ z-index:9999;
 .container{
 display:none;
 height:100vh;
-width:100vw;
 padding-top:70px;
 box-sizing:border-box;
 display:flex;
@@ -83,20 +79,18 @@ background:var(--manana-bg);
 
 h1{
 font-size:2.2vh;
-margin:2px 0;
+margin:2px;
 text-align:center;
 color:#fff;
 }
 
 .btn-repaso{
-width:100%;
 padding:8px;
 font-size:1.6vh;
-font-weight:bold;
 border-radius:8px;
 border:2px solid #000;
-margin-bottom:5px;
 background:#fff;
+margin-bottom:5px;
 cursor:pointer;
 }
 
@@ -109,9 +103,9 @@ gap:4px;
 
 .evento{
 background:#fff;
-padding:7px;
 border-radius:10px;
 border:3px solid #333;
+padding:7px;
 cursor:pointer;
 color:#000;
 }
@@ -124,8 +118,21 @@ font-size:2.5vh;
 
 .evento p{
 margin:2px 0 0;
-font-weight:bold;
 font-size:2.8vh;
+font-weight:bold;
+}
+
+/* ALERTA */
+
+.urgente{
+border:8px solid red !important;
+animation:blink 0.8s linear infinite;
+}
+
+@keyframes blink{
+0%{background:#00ff00;border-color:red;}
+50%{background:#ffffff;border-color:#ffffff;}
+100%{background:#00ff00;border-color:red;}
 }
 
 </style>
@@ -138,7 +145,9 @@ font-size:2.8vh;
 <div id="reloj"></div>
 </div>
 
-<button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
+<button id="btn-inicial" onclick="iniciarSistema()">
+PULSA PARA ACTIVAR CALENDARIO Y SONIDO
+</button>
 
 <div class="container">
 
@@ -160,8 +169,8 @@ font-size:2.8vh;
 
 <script>
 
-const API_KEY='AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ';
-const CALENDAR_ID='28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
+const API_KEY="TU_API_KEY";
+const CALENDAR_ID="TU_CALENDAR_ID";
 
 let eventosHoy=[];
 let eventosManana=[];
@@ -175,7 +184,8 @@ function actualizarReloj(){
 
 const ahora=new Date();
 
-const fecha=ahora.toLocaleDateString('es-ES',{
+document.getElementById("fecha").innerText=
+ahora.toLocaleDateString('es-ES',{
 weekday:'long',
 day:'numeric',
 month:'long'
@@ -187,8 +197,8 @@ let m=ahora.getMinutes();
 if(h>12)h-=12;
 if(h===0)h=12;
 
-document.getElementById("fecha").innerText=fecha;
-document.getElementById("reloj").innerText=h+":"+(m<10?"0"+m:m);
+document.getElementById("reloj").innerText=
+h+":"+(m<10?"0"+m:m);
 
 }
 
@@ -197,44 +207,65 @@ setInterval(actualizarReloj,1000);
 /* AUDIO */
 
 function hablar(t){
+
 speechSynthesis.cancel();
+
 const u=new SpeechSynthesisUtterance(t);
 u.lang="es-ES";
-u.rate=1.05;
+
 speechSynthesis.speak(u);
+
 }
 
 function hablarTres(t){
 
 let i=0;
 
-function repetir(){
+function rep(){
 
 if(i>=3)return;
 
 const u=new SpeechSynthesisUtterance(t);
 u.lang="es-ES";
-u.rate=1.05;
 
-u.onend=()=>{i++;repetir();};
+u.onend=()=>{
+i++;
+rep();
+};
 
 speechSynthesis.speak(u);
 
 }
 
-repetir();
+rep();
 
 }
 
-/* CAMPANA */
+/* CAMPANA 5 SEGUNDOS Y SIN ERROR */
 
 function sonarCampana(){
 
-const c=document.getElementById("campana");
-c.currentTime=0;
-c.play();
+return new Promise(resolve=>{
 
-return new Promise(r=>setTimeout(r,10000));
+const c=document.getElementById("campana");
+
+if(!c || !c.src){
+resolve();
+return;
+}
+
+c.currentTime=0;
+
+c.play().catch(()=>{
+resolve();
+});
+
+setTimeout(()=>{
+try{c.pause();}catch(e){}
+resolve();
+},5000);
+
+});
 
 }
 
@@ -243,11 +274,10 @@ return new Promise(r=>setTimeout(r,10000));
 function iniciarSistema(){
 
 document.getElementById("btn-inicial").style.display="none";
+document.querySelector(".container").style.display="flex";
 
 if(document.documentElement.requestFullscreen)
 document.documentElement.requestFullscreen();
-
-document.querySelector(".container").style.display="flex";
 
 hablar("Sistema activado");
 
@@ -260,8 +290,14 @@ setInterval(verificarAlertas,5000);
 
 /* UTILIDADES */
 
-function limpiarTexto(t){return t.replace(/\*/g,'').trim();}
-function contarAsteriscos(t){let m=t.match(/^\*+/);return m?m[0].length:0;}
+function limpiarTexto(t){
+return t.replace(/^\*+/,'').trim();
+}
+
+function contarAsteriscos(t){
+let m=t.match(/^\*+/);
+return m?m[0].length:0;
+}
 
 function horaVisual(d){
 
@@ -276,9 +312,7 @@ return h+":"+(m<10?"0"+m:m);
 }
 
 function diaSemana(d){
-
 return d.toLocaleDateString('es-ES',{weekday:'long'});
-
 }
 
 /* CALENDARIO */
@@ -293,13 +327,16 @@ const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent
 const r=await fetch(url);
 const d=await r.json();
 
-if(d.items)organizarEventos(d.items);
+if(!d.items)return;
+
+organizarEventos(d.items);
 
 }
 
 function organizarEventos(items){
 
-const hoyStr=new Date().toLocaleDateString();
+const hoy=new Date().toLocaleDateString();
+
 const manana=new Date();
 manana.setDate(manana.getDate()+1);
 const mananaStr=manana.toLocaleDateString();
@@ -320,22 +357,27 @@ dia:diaSemana(inicio),
 asteriscos:contarAsteriscos(item.summary||"")
 };
 
-if(inicio.toLocaleDateString()===hoyStr)
-eventosHoy.push(ev);
-else if(inicio.toLocaleDateString()===mananaStr)
-eventosManana.push(ev);
+const f=inicio.toLocaleDateString();
+
+if(f===hoy)eventosHoy.push(ev);
+if(f===mananaStr)eventosManana.push(ev);
 
 });
 
-document.getElementById("titulo-hoy").innerText="HOY - "+diaSemana(new Date());
+document.getElementById("titulo-hoy").innerText=
+"HOY - "+diaSemana(new Date());
 
 const m=new Date();
 m.setDate(m.getDate()+1);
-document.getElementById("titulo-manana").innerText="MAÑANA - "+diaSemana(m);
+
+document.getElementById("titulo-manana").innerText=
+"MAÑANA - "+diaSemana(m);
 
 render();
 
 }
+
+/* RENDER */
 
 function render(){
 
@@ -353,8 +395,19 @@ const ahora=new Date();
 
 lista.forEach(ev=>{
 
+const diff=(ev.hora-ahora)/60000;
+
+let alerta=false;
+
+if(ahora>=ev.hora && ahora<=ev.hora.getTime()+3600000)
+alerta=true;
+
+if(ev.asteriscos>=2 && diff<=120 && diff>0)
+alerta=true;
+
 const div=document.createElement("div");
-div.className="evento";
+
+div.className="evento"+(alerta?" urgente":"");
 
 div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
 
@@ -390,8 +443,6 @@ await sonarCampana();
 
 hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV} tienes ${ev.titulo}`);
 
-/* recordatorio cada 2 minutos SIN campana */
-
 alarmasActivas[ev.id]=setInterval(()=>{
 
 if(eventosSilenciados.has(ev.id))return;
@@ -402,7 +453,7 @@ hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV} tienes ${ev.titulo}`);
 
 }
 
-/* AVISOS ANTICIPADOS */
+/* AVISOS */
 
 async function secuenciaAviso(ev,textoDia){
 
@@ -426,8 +477,7 @@ const textoDia=i===0?"Hoy":"Mañana";
 
 lista.forEach(ev=>{
 
-const diff=ev.hora-ahora;
-const min=Math.floor(diff/60000);
+const min=Math.floor((ev.hora-ahora)/60000);
 
 if(ev.asteriscos===3 && min===180)
 secuenciaAviso(ev,textoDia);
@@ -452,10 +502,7 @@ const lista=(dia==="hoy"?eventosHoy:eventosManana);
 
 const ahora=new Date();
 
-const visibles=lista.filter(ev=>{
-const fin=ev.hora.getTime()+3600000;
-return ahora<fin;
-});
+const visibles=lista.filter(ev=>ahora<ev.hora.getTime()+3600000);
 
 if(visibles.length===0){
 hablar("Nada anotado.");
