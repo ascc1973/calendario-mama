@@ -84,13 +84,14 @@ border-right:3px solid #000;
 
 .col-manana{
 background:var(--manana-bg);
-color:#fff;
+/* Eliminamos color blanco general para que no afecte a eventos */
 }
 
 h1{
 font-size:2.2vh;
 margin:2px 0;
 text-align:center;
+color:#fff; /* mantenemos títulos visibles en mañana */
 }
 
 .btn-repaso{
@@ -118,6 +119,7 @@ padding:7px;
 border-radius:10px;
 border:3px solid #333;
 cursor:pointer;
+color:#000; /* Asegura texto negro en eventos */
 }
 
 .evento h2{
@@ -234,10 +236,7 @@ const u=new SpeechSynthesisUtterance(t);
 u.lang="es-ES";
 u.rate=1.05;
 
-u.onend=()=>{
-i++;
-repetir();
-};
+u.onend=()=>{ i++; repetir(); };
 
 speechSynthesis.speak(u);
 
@@ -329,8 +328,7 @@ items.forEach(item=>{
 
 const inicio=new Date(item.start.dateTime||item.start.date);
 
-const ev={
-id:item.id+inicio.getTime(),
+const ev={ id:item.id+inicio.getTime(),
 titulo:limpiarTexto(item.summary||"Sin título"),
 hora:inicio,
 horaV:horaVisual(inicio),
@@ -386,9 +384,7 @@ div.onclick=()=>{
 
 speechSynthesis.cancel();
 
-setTimeout(()=>{
-hablar(`Evento: ${ev.titulo}. Hora ${ev.horaV}`);
-},120);
+setTimeout(()=>{ hablar(`Evento: ${ev.titulo}. Hora ${ev.horaV}`); },120);
 
 eventosSilenciados.add(ev.id);
 
