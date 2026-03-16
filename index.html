@@ -228,10 +228,7 @@ if(i>=3)return;
 const u=new SpeechSynthesisUtterance(t);
 u.lang="es-ES";
 
-u.onend=()=>{
-i++;
-rep();
-};
+u.onend=()=>{ i++; rep(); };
 
 speechSynthesis.speak(u);
 
@@ -256,14 +253,9 @@ return;
 
 c.currentTime=0;
 
-c.play().catch(()=>{
-resolve();
-});
+c.play().catch(()=>{ resolve(); });
 
-setTimeout(()=>{
-try{c.pause();}catch(e){}
-resolve();
-},5000);
+setTimeout(()=>{ try{c.pause();}catch(e){} resolve(); },5000);
 
 });
 
@@ -299,16 +291,17 @@ let m=t.match(/^\*+/);
 return m?m[0].length:0;
 }
 
+/* MODIFICACIÓN: horaVisual devuelve hora y periodo */
+
 function horaVisual(d){
+  let h = d.getHours();
+  let m = d.getMinutes();
+  let periodo = h < 12 ? "de la mañana" : "de la tarde";
 
-let h=d.getHours();
-let m=d.getMinutes();
+  let h12 = h % 12;
+  if(h12 === 0) h12 = 12;
 
-if(h>12)h-=12;
-if(h===0)h=12;
-
-return h+":"+(m<10?"0"+m:m);
-
+  return { hora: h12 + ":" + (m<10?"0"+m:m), periodo };
 }
 
 function diaSemana(d){
@@ -409,7 +402,7 @@ const div=document.createElement("div");
 
 div.className="evento"+(alerta?" urgente":"");
 
-div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
+div.innerHTML=`<h2>${ev.horaV.hora}</h2><p>${ev.titulo}</p>`;
 
 div.onclick=()=>{
 
@@ -420,7 +413,7 @@ clearInterval(alarmasActivas[ev.id]);
 delete alarmasActivas[ev.id];
 }
 
-hablar(`${textoDia} ${ev.dia} a las ${ev.horaV} tienes ${ev.titulo}`);
+hablar(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
 
 };
 
@@ -441,13 +434,13 @@ if(eventosSilenciados.has(ev.id))return;
 
 await sonarCampana();
 
-hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV} tienes ${ev.titulo}`);
+hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
 
 alarmasActivas[ev.id]=setInterval(()=>{
 
 if(eventosSilenciados.has(ev.id))return;
 
-hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV} tienes ${ev.titulo}`);
+hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
 
 },120000);
 
@@ -463,7 +456,7 @@ avisosPrevios.add(ev.id);
 
 await sonarCampana();
 
-hablarTres(`Recordatorio. ${textoDia} ${ev.dia} a las ${ev.horaV} tienes ${ev.titulo}`);
+hablarTres(`Recordatorio. ${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
 
 }
 
@@ -512,7 +505,8 @@ return;
 let t=(dia==="hoy"?"Hoy tienes: ":"Mañana tienes: ");
 
 visibles.forEach(ev=>{
-t+=ev.horaV+", "+ev.titulo+". ";
+  const hv = ev.horaV;
+  t+= hv.hora + " " + hv.periodo + ", " + ev.titulo + ". ";
 });
 
 hablar(t);
