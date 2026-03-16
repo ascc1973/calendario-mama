@@ -6,7 +6,6 @@
 <title>Calendario para Mamá</title>
 
 <style>
-
 :root{
 --hoy-bg:#FFEB3B;
 --manana-bg:#1A237E;
@@ -22,7 +21,6 @@ background:#000;
 }
 
 /* BARRA SUPERIOR */
-
 #barra{
 position:fixed;
 top:0;
@@ -34,17 +32,10 @@ text-align:center;
 padding:5px 0;
 z-index:1000;
 }
-
-#fecha{
-font-size:2vh;
-}
-
-#reloj{
-font-size:4vh;
-}
+#fecha{font-size:2vh;}
+#reloj{font-size:4vh;}
 
 /* BOTON INICIO */
-
 #btn-inicial{
 position:fixed;
 top:0;
@@ -57,10 +48,10 @@ font-size:5vh;
 font-weight:bold;
 border:none;
 z-index:9999;
+cursor:pointer;
 }
 
 /* CONTENEDOR */
-
 .container{
 display:none;
 height:100vh;
@@ -143,7 +134,6 @@ animation:blink 0.8s linear infinite;
 50%{background:#fff;border-color:#fff;}
 100%{background:#00ff00;border-color:red;}
 }
-
 </style>
 </head>
 
@@ -176,7 +166,6 @@ animation:blink 0.8s linear infinite;
 <audio id="campana" src="campana.mp3"></audio>
 
 <script>
-
 const API_KEY = 'AIzaSyAtAuM4-eUL5JxWJTTfvOfIeSoohUzY0uQ'; 
 const CALENDAR_ID = '28451d471eac1ddfffe0b11721d46c8850993884a38c3cd8e0df6506848d8ae3@group.calendar.google.com';
 
@@ -192,8 +181,8 @@ function actualizarReloj(){
     const fecha=ahora.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
     let h=ahora.getHours();
     let m=ahora.getMinutes();
-    if(h>12)h-=12;
-    if(h===0)h=12;
+    if(h>12) h-=12;
+    if(h===0) h=12;
     document.getElementById("fecha").innerText=fecha;
     document.getElementById("reloj").innerText=h+":"+(m<10?"0"+m:m);
 }
@@ -217,10 +206,10 @@ async function hablarConCampana(texto){
 
 /* INICIO */
 function iniciarSistema(){
-    if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
     document.getElementById("btn-inicial").style.display="none";
+    if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
     document.querySelector(".container").style.display="flex";
-    hablar("Sistema activado");
+    try{ hablarConCampana("Sistema activado"); } catch(e){ console.log(e); }
     cargarCalendario();
     setInterval(cargarCalendario,60000);
     setInterval(verificarAlertas,5000);
@@ -229,25 +218,23 @@ function iniciarSistema(){
 /* UTILIDADES */
 function limpiarTexto(t){return t.replace(/\*/g,'').trim();}
 function contarAsteriscos(t){let m=t.match(/^\*+/); return m?m[0].length:0;}
-function horaVisual(d){let h=d.getHours(); let m=d.getMinutes(); if(h>12)h-=12; if(h===0)h=12; return h+":"+(m<10?"0"+m:m);}
+function horaVisual(d){let h=d.getHours(); let m=d.getMinutes(); if(h>12) h-=12; if(h===0) h=12; return h+":"+(m<10?"0"+m:m);}
 function diaSemana(d){ return d.toLocaleDateString('es-ES',{weekday:'long'}); }
-function horaVoz(d){ let h=d.getHours(); let m=d.getMinutes(); if(h>12)h-=12; if(h===0)h=12; return h+" y "+m; }
+function horaVoz(d){ let h=d.getHours(); let m=d.getMinutes(); if(h>12) h-=12; if(h===0) h=12; return h+" y "+m; }
 
 /* CALENDARIO */
 async function cargarCalendario(){
     const min=new Date(); min.setHours(0,0,0,0);
     const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
     const r=await fetch(url); const d=await r.json();
-    if(d.items)organizarEventos(d.items);
+    if(d.items) organizarEventos(d.items);
 }
 
 function organizarEventos(items){
     const hoyStr=new Date().toLocaleDateString();
     const manana=new Date(); manana.setDate(manana.getDate()+1);
     const mananaStr=manana.toLocaleDateString();
-
     eventosHoy=[]; eventosManana=[];
-
     items.forEach(item=>{
         const inicio=new Date(item.start.dateTime||item.start.date);
         const ev={
@@ -261,12 +248,9 @@ function organizarEventos(items){
         if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
         else if(inicio.toLocaleDateString()===mananaStr) eventosManana.push(ev);
     });
-
-    // Actualizar títulos con día de la semana
     document.getElementById('titulo-hoy').innerText=`HOY - ${diaSemana(new Date())}`;
-    const manana=new Date(); manana.setDate(manana.getDate()+1);
-    document.getElementById('titulo-manana').innerText=`MAÑANA - ${diaSemana(manana)}`;
-
+    const manana2=new Date(); manana2.setDate(manana2.getDate()+1);
+    document.getElementById('titulo-manana').innerText=`MAÑANA - ${diaSemana(manana2)}`;
     render();
 }
 
@@ -290,8 +274,8 @@ function renderLista(lista,id,textoDia){
         div.className="evento "+(alerta?"urgente":"");
         div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
 
-        div.onclick=()=>{ 
-            eventosSilenciados.add(ev.id); 
+        div.onclick=()=>{
+            eventosSilenciados.add(ev.id);
             if(alarmasActivas[ev.id]){
                 clearInterval(alarmasActivas[ev.id]);
                 delete alarmasActivas[ev.id];
@@ -343,11 +327,8 @@ function repasarDia(dia){
     const lista=(dia==="hoy"?eventosHoy:eventosManana);
     const textoDia=dia==="hoy"?"Hoy":"Mañana";
     const ahora=new Date();
-    const visibles=lista.filter(ev=>{
-        const fin=ev.hora.getTime()+3600000;
-        return ahora<fin;
-    });
-    if(visibles.length===0){ hablar("Nada anotado."); return; }
+    const visibles=lista.filter(ev=>ahora<ev.hora.getTime()+3600000);
+    if(visibles.length===0){ hablarConCampana("Nada anotado."); return; }
     visibles.forEach(ev=>{
         hablarConCampana(`${textoDia} ${ev.diaSemana} a las ${ev.horaV} tienes ${ev.titulo}`);
     });
