@@ -5,27 +5,114 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Calendario para Mamá</title>
 <style>
-:root{ --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
-body,html{ margin:0; padding:0; height:100%; font-family:'Arial Black',sans-serif; overflow:hidden; background:#000; }
+:root{
+  --hoy-bg:#FFEB3B;
+  --manana-bg:#1A237E;
+}
+
+body,html{
+  margin:0;
+  padding:0;
+  height:100%;
+  font-family:'Arial Black',sans-serif;
+  overflow:hidden;
+  background:#000;
+}
+
 /* BARRA SUPERIOR */
-#barra{ position:fixed; top:0; left:0; width:100%; background:#000; color:#fff; text-align:center; padding:5px 0; z-index:1000; }
+#barra{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  background:#000;
+  color:#fff;
+  text-align:center;
+  padding:5px 0;
+  z-index:1000;
+}
 #fecha{ font-size:2vh; }
 #reloj{ font-size:4vh; }
+
 /* BOTON INICIO */
-#btn-inicial{ position:fixed; top:0; left:0; width:100vw; height:100vh; background:#ff0000; color:white; font-size:5vh; font-weight:bold; border:none; z-index:9999; }
+#btn-inicial{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100vw;
+  height:100vh;
+  background:#ff0000;
+  color:white;
+  font-size:5vh;
+  font-weight:bold;
+  border:none;
+  z-index:9999;
+  cursor:pointer;
+}
+
 /* CONTENEDOR */
-.container{ display:none; height:100vh; width:100vw; padding-top:70px; box-sizing:border-box; display:flex; }
-.col{ width:50%; padding:5px; display:flex; flex-direction:column; }
+.container{
+  display:none;
+  height:100vh;
+  width:100vw;
+  padding-top:70px;
+  box-sizing:border-box;
+  display:flex;
+}
+.col{
+  width:50%;
+  padding:5px;
+  display:flex;
+  flex-direction:column;
+}
 .col-hoy{ background:var(--hoy-bg); border-right:3px solid #000; }
 .col-manana{ background:var(--manana-bg); color:#fff; }
+
 h1{ font-size:2.2vh; margin:2px 0; text-align:center; }
-.btn-repaso{ width:100%; padding:8px; font-size:1.6vh; font-weight:bold; border-radius:8px; border:2px solid #000; margin-bottom:5px; background:#fff; cursor:pointer; }
-.lista-eventos{ flex-grow:1; display:flex; flex-direction:column; gap:4px; }
-.evento{ background:#fff; padding:7px; border-radius:10px; border:3px solid #333; cursor:pointer; }
+
+.btn-repaso{
+  width:100%;
+  padding:8px;
+  font-size:1.6vh;
+  font-weight:bold;
+  border-radius:8px;
+  border:2px solid #000;
+  margin-bottom:5px;
+  background:#fff;
+  cursor:pointer;
+}
+
+.lista-eventos{
+  flex-grow:1;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.evento{
+  background:#fff;
+  padding:7px;
+  border-radius:10px;
+  border:3px solid #333;
+  cursor:pointer;
+}
 .evento h2{ margin:0; color:#d32f2f; font-size:2.5vh; }
-.evento p{ margin:2px 0 0; font-weight:bold; font-size:2.8vh; }
-.urgente{ border:8px solid red !important; animation:blink 0.8s linear infinite; }
-@keyframes blink{ 0%{background:#00ff00;border-color:red;} 50%{background:#fff;border-color:#fff;} 100%{background:#00ff00;border-color:red;} }
+.evento p{
+  margin:2px 0 0;
+  font-weight:bold;
+  font-size:2.8vh;
+  color: #000; /* CORRECCIÓN: texto visible en eventos */
+}
+
+.urgente{
+  border:8px solid red !important;
+  animation:blink 0.8s linear infinite;
+}
+@keyframes blink{
+  0%{background:#00ff00;border-color:red;}
+  50%{background:#fff;border-color:#fff;}
+  100%{background:#00ff00;border-color:red;}
+}
 </style>
 </head>
 <body>
@@ -34,6 +121,7 @@ h1{ font-size:2.2vh; margin:2px 0; text-align:center; }
   <div id="reloj"></div>
 </div>
 <button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
+
 <div class="container">
   <div class="col col-hoy">
     <h1>HOY</h1>
@@ -132,12 +220,12 @@ function organizarEventos(items){
             horaV: horaVisual(inicio),
             asteriscos: contarAsteriscos(item.summary||"")
         };
-        // Diferenciar hoy y mañana
         if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
         else eventosManana.push(ev);
     });
     render();
 }
+
 function render(){
     renderLista(eventosHoy,"lista-hoy");
     renderLista(eventosManana,"lista-manana");
@@ -149,8 +237,7 @@ function renderLista(lista,id){
     const ahora = new Date();
     lista.forEach(ev=>{
         const fin = ev.hora.getTime()+3600000;
-        // Modificado: mostrar eventos de todo el día aunque la hora sea 00:00
-        const esEventoVisible = ahora <= fin || ev.hora.getHours()===0 && ev.hora.getMinutes()===0;
+        const esEventoVisible = ahora <= fin || (ev.hora.getHours()===0 && ev.hora.getMinutes()===0);
         if(!esEventoVisible) return;
 
         const diff = (ev.hora - ahora)/60000;
@@ -160,7 +247,7 @@ function renderLista(lista,id){
 
         const div = document.createElement("div");
         div.className = "evento " + (alerta?"urgente":"");
-        div.innerHTML = `<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;  // Backticks correctos
+        div.innerHTML = `<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
 
         div.onclick = ()=>{
             speechSynthesis.cancel();
