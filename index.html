@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
 <title>Calendario para Mamá</title>
 
 <style>
@@ -24,20 +23,20 @@ background:#000;
 
 /* BARRA SUPERIOR */
 
-#barra-tiempo{
+#barra{
 position:fixed;
 top:0;
 left:0;
 width:100%;
 background:#000;
-color:white;
+color:#fff;
 text-align:center;
+padding:5px 0;
 z-index:1000;
-padding:6px 0;
 }
 
 #fecha{
-font-size:2.2vh;
+font-size:2vh;
 }
 
 #reloj{
@@ -58,7 +57,6 @@ font-size:5vh;
 font-weight:bold;
 border:none;
 z-index:9999;
-cursor:pointer;
 }
 
 /* CONTENEDOR */
@@ -67,9 +65,9 @@ cursor:pointer;
 display:none;
 height:100vh;
 width:100vw;
-flex-direction:row;
 padding-top:70px;
 box-sizing:border-box;
+display:flex;
 }
 
 .col{
@@ -77,18 +75,16 @@ width:50%;
 padding:5px;
 display:flex;
 flex-direction:column;
-box-sizing:border-box;
 }
 
 .col-hoy{
 background:var(--hoy-bg);
-color:#000;
 border-right:3px solid #000;
 }
 
 .col-manana{
 background:var(--manana-bg);
-color:#FFF;
+color:#fff;
 }
 
 h1{
@@ -99,7 +95,7 @@ text-align:center;
 
 .btn-repaso{
 width:100%;
-padding:8px 2px;
+padding:8px;
 font-size:1.6vh;
 font-weight:bold;
 border-radius:8px;
@@ -114,17 +110,13 @@ flex-grow:1;
 display:flex;
 flex-direction:column;
 gap:4px;
-overflow:hidden;
 }
 
 .evento{
-background:white;
-color:#000;
+background:#fff;
 padding:7px;
 border-radius:10px;
 border:3px solid #333;
-display:flex;
-flex-direction:column;
 cursor:pointer;
 }
 
@@ -140,8 +132,6 @@ font-weight:bold;
 font-size:2.8vh;
 }
 
-/* PARPADEO */
-
 .urgente{
 border:8px solid red !important;
 animation:blink 0.8s linear infinite;
@@ -149,7 +139,7 @@ animation:blink 0.8s linear infinite;
 
 @keyframes blink{
 0%{background:#00ff00;border-color:red;}
-50%{background:white;border-color:white;}
+50%{background:#fff;border-color:#fff;}
 100%{background:#00ff00;border-color:red;}
 }
 
@@ -158,25 +148,23 @@ animation:blink 0.8s linear infinite;
 
 <body>
 
-<div id="barra-tiempo">
+<div id="barra">
 <div id="fecha"></div>
 <div id="reloj"></div>
 </div>
 
-<button id="btn-inicial" onclick="iniciarSistema()">
-PULSA PARA ACTIVAR CALENDARIO Y SONIDO
-</button>
+<button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
 
 <div class="container">
 
 <div class="col col-hoy">
-<h1 id="txt-hoy">HOY</h1>
+<h1>HOY</h1>
 <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
 <div id="lista-hoy" class="lista-eventos"></div>
 </div>
 
 <div class="col col-manana">
-<h1 id="txt-manana">MAÑANA</h1>
+<h1>MAÑANA</h1>
 <button class="btn-repaso" onclick="repasarDia('manana')">🔊 TODO MAÑANA</button>
 <div id="lista-manana" class="lista-eventos"></div>
 </div>
@@ -192,8 +180,8 @@ PULSA PARA ACTIVAR CALENDARIO Y SONIDO
 let eventosHoy=[];
 let eventosManana=[];
 let alarmasActivas={};
-let eventosAtendidos=new Set();
 let avisosPrevios=new Set();
+let eventosSilenciados=new Set();
 
 /* RELOJ */
 
@@ -214,12 +202,50 @@ if(h>12)h-=12;
 if(h===0)h=12;
 
 document.getElementById("fecha").innerText=fecha;
-document.getElementById("reloj").innerText=
-h+":"+(m<10?"0"+m:m);
+document.getElementById("reloj").innerText=h+":"+(m<10?"0"+m:m);
 
 }
 
 setInterval(actualizarReloj,1000);
+
+/* AUDIO */
+
+function hablar(t){
+
+speechSynthesis.cancel();
+
+const u=new SpeechSynthesisUtterance(t);
+u.lang="es-ES";
+u.rate=1.05;
+
+speechSynthesis.speak(u);
+
+}
+
+function hablarTres(t){
+
+let i=0;
+
+function repetir(){
+
+if(i>=3)return;
+
+const u=new SpeechSynthesisUtterance(t);
+u.lang="es-ES";
+u.rate=1.05;
+
+u.onend=()=>{
+i++;
+repetir();
+};
+
+speechSynthesis.speak(u);
+
+}
+
+repetir();
+
+}
 
 /* INICIO */
 
@@ -235,37 +261,45 @@ hablar("Sistema activado");
 
 cargarCalendario();
 
-setInterval(verificarAlertas,5000);
 setInterval(cargarCalendario,60000);
+setInterval(verificarAlertas,5000);
 
 }
 
 /* UTILIDADES */
 
-function limpiarTexto(t){
-return t.replace(/\*/g,"").trim();
-}
+function limpiarTexto(t){return t.replace(/\*/g,'').trim();}
 
 function contarAsteriscos(t){
+
 let m=t.match(/^\*+/);
 return m?m[0].length:0;
+
 }
 
 function horaVisual(d){
+
 let h=d.getHours();
 let m=d.getMinutes();
+
 if(h>12)h-=12;
 if(h===0)h=12;
+
 return h+":"+(m<10?"0"+m:m);
+
 }
 
 function horaVoz(){
+
 let d=new Date();
 let h=d.getHours();
 let m=d.getMinutes();
+
 if(h>12)h-=12;
 if(h===0)h=12;
+
 return h+" y "+m;
+
 }
 
 /* CALENDARIO */
@@ -298,8 +332,8 @@ const inicio=new Date(item.start.dateTime||item.start.date);
 const ev={
 id:item.id+inicio.getTime(),
 titulo:limpiarTexto(item.summary||"Sin título"),
+hora:inicio,
 horaV:horaVisual(inicio),
-obj:inicio,
 asteriscos:contarAsteriscos(item.summary||"")
 };
 
@@ -310,12 +344,16 @@ eventosManana.push(ev);
 
 });
 
+render();
+
+}
+
+function render(){
+
 renderLista(eventosHoy,"lista-hoy");
 renderLista(eventosManana,"lista-manana");
 
 }
-
-/* RENDER */
 
 function renderLista(lista,id){
 
@@ -326,15 +364,15 @@ const ahora=new Date();
 
 lista.forEach(ev=>{
 
-const fin=ev.obj.getTime()+3600000;
+const fin=ev.hora.getTime()+3600000;
 
-if(ahora.getTime()>fin)return;
+if(ahora>fin)return;
 
-const diff=(ev.obj.getTime()-ahora.getTime())/60000;
+const diff=(ev.hora-ahora)/60000;
 
 let alerta=false;
 
-if(ahora>=ev.obj && ahora<=fin)alerta=true;
+if(ahora>=ev.hora && ahora<=fin)alerta=true;
 
 if(ev.asteriscos>=2 && diff<=120 && diff>0)alerta=true;
 
@@ -342,15 +380,17 @@ const div=document.createElement("div");
 
 div.className="evento "+(alerta?"urgente":"");
 
+div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
+
 div.onclick=()=>{
 
 speechSynthesis.cancel();
 
 setTimeout(()=>{
-hablar(`Evento: ${ev.titulo}. Hora ${ev.horaV}`);
+hablar(`Mamá son las : Hora ${ev.horaV}. Tienes: ${ev.titulo}`);
 },120);
 
-eventosAtendidos.add(ev.id);
+eventosSilenciados.add(ev.id);
 
 if(alarmasActivas[ev.id]){
 clearInterval(alarmasActivas[ev.id]);
@@ -359,68 +399,69 @@ delete alarmasActivas[ev.id];
 
 };
 
-div.innerHTML=`<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
-
 cont.appendChild(div);
 
-if(alerta && !alarmasActivas[ev.id] && ahora>=ev.obj)
+if(alerta && ahora>=ev.hora && !alarmasActivas[ev.id])
 iniciarAlarma(ev);
 
 });
 
 }
 
-/* VOZ */
-
-function hablar(t){
-
-speechSynthesis.cancel();
-
-const m=new SpeechSynthesisUtterance(t);
-m.lang="es-ES";
-m.rate=1.05;
-
-speechSynthesis.speak(m);
-
-}
-
-function hablarTres(t){
-
-let n=0;
-
-function repetir(){
-
-if(n>=3)return;
-
-const m=new SpeechSynthesisUtterance(t);
-m.lang="es-ES";
-m.rate=1.05;
-
-m.onend=()=>{n++;repetir();};
-
-speechSynthesis.speak(m);
-
-}
-
-repetir();
-
-}
-
-/* ALARMA */
+/* ALARMAS */
 
 function iniciarAlarma(ev){
 
-const mensaje=()=>`Atención mamá. Son las ${horaVoz()}. ${ev.titulo}`;
+const mensaje=()=>`Atención mamá. Son las ${horaVoz()}. Tienes: ${ev.titulo}`;
 
-if(!eventosAtendidos.has(ev.id))
+if(!eventosSilenciados.has(ev.id))
 hablarTres(mensaje());
 
 alarmasActivas[ev.id]=setInterval(()=>{
 
-if(!eventosAtendidos.has(ev.id))
+if(!eventosSilenciados.has(ev.id))
 hablarTres(mensaje());
 
 },120000);
+
+}
+
+/* AVISOS ANTICIPADOS */
+
+function secuenciaAviso(ev){
+
+if(avisosPrevios.has(ev.id))return;
+
+avisosPrevios.add(ev.id);
+
+const msg=`Recordatorio. ${ev.titulo}`;
+
+hablarTres(msg);
+setTimeout(()=>hablarTres(msg),60000);
+setTimeout(()=>hablarTres(msg),120000);
+
+}
+
+function verificarAlertas(){
+
+const ahora=new Date();
+
+[eventosHoy,eventosManana].forEach(lista=>{
+
+lista.forEach(ev=>{
+
+const diff=ev.hora-ahora;
+const min=Math.floor(diff/60000);
+
+if(ev.asteriscos===2 && (min===120 || min===60))
+secuenciaAviso(ev);
+
+if(ev.asteriscos===3 && (min===180 || min===120 || min===60))
+secuenciaAviso(ev);
+
+});
+
+});
 
 }
 
@@ -432,29 +473,25 @@ const lista=(dia==="hoy"?eventosHoy:eventosManana);
 
 const ahora=new Date();
 
-const eventosValidos=lista.filter(ev=>{
-const fin=ev.obj.getTime()+3600000;
-return ahora.getTime()<fin;
+const visibles=lista.filter(ev=>{
+const fin=ev.hora.getTime()+3600000;
+return ahora<fin;
 });
 
-if(eventosValidos.length===0){
-hablar("Nada anotado.");
+if(visibles.length===0){
+hablar("No tienes nada auntado para hoy.");
 return;
 }
 
 let t=(dia==="hoy"?"Hoy tienes: ":"Mañana tienes: ");
 
-eventosValidos.forEach(ev=>{
+visibles.forEach(ev=>{
 t+=ev.horaV+", "+ev.titulo+". ";
 });
 
 hablar(t);
 
 }
-
-/* ALERTAS */
-
-function verificarAlertas(){}
 
 </script>
 
