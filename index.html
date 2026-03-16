@@ -123,20 +123,21 @@ function organizarEventos(items){
     eventosHoy = [];
     eventosManana = [];
     items.forEach(item=>{
-        const inicio = new Date(item.start.dateTime||item.start.date);
+        const inicio = new Date(item.start.dateTime || item.start.date);
+        const titulo = limpiarTexto(item.summary || "Sin título");
         const ev = {
             id: item.id + inicio.getTime(),
-            titulo: limpiarTexto(item.summary||"Sin título"),
+            titulo: titulo,
             hora: inicio,
             horaV: horaVisual(inicio),
             asteriscos: contarAsteriscos(item.summary||"")
         };
+        // Diferenciar hoy y mañana
         if(inicio.toLocaleDateString()===hoyStr) eventosHoy.push(ev);
         else eventosManana.push(ev);
     });
     render();
 }
-
 function render(){
     renderLista(eventosHoy,"lista-hoy");
     renderLista(eventosManana,"lista-manana");
@@ -148,7 +149,10 @@ function renderLista(lista,id){
     const ahora = new Date();
     lista.forEach(ev=>{
         const fin = ev.hora.getTime()+3600000;
-        if(ahora>fin) return;
+        // Modificado: mostrar eventos de todo el día aunque la hora sea 00:00
+        const esEventoVisible = ahora <= fin || ev.hora.getHours()===0 && ev.hora.getMinutes()===0;
+        if(!esEventoVisible) return;
+
         const diff = (ev.hora - ahora)/60000;
         let alerta = false;
         if(ahora>=ev.hora && ahora<=fin) alerta = true;
@@ -156,14 +160,11 @@ function renderLista(lista,id){
 
         const div = document.createElement("div");
         div.className = "evento " + (alerta?"urgente":"");
-        // ⚠️ CORRECCIÓN: Usar backticks para template literal
-        div.innerHTML = `<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;
+        div.innerHTML = `<h2>${ev.horaV}</h2><p>${ev.titulo}</p>`;  // Backticks correctos
 
         div.onclick = ()=>{
             speechSynthesis.cancel();
-            setTimeout(()=>{
-                hablar(`Mamá son las: ${ev.horaV}. Tienes: ${ev.titulo}`);
-            },120);
+            setTimeout(()=>{ hablar(`Mamá son las: ${ev.horaV}. Tienes: ${ev.titulo}`); },120);
             eventosSilenciados.add(ev.id);
             if(alarmasActivas[ev.id]){
                 clearInterval(alarmasActivas[ev.id]);
