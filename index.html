@@ -169,7 +169,7 @@ function lanzarPantallaGigante(ev) {
     document.getElementById("pantalla-evento-activo").style.display = "flex";
     
     const campana = document.getElementById("campana");
-    campana.volume = 0.15;
+    campana.volume = 0.10;
     campana.loop = true;
     campana.play().catch(()=>{});
 
@@ -249,7 +249,7 @@ function verificarAlertas(){
 
 function sonarAvisoPrevio(ev) {
     const c = document.getElementById("campana");
-    c.volume = 0.2;
+    c.volume = 0.1;
     c.loop = false; c.play();
     setTimeout(() => {
         window.speechSynthesis.cancel();
