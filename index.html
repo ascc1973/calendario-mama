@@ -93,7 +93,7 @@ function actualizarReloj(){
     const ahora=new Date();
     document.getElementById("fecha").innerText=ahora.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
     let h=ahora.getHours(); let m=ahora.getMinutes();
-    let hMostrar = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+    let hMostrar = h % 12 || 12;
     document.getElementById("reloj").innerText = hMostrar + ":" + (m < 10 ? "0" + m : m);
     render(); 
 }
@@ -169,32 +169,31 @@ function lanzarPantallaGigante(ev) {
     document.getElementById("pantalla-evento-activo").style.display = "flex";
     
     const campana = document.getElementById("campana");
-    campana.volume = 0.10;
+    campana.volume = 0.15;
     campana.loop = true;
     campana.play().catch(()=>{});
 
     ejecutarVozInfinita(ev);
 }
 
-// BUCLE DE VOZ REFORZADO
 function ejecutarVozInfinita(ev) {
     if (idEventoActual !== ev.id) return;
     
-    const msg = new SpeechSynthesisUtterance(`Mamá, son las ${ev.horaV.hora}. Tienes ${ev.titulo}.`);
+    // Simplificado para evitar el "mañana mañana" y corregir "madrugada"
+    const msg = new SpeechSynthesisUtterance(`Mamá, son las ${ev.horaV.hora} ${ev.horaV.periodo}. Tienes ${ev.titulo}.`);
     msg.lang = "es-ES";
     msg.volume = 1;
     msg.rate = 0.85;
 
     msg.onend = () => {
-        // Solo si el evento sigue activo, esperamos 2 segundos y volvemos a llamar
         if (idEventoActual === ev.id) {
             setTimeout(() => {
                 if (idEventoActual === ev.id) ejecutarVozInfinita(ev);
-            }, 2000);
+            }, 2500);
         }
     };
 
-    window.speechSynthesis.cancel(); // Limpiar voz anterior
+    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(msg);
 }
 
@@ -226,10 +225,17 @@ function hablarEvento(ev, dia) {
 }
 
 function horaVisual(d){
-    let h=d.getHours(); let m=d.getMinutes();
-    let p = h < 12 ? "de la mañana" : "de la tarde";
-    let h12 = h % 12 || 12;
-    return { hora: h12 + ":" + (m<10?"0"+m:m), periodo: p };
+    let h=d.getHours(); // Formato 24h (0-23)
+    let m=d.getMinutes();
+    let periodo = "";
+    
+    // Corrección de lógica de periodo
+    if (h >= 6 && h < 12) periodo = "de la mañana";
+    else if (h >= 12 && h < 21) periodo = "de la tarde";
+    else if (h >= 21 || h < 6) periodo = "de la noche";
+    
+    let h12 = h % 12 || 12; // Convertir a formato 12h
+    return { hora: h12 + ":" + (m<10?"0"+m:m), periodo: periodo };
 }
 
 function verificarAlertas(){
@@ -249,11 +255,11 @@ function verificarAlertas(){
 
 function sonarAvisoPrevio(ev) {
     const c = document.getElementById("campana");
-    c.volume = 0.1;
+    c.volume = 0.2;
     c.loop = false; c.play();
     setTimeout(() => {
         window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(`Recordatorio: a las ${ev.horaV.hora} tienes ${ev.titulo}`);
+        const u = new SpeechSynthesisUtterance(`Recordatorio: a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
         u.lang="es-ES"; u.volume = 1; window.speechSynthesis.speak(u);
     }, 2000);
 }
@@ -263,7 +269,7 @@ function repasarDia(dia){
     const lista = dia === "hoy" ? eventosHoy : eventosManana;
     if(lista.length === 0) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("No hay nada anotado")); return; }
     let t = (dia === "hoy" ? "Hoy tienes: " : "Mañana tienes: ");
-    lista.forEach(ev => t += `${ev.horaV.hora}, ${ev.titulo}. `);
+    lista.forEach(ev => t += `${ev.horaV.hora} ${ev.horaV.periodo}, ${ev.titulo}. `);
     const u = new SpeechSynthesisUtterance(t); u.lang="es-ES"; u.volume = 1; window.speechSynthesis.speak(u);
 }
 </script>
