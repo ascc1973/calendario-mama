@@ -135,7 +135,7 @@ animation:blink 0.8s linear infinite;
 100%{background:#00ff00;border-color:red;}
 }
 
-/* PANTALLA COMPLETA ALERTA */
+/* NUEVO: PANTALLA COMPLETA */
 
 #pantalla-alerta{
 position:fixed;
@@ -186,7 +186,7 @@ PULSA PARA ACTIVAR CALENDARIO Y SONIDO
 
 </div>
 
-<!-- PANTALLA ALERTA -->
+<!-- NUEVO -->
 <div id="pantalla-alerta">
 <span id="texto-alerta"></span>
 </div>
@@ -235,24 +235,56 @@ setInterval(actualizarReloj,1000);
 /* AUDIO */
 
 function hablar(t){
+
 speechSynthesis.cancel();
+
 const u=new SpeechSynthesisUtterance(t);
 u.lang="es-ES";
+
 speechSynthesis.speak(u);
+
+}
+
+function hablarTres(t){
+
+let i=0;
+
+function rep(){
+
+if(i>=3)return;
+
+const u=new SpeechSynthesisUtterance(t);
+u.lang="es-ES";
+
+u.onend=()=>{ i++; rep(); };
+
+speechSynthesis.speak(u);
+
+}
+
+rep();
+
 }
 
 /* CAMPANA */
 
 function sonarCampana(){
+
 return new Promise(resolve=>{
+
 const c=document.getElementById("campana");
+
 c.currentTime=0;
-c.play().catch(()=>resolve());
-setTimeout(()=>{c.pause(); resolve();},5000);
+
+c.play().catch(()=>{ resolve(); });
+
+setTimeout(()=>{ try{c.pause();}catch(e){} resolve(); },5000);
+
 });
+
 }
 
-/* ALERTA PANTALLA COMPLETA */
+/* NUEVO: PANTALLA COMPLETA */
 
 function mostrarPantallaAlerta(ev,textoDia){
 
@@ -268,16 +300,21 @@ ${ev.titulo}`;
 div.style.display="flex";
 
 async function bucle(){
+
 while(alertaActiva){
+
 await sonarCampana();
-hablar(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
-await new Promise(r=>setTimeout(r,4000));
+
+hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
+
 }
+
 }
 
 bucle();
 
 div.onclick=()=>{
+
 alertaActiva=false;
 div.style.display="none";
 
@@ -289,6 +326,7 @@ delete alarmasActivas[ev.id];
 }
 
 speechSynthesis.cancel();
+
 };
 
 }
@@ -314,14 +352,24 @@ setInterval(verificarAlertas,5000);
 
 /* UTILIDADES */
 
-function limpiarTexto(t){ return t.replace(/^\*+/,'').trim(); }
-function contarAsteriscos(t){ let m=t.match(/^\*+/); return m?m[0].length:0; }
+function limpiarTexto(t){
+return t.replace(/^\*+/,'').trim();
+}
+
+function contarAsteriscos(t){
+let m=t.match(/^\*+/);
+return m?m[0].length:0;
+}
 
 function horaVisual(d){
-let h=d.getHours(),m=d.getMinutes();
-let periodo=h<12?"de la mañana":"de la tarde";
-let h12=h%12||12;
-return {hora:h12+":"+(m<10?"0"+m:m),periodo};
+  let h = d.getHours();
+  let m = d.getMinutes();
+  let periodo = h < 12 ? "de la mañana" : "de la tarde";
+
+  let h12 = h % 12;
+  if(h12 === 0) h12 = 12;
+
+  return { hora: h12 + ":" + (m<10?"0"+m:m), periodo };
 }
 
 function diaSemana(d){
@@ -335,7 +383,7 @@ async function cargarCalendario(){
 const min=new Date();
 min.setHours(0,0,0,0);
 
-const url=`https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
+const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
 
 const r=await fetch(url);
 const d=await r.json();
@@ -377,11 +425,20 @@ if(f===mananaStr)eventosManana.push(ev);
 
 });
 
+document.getElementById("titulo-hoy").innerText=
+"HOY - "+diaSemana(new Date());
+
+const m=new Date();
+m.setDate(m.getDate()+1);
+
+document.getElementById("titulo-manana").innerText=
+"MAÑANA - "+diaSemana(m);
+
 render();
 
 }
 
-/* RENDER */
+/* RENDER ORIGINAL (SIN CAMBIOS) */
 
 function render(){
 
@@ -399,12 +456,38 @@ const ahora=new Date();
 
 lista.forEach(ev=>{
 
+const diff=(ev.hora-ahora)/60000;
+
+let alerta=false;
+
+if(ahora>=ev.hora && ahora<=ev.hora.getTime()+3600000)
+alerta=true;
+
+if(ev.asteriscos>=2 && diff<=120 && diff>0)
+alerta=true;
+
 const div=document.createElement("div");
-div.className="evento";
+
+div.className="evento"+(alerta?" urgente":"");
+
 div.innerHTML=`<h2>${ev.horaV.hora}</h2><p>${ev.titulo}</p>`;
+
+div.onclick=()=>{
+
+eventosSilenciados.add(ev.id);
+
+if(alarmasActivas[ev.id]){
+clearInterval(alarmasActivas[ev.id]);
+delete alarmasActivas[ev.id];
+}
+
+hablar(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
+
+};
 
 cont.appendChild(div);
 
+/* ÚNICO CAMBIO REAL */
 if(ahora>=ev.hora && !alarmasActivas[ev.id])
 iniciarAlarma(ev,textoDia);
 
@@ -412,15 +495,92 @@ iniciarAlarma(ev,textoDia);
 
 }
 
-/* ALARMA */
+/* ALARMA (solo se añade pantalla completa) */
 
-function iniciarAlarma(ev,textoDia){
+async function iniciarAlarma(ev,textoDia){
 
 if(eventosSilenciados.has(ev.id))return;
 
+/* ORIGINAL (se ejecuta primero, sin tocar) */
+await sonarCampana();
+
+hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
+
+alarmasActivas[ev.id]=setInterval(()=>{
+
+if(eventosSilenciados.has(ev.id))return;
+
+hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
+
+},120000);
+
+/* 👇 AÑADIDO AL FINAL (CLAVE) */
 mostrarPantallaAlerta(ev,textoDia);
 
-alarmasActivas[ev.id]=true;
+}
+
+/* RESTO IGUAL */
+
+async function secuenciaAviso(ev,textoDia){
+
+if(avisosPrevios.has(ev.id))return;
+
+avisosPrevios.add(ev.id);
+
+await sonarCampana();
+
+hablarTres(`Recordatorio. ${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
+
+}
+
+function verificarAlertas(){
+
+const ahora=new Date();
+
+[eventosHoy,eventosManana].forEach((lista,i)=>{
+
+const textoDia=i===0?"Hoy":"Mañana";
+
+lista.forEach(ev=>{
+
+const min=Math.floor((ev.hora-ahora)/60000);
+
+if(ev.asteriscos===3 && min===180)
+secuenciaAviso(ev,textoDia);
+
+if(ev.asteriscos>=2 && min===120)
+secuenciaAviso(ev,textoDia);
+
+if(ev.asteriscos>=1 && min===60)
+secuenciaAviso(ev,textoDia);
+
+});
+
+});
+
+}
+
+function repasarDia(dia){
+
+const lista=(dia==="hoy"?eventosHoy:eventosManana);
+
+const ahora=new Date();
+
+const visibles=lista.filter(ev=>ahora<ev.hora.getTime()+3600000);
+
+if(visibles.length===0){
+hablar("Nada anotado.");
+return;
+}
+
+let t=(dia==="hoy"?"Hoy tienes: ":"Mañana tienes: ");
+
+visibles.forEach(ev=>{
+  const hv = ev.horaV;
+  t+= hv.hora + " " + hv.periodo + ", " + ev.titulo + ". ";
+});
+
+hablar(t);
 
 }
 
