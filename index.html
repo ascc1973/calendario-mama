@@ -23,7 +23,6 @@ overflow:hidden;
 }
 
 /* BARRA SUPERIOR */
-
 #barra{
 position:fixed;
 top:0;
@@ -39,7 +38,6 @@ z-index:1000;
 #reloj{font-size:4vh;}
 
 /* BOTON INICIO */
-
 #btn-inicial{
 position:fixed;
 width:100vw;
@@ -51,8 +49,7 @@ border:none;
 z-index:9999;
 }
 
-/* CONTENEDOR */
-
+/* CONTENEDOR PRINCIPAL */
 .container{
 display:none;
 height:100vh;
@@ -122,8 +119,7 @@ font-size:2.8vh;
 font-weight:bold;
 }
 
-/* ALERTA */
-
+/* ALERTA VISUAL EN LISTA */
 .urgente{
 border:8px solid red !important;
 animation:blink 0.8s linear infinite;
@@ -133,6 +129,46 @@ animation:blink 0.8s linear infinite;
 0%{background:#00ff00;border-color:red;}
 50%{background:#ffffff;border-color:#ffffff;}
 100%{background:#00ff00;border-color:red;}
+}
+
+/* NUEVO: PANTALLA COMPLETA DE EVENTO ACTIVO */
+#pantalla-evento-activo {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #ff0000;
+    color: white;
+    z-index: 10000;
+    text-align: center;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+#pantalla-evento-activo h1 {
+    font-size: 10vh;
+    margin: 20px;
+    color: #fff;
+    line-height: 1.2;
+}
+
+#pantalla-evento-activo p {
+    font-size: 4vh;
+    background: #fff;
+    color: #000;
+    padding: 10px 30px;
+    border-radius: 50px;
+    animation: flash 1s infinite;
+}
+
+@keyframes flash {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
 }
 
 </style>
@@ -148,6 +184,12 @@ animation:blink 0.8s linear infinite;
 <button id="btn-inicial" onclick="iniciarSistema()">
 PULSA PARA ACTIVAR CALENDARIO Y SONIDO
 </button>
+
+<!-- NUEVO CONTENEDOR DE ALERTA A PANTALLA COMPLETA -->
+<div id="pantalla-evento-activo" onclick="detenerAlarmaDirecto()">
+    <h1 id="texto-evento-gigante"></h1>
+    <p>TOCA LA PANTALLA PARA AVISAR QUE YA LO HAS VISTO</p>
+</div>
 
 <div class="container">
 
@@ -177,13 +219,11 @@ let eventosManana=[];
 let alarmasActivas={};
 let avisosPrevios=new Set();
 let eventosSilenciados=new Set();
+let idEventoActual = null; // Para saber qué evento está en pantalla gigante
 
 /* RELOJ */
-
 function actualizarReloj(){
-
 const ahora=new Date();
-
 document.getElementById("fecha").innerText=
 ahora.toLocaleDateString('es-ES',{
 weekday:'long',
@@ -193,154 +233,106 @@ month:'long'
 
 let h=ahora.getHours();
 let m=ahora.getMinutes();
-
 if(h>12)h-=12;
 if(h===0)h=12;
-
 document.getElementById("reloj").innerText=
 h+":"+(m<10?"0"+m:m);
-
 }
 
 setInterval(actualizarReloj,1000);
 
 /* AUDIO */
-
 function hablar(t){
-
 speechSynthesis.cancel();
-
 const u=new SpeechSynthesisUtterance(t);
 u.lang="es-ES";
-
 speechSynthesis.speak(u);
-
 }
 
-function hablarTres(t){
-
-let i=0;
-
-function rep(){
-
-if(i>=3)return;
-
-const u=new SpeechSynthesisUtterance(t);
-u.lang="es-ES";
-
-u.onend=()=>{ i++; rep(); };
-
-speechSynthesis.speak(u);
-
+// Modificada para permitir repetición infinita en alarma
+function hablarBucle(t){
+    const u=new SpeechSynthesisUtterance(t);
+    u.lang="es-ES";
+    u.onend = () => {
+        if(idEventoActual) {
+            setTimeout(() => { if(idEventoActual) hablarBucle(t); }, 2000);
+        }
+    };
+    speechSynthesis.speak(u);
 }
 
-rep();
-
+/* CAMPANA */
+function sonarCampanaContinua(){
+    const c=document.getElementById("campana");
+    if(!c || !c.src) return;
+    c.currentTime=0;
+    c.loop = true; // Activar bucle para la alarma
+    c.play().catch(()=>{});
 }
 
-/* CAMPANA 5 SEGUNDOS Y SIN ERROR */
-
-function sonarCampana(){
-
-return new Promise(resolve=>{
-
-const c=document.getElementById("campana");
-
-if(!c || !c.src){
-resolve();
-return;
-}
-
-c.currentTime=0;
-
-c.play().catch(()=>{ resolve(); });
-
-setTimeout(()=>{ try{c.pause();}catch(e){} resolve(); },5000);
-
-});
-
+function detenerSonidos(){
+    const c=document.getElementById("campana");
+    if(c){
+        c.pause();
+        c.loop = false;
+        c.currentTime = 0;
+    }
+    speechSynthesis.cancel();
 }
 
 /* INICIO */
-
 function iniciarSistema(){
-
 document.getElementById("btn-inicial").style.display="none";
 document.querySelector(".container").style.display="flex";
-
 if(document.documentElement.requestFullscreen)
 document.documentElement.requestFullscreen();
-
 hablar("Sistema activado");
-
 cargarCalendario();
-
 setInterval(cargarCalendario,60000);
 setInterval(verificarAlertas,5000);
-
 }
 
 /* UTILIDADES */
-
-function limpiarTexto(t){
-return t.replace(/^\*+/,'').trim();
-}
-
+function limpiarTexto(t){ return t.replace(/^\*+/,'').trim(); }
 function contarAsteriscos(t){
 let m=t.match(/^\*+/);
 return m?m[0].length:0;
 }
 
-/* MODIFICACIÓN: horaVisual devuelve hora y periodo */
-
 function horaVisual(d){
-  let h = d.getHours();
-  let m = d.getMinutes();
-  let periodo = h < 12 ? "de la mañana" : "de la tarde";
-
-  let h12 = h % 12;
-  if(h12 === 0) h12 = 12;
-
-  return { hora: h12 + ":" + (m<10?"0"+m:m), periodo };
+  let h = d.getHours();
+  let m = d.getMinutes();
+  let periodo = h < 12 ? "de la mañana" : "de la tarde";
+  let h12 = h % 12;
+  if(h12 === 0) h12 = 12;
+  return { hora: h12 + ":" + (m<10?"0"+m:m), periodo };
 }
 
-function diaSemana(d){
-return d.toLocaleDateString('es-ES',{weekday:'long'});
-}
+function diaSemana(d){ return d.toLocaleDateString('es-ES',{weekday:'long'}); }
 
 /* CALENDARIO */
-
 async function cargarCalendario(){
-
 const min=new Date();
 min.setHours(0,0,0,0);
-
 const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
-
-const r=await fetch(url);
-const d=await r.json();
-
-if(!d.items)return;
-
-organizarEventos(d.items);
-
+try {
+    const r=await fetch(url);
+    const d=await r.json();
+    if(!d.items)return;
+    organizarEventos(d.items);
+} catch(e) { console.log("Error de conexión"); }
 }
 
 function organizarEventos(items){
-
 const hoy=new Date().toLocaleDateString();
-
 const manana=new Date();
 manana.setDate(manana.getDate()+1);
 const mananaStr=manana.toLocaleDateString();
-
 eventosHoy=[];
 eventosManana=[];
 
 items.forEach(item=>{
-
 const inicio=new Date(item.start.dateTime||item.start.date);
-
 const ev={
 id:item.id+inicio.getTime(),
 titulo:limpiarTexto(item.summary||"Sin título"),
@@ -349,171 +341,124 @@ horaV:horaVisual(inicio),
 dia:diaSemana(inicio),
 asteriscos:contarAsteriscos(item.summary||"")
 };
-
 const f=inicio.toLocaleDateString();
-
 if(f===hoy)eventosHoy.push(ev);
 if(f===mananaStr)eventosManana.push(ev);
-
 });
-
-document.getElementById("titulo-hoy").innerText=
-"HOY - "+diaSemana(new Date());
-
+document.getElementById("titulo-hoy").innerText="HOY - "+diaSemana(new Date());
 const m=new Date();
 m.setDate(m.getDate()+1);
-
-document.getElementById("titulo-manana").innerText=
-"MAÑANA - "+diaSemana(m);
-
+document.getElementById("titulo-manana").innerText="MAÑANA - "+diaSemana(m);
 render();
-
 }
 
-/* RENDER */
-
 function render(){
-
 renderLista(eventosHoy,"lista-hoy","Hoy");
 renderLista(eventosManana,"lista-manana","Mañana");
-
 }
 
 function renderLista(lista,id,textoDia){
-
 const cont=document.getElementById(id);
 cont.innerHTML="";
-
 const ahora=new Date();
 
 lista.forEach(ev=>{
-
 const diff=(ev.hora-ahora)/60000;
-
 let alerta=false;
-
-if(ahora>=ev.hora && ahora<=ev.hora.getTime()+3600000)
-alerta=true;
-
-if(ev.asteriscos>=2 && diff<=120 && diff>0)
-alerta=true;
+if(ahora>=ev.hora && ahora<=ev.hora.getTime()+3600000) alerta=true;
+if(ev.asteriscos>=2 && diff<=120 && diff>0) alerta=true;
 
 const div=document.createElement("div");
-
 div.className="evento"+(alerta?" urgente":"");
-
 div.innerHTML=`<h2>${ev.horaV.hora}</h2><p>${ev.titulo}</p>`;
 
 div.onclick=()=>{
-
-eventosSilenciados.add(ev.id);
-
-if(alarmasActivas[ev.id]){
-clearInterval(alarmasActivas[ev.id]);
-delete alarmasActivas[ev.id];
-}
-
-hablar(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
-
+    detenerAlarmaPorId(ev.id);
+    hablar(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
 };
 
 cont.appendChild(div);
 
-if(ahora>=ev.hora && !alarmasActivas[ev.id])
-iniciarAlarma(ev,textoDia);
-
+// Si es la hora exacta y no ha sido silenciado, lanzar pantalla completa
+if(ahora>=ev.hora && ahora<=ev.hora.getTime()+3600000 && !eventosSilenciados.has(ev.id) && idEventoActual !== ev.id){
+    lanzarPantallaGigante(ev, textoDia);
+}
 });
-
 }
 
-/* ALARMA EVENTO */
-
-async function iniciarAlarma(ev,textoDia){
-
-if(eventosSilenciados.has(ev.id))return;
-
-await sonarCampana();
-
-hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
-
-alarmasActivas[ev.id]=setInterval(()=>{
-
-if(eventosSilenciados.has(ev.id))return;
-
-hablarTres(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
-
-},120000);
-
+/* LÓGICA DE ALARMA PANTALLA COMPLETA */
+function lanzarPantallaGigante(ev, textoDia) {
+    idEventoActual = ev.id;
+    const pantalla = document.getElementById("pantalla-evento-activo");
+    const texto = document.getElementById("texto-evento-gigante");
+    
+    texto.innerText = ev.titulo;
+    pantalla.style.display = "flex";
+    
+    sonarCampanaContinua();
+    hablarBucle(`Atención mamá. Hoy a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}. Repito. Tienes ${ev.titulo}`);
 }
 
-/* AVISOS */
+function detenerAlarmaDirecto() {
+    if(idEventoActual) {
+        eventosSilenciados.add(idEventoActual);
+        idEventoActual = null;
+        document.getElementById("pantalla-evento-activo").style.display = "none";
+        detenerSonidos();
+        render();
+    }
+}
 
+function detenerAlarmaPorId(id) {
+    eventosSilenciados.add(id);
+    if(idEventoActual === id) {
+        idEventoActual = null;
+        document.getElementById("pantalla-evento-activo").style.display = "none";
+        detenerSonidos();
+    }
+}
+
+/* AVISOS PREVIOS (MANTIENEN LOGICA ORIGINAL) */
 async function secuenciaAviso(ev,textoDia){
-
 if(avisosPrevios.has(ev.id))return;
-
 avisosPrevios.add(ev.id);
-
-await sonarCampana();
-
-hablarTres(`Recordatorio. ${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
-
+const c=document.getElementById("campana");
+c.loop = false;
+c.currentTime=0;
+c.play().catch(()=>{});
+setTimeout(()=>c.pause(), 5000);
+const texto = `Recordatorio. ${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`;
+const u=new SpeechSynthesisUtterance(texto);
+u.lang="es-ES";
+speechSynthesis.speak(u);
 }
 
 function verificarAlertas(){
-
 const ahora=new Date();
-
 [eventosHoy,eventosManana].forEach((lista,i)=>{
-
 const textoDia=i===0?"Hoy":"Mañana";
-
 lista.forEach(ev=>{
-
 const min=Math.floor((ev.hora-ahora)/60000);
-
-if(ev.asteriscos===3 && min===180)
-secuenciaAviso(ev,textoDia);
-
-if(ev.asteriscos>=2 && min===120)
-secuenciaAviso(ev,textoDia);
-
-if(ev.asteriscos>=1 && min===60)
-secuenciaAviso(ev,textoDia);
-
+if(ev.asteriscos===3 && min===180) secuenciaAviso(ev,textoDia);
+if(ev.asteriscos>=2 && min===120) secuenciaAviso(ev,textoDia);
+if(ev.asteriscos>=1 && min===60) secuenciaAviso(ev,textoDia);
 });
-
 });
-
 }
-
-/* REPASO */
 
 function repasarDia(dia){
-
 const lista=(dia==="hoy"?eventosHoy:eventosManana);
-
 const ahora=new Date();
-
 const visibles=lista.filter(ev=>ahora<ev.hora.getTime()+3600000);
-
-if(visibles.length===0){
-hablar("Nada anotado.");
-return;
-}
-
+if(visibles.length===0){ hablar("Nada anotado."); return; }
 let t=(dia==="hoy"?"Hoy tienes: ":"Mañana tienes: ");
-
 visibles.forEach(ev=>{
-  const hv = ev.horaV;
-  t+= hv.hora + " " + hv.periodo + ", " + ev.titulo + ". ";
+  const hv = ev.horaV;
+  t+= hv.hora + " " + hv.periodo + ", " + ev.titulo + ". ";
 });
-
 hablar(t);
-
 }
 
 </script>
-
 </body>
 </html>
