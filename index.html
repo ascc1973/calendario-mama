@@ -203,25 +203,28 @@
             document.getElementById('pantalla-alarma').style.display = 'none';
         }
 
-        async function cargarCalendario() {
-            const ahora = new Date();
-            const inicioHoy = new Date(ahora.setHours(0,0,0,0)).toISOString();
-            const finManana = new Date(ahora.setDate(ahora.getDate() + 2)).toISOString();
+       async function cargarCalendario() {
+    const ahora = new Date();
+    const inicioHoy = new Date(ahora.setHours(0,0,0,0)).toISOString();
+    const finManana = new Date(ahora.setDate(ahora.getDate() + 2)).toISOString();
 
-            const url = `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${API_KEY}&timeMin=${inicioHoy}&timeMax=${finManana}&singleEvents=true&orderBy=startTime`;
+    // ESTA LÍNEA ES LA QUE DEBES CAMBIAR:
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${inicioHoy}&timeMax=${finManana}&singleEvents=true&orderBy=startTime`;
 
-            try {
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data.items) {
-                    procesarEventos(data.items);
-                }
-            } catch (error) {
-                console.error("Error cargando calendario:", error);
-            }
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.error("Error en la respuesta de Google:", response.status);
+            return;
         }
-
+        const data = await response.json();
+        if (data.items) {
+            procesarEventos(data.items);
+        }
+    } catch (error) {
+        console.error("Error cargando calendario:", error);
+    }
+}
         function procesarEventos(items) {
             const hoyStr = new Date().toISOString().split('T')[0];
             const listaHoy = document.getElementById('lista-hoy');
