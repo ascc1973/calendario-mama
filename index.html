@@ -84,7 +84,7 @@ function actualizarReloj(){
     let h=ahora.getHours(); let m=ahora.getMinutes();
     let hMostrar = h % 12 || 12;
     document.getElementById("reloj").innerText = hMostrar + ":" + (m < 10 ? "0" + m : m);
-    render(); // Esta línea es la que dibuja los eventos cada segundo
+    render(); 
 }
 
 function iniciarSistema(){
@@ -105,7 +105,7 @@ async function cargarCalendario(){
         const d=await r.json();
         if(d.items) {
             organizarEventos(d.items);
-            render(); // Dibujar nada más descargar
+            render();
         }
     } catch(e) { console.log("Error API"); }
 }
@@ -146,10 +146,13 @@ function renderLista(lista, idCont){
         const div=document.createElement("div");
         div.className="evento" + (urgente ? " urgente" : "");
         div.innerHTML=`<h2>${ev.horaV.hora}</h2><p>${ev.titulo}</p>`;
+        
         div.onclick=() => { 
             eventosSilenciados.add(ev.id);
-            hablarDirecto(`${ev.horaV.periodo} tienes ${ev.titulo}`); 
+            const articul = (ev.horaV.hSimple === 1) ? "la" : "las";
+            hablarDirecto(`A ${articul} ${ev.horaV.horaTexto} ${ev.horaV.periodo} tienes ${ev.titulo}`); 
         };
+        
         cont.appendChild(div);
         if (idCont === "lista-hoy" && ahora >= ev.hora && ahora <= (ev.hora.getTime() + 600000)) {
             if (!yaSilenciado && idEventoActual !== ev.id) lanzarPantallaGigante(ev);
@@ -172,7 +175,7 @@ function lanzarPantallaGigante(ev) {
 function ejecutarVozInfinita(ev) {
     if (idEventoActual !== ev.id) return;
     const articul = (ev.horaV.hSimple === 1) ? "la" : "las";
-    const texto = `Mamá, son ${articul} ${ev.horaV.horaTexto} ${ev.horaV.periodo}. Tienes ${ev.titulo}.`;
+    const texto = `Mamá, a ${articul} ${ev.horaV.horaTexto} ${ev.horaV.periodo} tienes ${ev.titulo}.`;
     
     window.speechSynthesis.cancel();
     setTimeout(() => {
@@ -200,18 +203,13 @@ function detenerAlarmaDirecto() {
     }
 }
 
-function detenerAlarmaPorId(id) {
-    eventosSilenciados.add(id);
-    if(idEventoActual === id) detenerAlarmaDirecto();
-    else { window.speechSynthesis.cancel(); render(); }
-}
-
 function hablarDirecto(texto) {
     window.speechSynthesis.cancel();
     setTimeout(() => {
         const u = new SpeechSynthesisUtterance(texto);
         if(vozSeleccionada) u.voice = vozSeleccionada;
         u.lang = "es-ES";
+        u.rate = 0.85;
         window.speechSynthesis.speak(u);
     }, 50);
 }
@@ -221,10 +219,17 @@ function horaVisual(d){
     let m=d.getMinutes();
     let periodo = (h >= 6 && h < 12) ? "de la mañana" : (h >= 12 && h < 21) ? "de la tarde" : "de la noche";
     let hSimple = h % 12 || 12;
-    let horaTexto = hSimple + (m === 0 ? "" : " y " + m);
+    
+    // Convertir minutos a texto natural para la tablet
+    let mTexto = "";
+    if (m === 0) mTexto = "en punto";
+    else if (m === 15) mTexto = "y cuarto";
+    else if (m === 30) mTexto = "y media";
+    else mTexto = "y " + m;
+
     return { 
         hora: hSimple + ":" + (m < 10 ? "0" + m : m), 
-        horaTexto: horaTexto, 
+        horaTexto: hSimple + " " + mTexto, 
         periodo: periodo,
         hSimple: hSimple 
     };
@@ -250,7 +255,7 @@ function repasarDia(dia){
     let t = (dia === "hoy" ? "Para hoy tienes: " : "Para mañana tienes: ");
     lista.forEach(ev => {
         const articul = (ev.horaV.hSimple === 1) ? "la" : "las";
-        t += `${articul} ${ev.horaV.horaTexto} ${ev.horaV.periodo}, ${ev.titulo}. `;
+        t += `a ${articul} ${ev.horaV.horaTexto} ${ev.horaV.periodo}, ${ev.titulo}. `;
     });
     hablarDirecto(t);
 }
