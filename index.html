@@ -88,6 +88,16 @@ let eventosManana=[];
 let idEventoActual = null;
 let eventosSilenciados = new Set();
 let avisosPrevios = new Set();
+let vozSeleccionada = null;
+
+// Intentar encontrar la mejor voz en español
+function cargarVoces() {
+    const voces = window.speechSynthesis.getVoices();
+    // Prioridad: voces de Google en español, luego cualquier voz en español
+    vozSeleccionada = voces.find(v => v.name.includes("Google") && v.lang.startsWith("es")) || 
+                      voces.find(v => v.lang.startsWith("es"));
+}
+window.speechSynthesis.onvoiceschanged = cargarVoces;
 
 function actualizarReloj(){
     const ahora=new Date();
@@ -102,6 +112,7 @@ function iniciarSistema(){
     document.getElementById("btn-inicial").style.display="none";
     document.querySelector(".container").style.display="flex";
     if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+    cargarVoces();
     cargarCalendario();
     setInterval(actualizarReloj, 1000);
     setInterval(cargarCalendario, 60000);
@@ -110,7 +121,7 @@ function iniciarSistema(){
 
 async function cargarCalendario(){
     const min=new Date(); min.setHours(0,0,0,0);
-    const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
+    const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
     try {
         const r=await fetch(url);
         const d=await r.json();
@@ -179,17 +190,20 @@ function lanzarPantallaGigante(ev) {
 function ejecutarVozInfinita(ev) {
     if (idEventoActual !== ev.id) return;
     
-    // Simplificado para evitar el "mañana mañana" y corregir "madrugada"
-    const msg = new SpeechSynthesisUtterance(`Mamá, son las ${ev.horaV.hora} ${ev.horaV.periodo}. Tienes ${ev.titulo}.`);
+    const articulo = (ev.horaV.hSimple === 1) ? "la" : "las";
+    const msgTexto = `Mamá, son ${articulo} ${ev.horaV.horaTexto} ${ev.horaV.periodo}. Tienes ${ev.titulo}.`;
+    
+    const msg = new SpeechSynthesisUtterance(msgTexto);
+    if(vozSeleccionada) msg.voice = vozSeleccionada;
     msg.lang = "es-ES";
     msg.volume = 1;
-    msg.rate = 0.85;
+    msg.rate = 0.8; // Un pelín más pausada para que sea natural
 
     msg.onend = () => {
         if (idEventoActual === ev.id) {
             setTimeout(() => {
                 if (idEventoActual === ev.id) ejecutarVozInfinita(ev);
-            }, 2500);
+            }, 3000);
         }
     };
 
@@ -218,24 +232,33 @@ function detenerAlarmaPorId(id) {
 
 function hablarEvento(ev, dia) {
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(`${dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
+    const articulo = (ev.horaV.hSimple === 1) ? "la" : "las";
+    const u = new SpeechSynthesisUtterance(`${dia} a ${articulo} ${ev.horaV.horaTexto} ${ev.horaV.periodo} tienes ${ev.titulo}`);
+    if(vozSeleccionada) u.voice = vozSeleccionada;
     u.lang = "es-ES";
     u.volume = 1;
     window.speechSynthesis.speak(u);
 }
 
 function horaVisual(d){
-    let h=d.getHours(); // Formato 24h (0-23)
+    let h=d.getHours(); 
     let m=d.getMinutes();
     let periodo = "";
     
-    // Corrección de lógica de periodo
     if (h >= 6 && h < 12) periodo = "de la mañana";
     else if (h >= 12 && h < 21) periodo = "de la tarde";
-    else if (h >= 21 || h < 6) periodo = "de la noche";
+    else periodo = "de la noche";
     
-    let h12 = h % 12 || 12; // Convertir a formato 12h
-    return { hora: h12 + ":" + (m<10?"0"+m:m), periodo: periodo };
+    let hSimple = h % 12 || 12;
+    let horaTexto = hSimple + " y " + (m < 10 ? "0" + m : m);
+    if (m === 0) horaTexto = hSimple.toString();
+
+    return { 
+        hora: hSimple + ":" + (m < 10 ? "0" + m : m), 
+        horaTexto: horaTexto, 
+        periodo: periodo,
+        hSimple: hSimple 
+    };
 }
 
 function verificarAlertas(){
@@ -259,7 +282,9 @@ function sonarAvisoPrevio(ev) {
     c.loop = false; c.play();
     setTimeout(() => {
         window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(`Recordatorio: a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
+        const articulo = (ev.horaV.hSimple === 1) ? "la" : "las";
+        const u = new SpeechSynthesisUtterance(`Recordatorio: a ${articulo} ${ev.horaV.horaTexto} ${ev.horaV.periodo} tienes ${ev.titulo}`);
+        if(vozSeleccionada) u.voice = vozSeleccionada;
         u.lang="es-ES"; u.volume = 1; window.speechSynthesis.speak(u);
     }, 2000);
 }
@@ -267,10 +292,20 @@ function sonarAvisoPrevio(ev) {
 function repasarDia(dia){
     window.speechSynthesis.cancel();
     const lista = dia === "hoy" ? eventosHoy : eventosManana;
-    if(lista.length === 0) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("No hay nada anotado")); return; }
+    if(lista.length === 0) { 
+        const u = new SpeechSynthesisUtterance("No hay nada anotado");
+        if(vozSeleccionada) u.voice = vozSeleccionada;
+        window.speechSynthesis.speak(u); 
+        return; 
+    }
     let t = (dia === "hoy" ? "Hoy tienes: " : "Mañana tienes: ");
-    lista.forEach(ev => t += `${ev.horaV.hora} ${ev.horaV.periodo}, ${ev.titulo}. `);
-    const u = new SpeechSynthesisUtterance(t); u.lang="es-ES"; u.volume = 1; window.speechSynthesis.speak(u);
+    lista.forEach(ev => {
+        const articulo = (ev.horaV.hSimple === 1) ? "la" : "las";
+        t += `${articulo} ${ev.horaV.horaTexto} ${ev.horaV.periodo}, ${ev.titulo}. `;
+    });
+    const u = new SpeechSynthesisUtterance(t); 
+    if(vozSeleccionada) u.voice = vozSeleccionada;
+    u.lang="es-ES"; u.volume = 1; window.speechSynthesis.speak(u);
 }
 </script>
 </body>
