@@ -26,10 +26,10 @@ h1{ font-size:2.2vh; margin:2px; text-align:center; color:#fff; }
 .evento h2{ margin:0; color:#d32f2f; font-size:2.5vh; }
 .evento p{ margin:2px 0 0; font-size:2.8vh; font-weight:bold; }
 
+/* El parpadeo solo ocurre si NO está silenciado */
 .urgente{ border:8px solid red !important; animation:blink 0.8s linear infinite; }
 @keyframes blink{ 0%{background:#00ff00;border-color:red;} 50%{background:#ffffff;border-color:#ffffff;} 100%{background:#00ff00;border-color:red;} }
 
-/* PANTALLA COMPLETA ALARMA */
 #pantalla-evento-activo {
     display: none; 
     position: fixed;
@@ -44,7 +44,7 @@ h1{ font-size:2.2vh; margin:2px; text-align:center; color:#fff; }
     align-items: center;
     cursor: pointer;
 }
-#hora-evento-gigante { font-size: 8vh; color: #fff; margin: 0; text-shadow: 2px 2px #000; }
+#hora-evento-gigante { font-size: 9vh; color: #fff; margin: 0; font-family: 'Arial Black'; }
 #texto-evento-gigante { font-size: 10vh; margin: 10px 20px 30px 20px; color: #fff; text-transform: uppercase; }
 .instruccion { font-size: 3.5vh; background: #fff; color: #000; padding: 15px 40px; border-radius: 50px; animation: flash 1s infinite; font-weight: bold; }
 @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
@@ -60,9 +60,9 @@ h1{ font-size:2.2vh; margin:2px; text-align:center; color:#fff; }
 </div>
 
 <div id="pantalla-evento-activo" onclick="detenerAlarmaDirecto()">
-    <h2 id="hora-evento-gigante"></h2>
-    <h1 id="texto-evento-gigante"></h1>
-    <div class="instruccion">TOCA LA PANTALLA PARA PARAR</div>
+    <div id="hora-evento-gigante"></div>
+    <div id="texto-evento-gigante"></div>
+    <div class="instruccion">TOCA AQUÍ PARA PARAR</div>
 </div>
 
 <div class="container">
@@ -96,7 +96,7 @@ function actualizarReloj(){
     let h=ahora.getHours(); let m=ahora.getMinutes();
     let hMostrar = h > 12 ? h - 12 : (h === 0 ? 12 : h);
     document.getElementById("reloj").innerText = hMostrar + ":" + (m < 10 ? "0" + m : m);
-    if (eventosHoy.length > 0) render(); 
+    render(); // Refresco constante para verificar estados
 }
 
 function iniciarSistema(){
@@ -151,8 +151,11 @@ function renderLista(lista, idCont, textoDia){
     const ahora=new Date();
 
     lista.forEach(ev=>{
+        const yaSilenciado = eventosSilenciados.has(ev.id);
         const diffMin = (ev.hora - ahora) / 60000;
-        let urgente = (ahora >= ev.hora && ahora <= (ev.hora.getTime() + 3600000)) || (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > 0);
+        
+        // Solo parpadea si es urgente Y NO ha sido silenciado
+        let urgente = !yaSilenciado && ((ahora >= ev.hora && ahora <= (ev.hora.getTime() + 3600000)) || (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > 0));
         
         const div=document.createElement("div");
         div.className="evento" + (urgente ? " urgente" : "");
@@ -160,8 +163,9 @@ function renderLista(lista, idCont, textoDia){
         div.onclick=() => { detenerAlarmaPorId(ev.id); hablarEvento(ev, textoDia); };
         cont.appendChild(div);
 
+        // Lanzar alarma si toca y no está silenciado
         if (idCont === "lista-hoy" && ahora >= ev.hora && ahora <= (ev.hora.getTime() + 600000)) {
-            if (!eventosSilenciados.has(ev.id) && idEventoActual !== ev.id) {
+            if (!yaSilenciado && idEventoActual !== ev.id) {
                 lanzarPantallaGigante(ev);
             }
         }
@@ -175,16 +179,23 @@ function lanzarPantallaGigante(ev) {
     document.getElementById("pantalla-evento-activo").style.display = "flex";
     
     const campana = document.getElementById("campana");
-    campana.volume = 0.2; // Volumen bajo para la campana
+    campana.volume = 0.15; // Un poco más bajo para que la voz mande
     campana.loop = true;
     campana.play().catch(()=>{});
 
-    const msg = new SpeechSynthesisUtterance(`Mamá, son las ${ev.horaV.hora}. Tienes ${ev.titulo}. Repito. Tienes ${ev.titulo}`);
-    msg.lang = "es-ES";
-    msg.volume = 1; // Volumen máximo para la voz
-    msg.rate = 0.9; // Un poco más lento para que se entienda mejor
-    msg.onend = () => { if(idEventoActual === ev.id) setTimeout(() => window.speechSynthesis.speak(msg), 3000); };
+    ejecutarVozBucle(ev);
+}
+
+function ejecutarVozBucle(ev) {
+    if (idEventoActual !== ev.id) return;
     window.speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(`Mamá, son las ${ev.horaV.hora}. Tienes ${ev.titulo}.`);
+    msg.lang = "es-ES";
+    msg.volume = 1;
+    msg.rate = 0.85;
+    msg.onend = () => { 
+        if(idEventoActual === ev.id) setTimeout(() => ejecutarVozBucle(ev), 2500); 
+    };
     window.speechSynthesis.speak(msg);
 }
 
@@ -195,12 +206,17 @@ function detenerAlarmaDirecto() {
         document.getElementById("pantalla-evento-activo").style.display = "none";
         document.getElementById("campana").pause();
         window.speechSynthesis.cancel();
+        render(); // Actualiza para quitar el parpadeo de la lista
     }
 }
 
 function detenerAlarmaPorId(id) {
     eventosSilenciados.add(id);
     if(idEventoActual === id) detenerAlarmaDirecto();
+    else {
+        window.speechSynthesis.cancel();
+        render();
+    }
 }
 
 function hablarEvento(ev, dia) {
@@ -238,12 +254,14 @@ function sonarAvisoPrevio(ev) {
     c.volume = 0.2;
     c.loop = false; c.play();
     setTimeout(() => {
+        window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(`Recordatorio: a las ${ev.horaV.hora} tienes ${ev.titulo}`);
         u.lang="es-ES"; u.volume = 1; window.speechSynthesis.speak(u);
     }, 2000);
 }
 
 function repasarDia(dia){
+    window.speechSynthesis.cancel();
     const lista = dia === "hoy" ? eventosHoy : eventosManana;
     if(lista.length === 0) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("No hay nada anotado")); return; }
     let t = (dia === "hoy" ? "Hoy tienes: " : "Mañana tienes: ");
