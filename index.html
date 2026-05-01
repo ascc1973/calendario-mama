@@ -37,15 +37,16 @@ h1{ font-size:2.2vh; margin:2px; text-align:center; color:#fff; }
     width: 100vw; height: 100vh;
     background: #ff0000;
     color: white;
-    z-index: 100000; /* Por encima de todo */
+    z-index: 100000;
     text-align: center;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     cursor: pointer;
 }
-#texto-evento-gigante { font-size: 12vh; margin: 20px; color: #fff; text-transform: uppercase; }
-.instruccion { font-size: 4vh; background: #fff; color: #000; padding: 15px; border-radius: 50px; animation: flash 1s infinite; }
+#hora-evento-gigante { font-size: 8vh; color: #fff; margin: 0; text-shadow: 2px 2px #000; }
+#texto-evento-gigante { font-size: 10vh; margin: 10px 20px 30px 20px; color: #fff; text-transform: uppercase; }
+.instruccion { font-size: 3.5vh; background: #fff; color: #000; padding: 15px 40px; border-radius: 50px; animation: flash 1s infinite; font-weight: bold; }
 @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 </style>
 </head>
@@ -58,10 +59,10 @@ h1{ font-size:2.2vh; margin:2px; text-align:center; color:#fff; }
     <div id="reloj"></div>
 </div>
 
-<!-- CAPA DE ALARMA -->
 <div id="pantalla-evento-activo" onclick="detenerAlarmaDirecto()">
+    <h2 id="hora-evento-gigante"></h2>
     <h1 id="texto-evento-gigante"></h1>
-    <div class="instruccion">TOCA AQUÍ PARA PARAR</div>
+    <div class="instruccion">TOCA LA PANTALLA PARA PARAR</div>
 </div>
 
 <div class="container">
@@ -95,8 +96,6 @@ function actualizarReloj(){
     let h=ahora.getHours(); let m=ahora.getMinutes();
     let hMostrar = h > 12 ? h - 12 : (h === 0 ? 12 : h);
     document.getElementById("reloj").innerText = hMostrar + ":" + (m < 10 ? "0" + m : m);
-    
-    // Forzar comprobación cada segundo para que no se escape la alarma
     if (eventosHoy.length > 0) render(); 
 }
 
@@ -153,7 +152,6 @@ function renderLista(lista, idCont, textoDia){
 
     lista.forEach(ev=>{
         const diffMin = (ev.hora - ahora) / 60000;
-        // ALERTA VISUAL: 1 hora antes o durante la hora del evento
         let urgente = (ahora >= ev.hora && ahora <= (ev.hora.getTime() + 3600000)) || (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > 0);
         
         const div=document.createElement("div");
@@ -162,8 +160,7 @@ function renderLista(lista, idCont, textoDia){
         div.onclick=() => { detenerAlarmaPorId(ev.id); hablarEvento(ev, textoDia); };
         cont.appendChild(div);
 
-        // LANZAR PANTALLA GIGANTE: Solo si es la hora exacta y no se ha silenciado
-        if (idCont === "lista-hoy" && ahora >= ev.hora && ahora <= (ev.hora.getTime() + 600000)) { // Ventana de 10 min
+        if (idCont === "lista-hoy" && ahora >= ev.hora && ahora <= (ev.hora.getTime() + 600000)) {
             if (!eventosSilenciados.has(ev.id) && idEventoActual !== ev.id) {
                 lanzarPantallaGigante(ev);
             }
@@ -173,16 +170,20 @@ function renderLista(lista, idCont, textoDia){
 
 function lanzarPantallaGigante(ev) {
     idEventoActual = ev.id;
+    document.getElementById("hora-evento-gigante").innerText = ev.horaV.hora;
     document.getElementById("texto-evento-gigante").innerText = ev.titulo;
     document.getElementById("pantalla-evento-activo").style.display = "flex";
     
     const campana = document.getElementById("campana");
+    campana.volume = 0.2; // Volumen bajo para la campana
     campana.loop = true;
     campana.play().catch(()=>{});
 
-    const msg = new SpeechSynthesisUtterance(`Mamá, tienes ${ev.titulo}. Repito. Tienes ${ev.titulo}`);
+    const msg = new SpeechSynthesisUtterance(`Mamá, son las ${ev.horaV.hora}. Tienes ${ev.titulo}. Repito. Tienes ${ev.titulo}`);
     msg.lang = "es-ES";
-    msg.onend = () => { if(idEventoActual === ev.id) setTimeout(() => window.speechSynthesis.speak(msg), 2000); };
+    msg.volume = 1; // Volumen máximo para la voz
+    msg.rate = 0.9; // Un poco más lento para que se entienda mejor
+    msg.onend = () => { if(idEventoActual === ev.id) setTimeout(() => window.speechSynthesis.speak(msg), 3000); };
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(msg);
 }
@@ -206,6 +207,7 @@ function hablarEvento(ev, dia) {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(`${dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
     u.lang = "es-ES";
+    u.volume = 1;
     window.speechSynthesis.speak(u);
 }
 
@@ -233,10 +235,11 @@ function verificarAlertas(){
 
 function sonarAvisoPrevio(ev) {
     const c = document.getElementById("campana");
+    c.volume = 0.2;
     c.loop = false; c.play();
     setTimeout(() => {
         const u = new SpeechSynthesisUtterance(`Recordatorio: a las ${ev.horaV.hora} tienes ${ev.titulo}`);
-        u.lang="es-ES"; window.speechSynthesis.speak(u);
+        u.lang="es-ES"; u.volume = 1; window.speechSynthesis.speak(u);
     }, 2000);
 }
 
@@ -245,7 +248,7 @@ function repasarDia(dia){
     if(lista.length === 0) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("No hay nada anotado")); return; }
     let t = (dia === "hoy" ? "Hoy tienes: " : "Mañana tienes: ");
     lista.forEach(ev => t += `${ev.horaV.hora}, ${ev.titulo}. `);
-    const u = new SpeechSynthesisUtterance(t); u.lang="es-ES"; window.speechSynthesis.speak(u);
+    const u = new SpeechSynthesisUtterance(t); u.lang="es-ES"; u.volume = 1; window.speechSynthesis.speak(u);
 }
 </script>
 </body>
