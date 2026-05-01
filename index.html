@@ -3,400 +3,188 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Calendario para Mamá</title>
-
 <style>
+:root{ --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
+body,html{ margin:0; padding:0; height:100%; font-family:'Arial Black',sans-serif; background:#000; overflow:hidden; }
 
-:root{
---hoy-bg:#FFEB3B;
---manana-bg:#1A237E;
-}
-
-body,html{
-margin:0;
-padding:0;
-height:100%;
-font-family:'Arial Black',sans-serif;
-background:#000;
-overflow:hidden;
-}
-
-/* BARRA SUPERIOR */
-#barra{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-background:#000;
-color:#fff;
-text-align:center;
-z-index:1000;
-}
-
+#barra{ position:fixed; top:0; left:0; width:100%; background:#000; color:#fff; text-align:center; z-index:1000; }
 #fecha{font-size:2vh;}
 #reloj{font-size:4vh;}
 
-/* BOTON INICIO */
-#btn-inicial{
-position:fixed;
-width:100vw;
-height:100vh;
-background:#ff0000;
-color:white;
-font-size:5vh;
-border:none;
-z-index:9999;
-}
+#btn-inicial{ position:fixed; width:100vw; height:100vh; background:#ff0000; color:white; font-size:5vh; border:none; z-index:99999; }
 
-/* CONTENEDOR PRINCIPAL */
-.container{
-display:none;
-height:100vh;
-padding-top:70px;
-box-sizing:border-box;
-display:flex;
-}
+.container{ display:none; height:100vh; padding-top:70px; box-sizing:border-box; display:flex; }
+.col{ width:50%; padding:5px; display:flex; flex-direction:column; }
+.col-hoy{ background:var(--hoy-bg); border-right:3px solid #000; }
+.col-manana{ background:var(--manana-bg); }
 
-.col{
-width:50%;
-padding:5px;
-display:flex;
-flex-direction:column;
-}
+h1{ font-size:2.2vh; margin:2px; text-align:center; color:#fff; }
+.btn-repaso{ padding:8px; font-size:1.6vh; border-radius:8px; border:2px solid #000; background:#fff; margin-bottom:5px; cursor:pointer; }
+.lista-eventos{ flex-grow:1; display:flex; flex-direction:column; gap:4px; }
+.evento{ background:#fff; border-radius:10px; border:3px solid #333; padding:7px; cursor:pointer; color:#000; }
+.evento h2{ margin:0; color:#d32f2f; font-size:2.5vh; }
+.evento p{ margin:2px 0 0; font-size:2.8vh; font-weight:bold; }
 
-.col-hoy{
-background:var(--hoy-bg);
-border-right:3px solid #000;
-}
+.urgente{ border:8px solid red !important; animation:blink 0.8s linear infinite; }
+@keyframes blink{ 0%{background:#00ff00;border-color:red;} 50%{background:#ffffff;border-color:#ffffff;} 100%{background:#00ff00;border-color:red;} }
 
-.col-manana{
-background:var(--manana-bg);
-}
-
-h1{
-font-size:2.2vh;
-margin:2px;
-text-align:center;
-color:#fff;
-}
-
-.btn-repaso{
-padding:8px;
-font-size:1.6vh;
-border-radius:8px;
-border:2px solid #000;
-background:#fff;
-margin-bottom:5px;
-cursor:pointer;
-}
-
-.lista-eventos{
-flex-grow:1;
-display:flex;
-flex-direction:column;
-gap:4px;
-}
-
-.evento{
-background:#fff;
-border-radius:10px;
-border:3px solid #333;
-padding:7px;
-cursor:pointer;
-color:#000;
-}
-
-.evento h2{
-margin:0;
-color:#d32f2f;
-font-size:2.5vh;
-}
-
-.evento p{
-margin:2px 0 0;
-font-size:2.8vh;
-font-weight:bold;
-}
-
-/* ALERTA VISUAL EN LISTA */
-.urgente{
-border:8px solid red !important;
-animation:blink 0.8s linear infinite;
-}
-
-@keyframes blink{
-0%{background:#00ff00;border-color:red;}
-50%{background:#ffffff;border-color:#ffffff;}
-100%{background:#00ff00;border-color:red;}
-}
-
-/* NUEVO: PANTALLA COMPLETA DE EVENTO ACTIVO */
+/* PANTALLA COMPLETA ALARMA */
 #pantalla-evento-activo {
-    display: none;
+    display: none; 
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
     background: #ff0000;
     color: white;
-    z-index: 10000;
+    z-index: 100000; /* Por encima de todo */
     text-align: center;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     cursor: pointer;
 }
-
-#pantalla-evento-activo h1 {
-    font-size: 10vh;
-    margin: 20px;
-    color: #fff;
-    line-height: 1.2;
-}
-
-#pantalla-evento-activo p {
-    font-size: 4vh;
-    background: #fff;
-    color: #000;
-    padding: 10px 30px;
-    border-radius: 50px;
-    animation: flash 1s infinite;
-}
-
-@keyframes flash {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
+#texto-evento-gigante { font-size: 12vh; margin: 20px; color: #fff; text-transform: uppercase; }
+.instruccion { font-size: 4vh; background: #fff; color: #000; padding: 15px; border-radius: 50px; animation: flash 1s infinite; }
+@keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 </style>
 </head>
-
 <body>
 
+<button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR CALENDARIO Y SONIDO</button>
+
 <div id="barra">
-<div id="fecha"></div>
-<div id="reloj"></div>
+    <div id="fecha"></div>
+    <div id="reloj"></div>
 </div>
 
-<button id="btn-inicial" onclick="iniciarSistema()">
-PULSA PARA ACTIVAR CALENDARIO Y SONIDO
-</button>
-
-<!-- NUEVO CONTENEDOR DE ALERTA A PANTALLA COMPLETA -->
+<!-- CAPA DE ALARMA -->
 <div id="pantalla-evento-activo" onclick="detenerAlarmaDirecto()">
     <h1 id="texto-evento-gigante"></h1>
-    <p>TOCA LA PANTALLA PARA AVISAR QUE YA LO HAS VISTO</p>
+    <div class="instruccion">TOCA AQUÍ PARA PARAR</div>
 </div>
 
 <div class="container">
-
-<div class="col col-hoy">
-<h1 id="titulo-hoy">HOY</h1>
-<button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
-<div id="lista-hoy" class="lista-eventos"></div>
-</div>
-
-<div class="col col-manana">
-<h1 id="titulo-manana">MAÑANA</h1>
-<button class="btn-repaso" onclick="repasarDia('manana')">🔊 TODO MAÑANA</button>
-<div id="lista-manana" class="lista-eventos"></div>
-</div>
-
+    <div class="col col-hoy">
+        <h1 id="titulo-hoy">HOY</h1>
+        <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
+        <div id="lista-hoy" class="lista-eventos"></div>
+    </div>
+    <div class="col col-manana">
+        <h1 id="titulo-manana">MAÑANA</h1>
+        <button class="btn-repaso" onclick="repasarDia('manana')">🔊 TODO MAÑANA</button>
+        <div id="lista-manana" class="lista-eventos"></div>
+    </div>
 </div>
 
 <audio id="campana" src="campana.mp3"></audio>
 
 <script>
-
 const API_KEY="AIzaSyDh0DjfE2qqaBeVfww5u84FLp4_elsF7Uc";
 const CALENDAR_ID="anacara1941@gmail.com";
 
 let eventosHoy=[];
 let eventosManana=[];
-let alarmasActivas={};
-let avisosPrevios=new Set();
-let eventosSilenciados=new Set();
-let idEventoActual = null; // Para saber qué evento está en pantalla gigante
+let idEventoActual = null;
+let eventosSilenciados = new Set();
+let avisosPrevios = new Set();
 
-/* RELOJ */
 function actualizarReloj(){
-const ahora=new Date();
-document.getElementById("fecha").innerText=
-ahora.toLocaleDateString('es-ES',{
-weekday:'long',
-day:'numeric',
-month:'long'
-}).toUpperCase();
-
-let h=ahora.getHours();
-let m=ahora.getMinutes();
-if(h>12)h-=12;
-if(h===0)h=12;
-document.getElementById("reloj").innerText=
-h+":"+(m<10?"0"+m:m);
+    const ahora=new Date();
+    document.getElementById("fecha").innerText=ahora.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
+    let h=ahora.getHours(); let m=ahora.getMinutes();
+    let hMostrar = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+    document.getElementById("reloj").innerText = hMostrar + ":" + (m < 10 ? "0" + m : m);
+    
+    // Forzar comprobación cada segundo para que no se escape la alarma
+    if (eventosHoy.length > 0) render(); 
 }
 
-setInterval(actualizarReloj,1000);
-
-/* AUDIO */
-function hablar(t){
-speechSynthesis.cancel();
-const u=new SpeechSynthesisUtterance(t);
-u.lang="es-ES";
-speechSynthesis.speak(u);
-}
-
-// Modificada para permitir repetición infinita en alarma
-function hablarBucle(t){
-    const u=new SpeechSynthesisUtterance(t);
-    u.lang="es-ES";
-    u.onend = () => {
-        if(idEventoActual) {
-            setTimeout(() => { if(idEventoActual) hablarBucle(t); }, 2000);
-        }
-    };
-    speechSynthesis.speak(u);
-}
-
-/* CAMPANA */
-function sonarCampanaContinua(){
-    const c=document.getElementById("campana");
-    if(!c || !c.src) return;
-    c.currentTime=0;
-    c.loop = true; // Activar bucle para la alarma
-    c.play().catch(()=>{});
-}
-
-function detenerSonidos(){
-    const c=document.getElementById("campana");
-    if(c){
-        c.pause();
-        c.loop = false;
-        c.currentTime = 0;
-    }
-    speechSynthesis.cancel();
-}
-
-/* INICIO */
 function iniciarSistema(){
-document.getElementById("btn-inicial").style.display="none";
-document.querySelector(".container").style.display="flex";
-if(document.documentElement.requestFullscreen)
-document.documentElement.requestFullscreen();
-hablar("Sistema activado");
-cargarCalendario();
-setInterval(cargarCalendario,60000);
-setInterval(verificarAlertas,5000);
+    document.getElementById("btn-inicial").style.display="none";
+    document.querySelector(".container").style.display="flex";
+    if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+    cargarCalendario();
+    setInterval(actualizarReloj, 1000);
+    setInterval(cargarCalendario, 60000);
+    setInterval(verificarAlertas, 5000);
 }
 
-/* UTILIDADES */
-function limpiarTexto(t){ return t.replace(/^\*+/,'').trim(); }
-function contarAsteriscos(t){
-let m=t.match(/^\*+/);
-return m?m[0].length:0;
-}
-
-function horaVisual(d){
-  let h = d.getHours();
-  let m = d.getMinutes();
-  let periodo = h < 12 ? "de la mañana" : "de la tarde";
-  let h12 = h % 12;
-  if(h12 === 0) h12 = 12;
-  return { hora: h12 + ":" + (m<10?"0"+m:m), periodo };
-}
-
-function diaSemana(d){ return d.toLocaleDateString('es-ES',{weekday:'long'}); }
-
-/* CALENDARIO */
 async function cargarCalendario(){
-const min=new Date();
-min.setHours(0,0,0,0);
-const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
-try {
-    const r=await fetch(url);
-    const d=await r.json();
-    if(!d.items)return;
-    organizarEventos(d.items);
-} catch(e) { console.log("Error de conexión"); }
+    const min=new Date(); min.setHours(0,0,0,0);
+    const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
+    try {
+        const r=await fetch(url);
+        const d=await r.json();
+        if(d.items) organizarEventos(d.items);
+    } catch(e) { console.log("Error API"); }
 }
 
 function organizarEventos(items){
-const hoy=new Date().toLocaleDateString();
-const manana=new Date();
-manana.setDate(manana.getDate()+1);
-const mananaStr=manana.toLocaleDateString();
-eventosHoy=[];
-eventosManana=[];
+    const hoyStr=new Date().toLocaleDateString();
+    const manana=new Date(); manana.setDate(manana.getDate()+1);
+    const mananaStr=manana.toLocaleDateString();
+    eventosHoy=[]; eventosManana=[];
 
-items.forEach(item=>{
-const inicio=new Date(item.start.dateTime||item.start.date);
-const ev={
-id:item.id+inicio.getTime(),
-titulo:limpiarTexto(item.summary||"Sin título"),
-hora:inicio,
-horaV:horaVisual(inicio),
-dia:diaSemana(inicio),
-asteriscos:contarAsteriscos(item.summary||"")
-};
-const f=inicio.toLocaleDateString();
-if(f===hoy)eventosHoy.push(ev);
-if(f===mananaStr)eventosManana.push(ev);
-});
-document.getElementById("titulo-hoy").innerText="HOY - "+diaSemana(new Date());
-const m=new Date();
-m.setDate(m.getDate()+1);
-document.getElementById("titulo-manana").innerText="MAÑANA - "+diaSemana(m);
-render();
+    items.forEach(item=>{
+        const inicio=new Date(item.start.dateTime||item.start.date);
+        const ev={
+            id: item.id + inicio.getTime(),
+            titulo: (item.summary || "Sin título").replace(/^\*+/,'').trim(),
+            hora: inicio,
+            horaV: horaVisual(inicio),
+            asteriscos: (item.summary || "").match(/^\*+/)?.[0].length || 0
+        };
+        if(inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
+        else if(inicio.toLocaleDateString() === mananaStr) eventosManana.push(ev);
+    });
+    render();
 }
 
 function render(){
-renderLista(eventosHoy,"lista-hoy","Hoy");
-renderLista(eventosManana,"lista-manana","Mañana");
+    renderLista(eventosHoy, "lista-hoy", "Hoy");
+    renderLista(eventosManana, "lista-manana", "Mañana");
 }
 
-function renderLista(lista,id,textoDia){
-const cont=document.getElementById(id);
-cont.innerHTML="";
-const ahora=new Date();
+function renderLista(lista, idCont, textoDia){
+    const cont=document.getElementById(idCont);
+    cont.innerHTML="";
+    const ahora=new Date();
 
-lista.forEach(ev=>{
-const diff=(ev.hora-ahora)/60000;
-let alerta=false;
-if(ahora>=ev.hora && ahora<=ev.hora.getTime()+3600000) alerta=true;
-if(ev.asteriscos>=2 && diff<=120 && diff>0) alerta=true;
+    lista.forEach(ev=>{
+        const diffMin = (ev.hora - ahora) / 60000;
+        // ALERTA VISUAL: 1 hora antes o durante la hora del evento
+        let urgente = (ahora >= ev.hora && ahora <= (ev.hora.getTime() + 3600000)) || (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > 0);
+        
+        const div=document.createElement("div");
+        div.className="evento" + (urgente ? " urgente" : "");
+        div.innerHTML=`<h2>${ev.horaV.hora}</h2><p>${ev.titulo}</p>`;
+        div.onclick=() => { detenerAlarmaPorId(ev.id); hablarEvento(ev, textoDia); };
+        cont.appendChild(div);
 
-const div=document.createElement("div");
-div.className="evento"+(alerta?" urgente":"");
-div.innerHTML=`<h2>${ev.horaV.hora}</h2><p>${ev.titulo}</p>`;
-
-div.onclick=()=>{
-    detenerAlarmaPorId(ev.id);
-    hablar(`${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
-};
-
-cont.appendChild(div);
-
-// Si es la hora exacta y no ha sido silenciado, lanzar pantalla completa
-if(ahora>=ev.hora && ahora<=ev.hora.getTime()+3600000 && !eventosSilenciados.has(ev.id) && idEventoActual !== ev.id){
-    lanzarPantallaGigante(ev, textoDia);
-}
-});
+        // LANZAR PANTALLA GIGANTE: Solo si es la hora exacta y no se ha silenciado
+        if (idCont === "lista-hoy" && ahora >= ev.hora && ahora <= (ev.hora.getTime() + 600000)) { // Ventana de 10 min
+            if (!eventosSilenciados.has(ev.id) && idEventoActual !== ev.id) {
+                lanzarPantallaGigante(ev);
+            }
+        }
+    });
 }
 
-/* LÓGICA DE ALARMA PANTALLA COMPLETA */
-function lanzarPantallaGigante(ev, textoDia) {
+function lanzarPantallaGigante(ev) {
     idEventoActual = ev.id;
-    const pantalla = document.getElementById("pantalla-evento-activo");
-    const texto = document.getElementById("texto-evento-gigante");
+    document.getElementById("texto-evento-gigante").innerText = ev.titulo;
+    document.getElementById("pantalla-evento-activo").style.display = "flex";
     
-    texto.innerText = ev.titulo;
-    pantalla.style.display = "flex";
-    
-    sonarCampanaContinua();
-    hablarBucle(`Atención mamá. Hoy a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}. Repito. Tienes ${ev.titulo}`);
+    const campana = document.getElementById("campana");
+    campana.loop = true;
+    campana.play().catch(()=>{});
+
+    const msg = new SpeechSynthesisUtterance(`Mamá, tienes ${ev.titulo}. Repito. Tienes ${ev.titulo}`);
+    msg.lang = "es-ES";
+    msg.onend = () => { if(idEventoActual === ev.id) setTimeout(() => window.speechSynthesis.speak(msg), 2000); };
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(msg);
 }
 
 function detenerAlarmaDirecto() {
@@ -404,61 +192,61 @@ function detenerAlarmaDirecto() {
         eventosSilenciados.add(idEventoActual);
         idEventoActual = null;
         document.getElementById("pantalla-evento-activo").style.display = "none";
-        detenerSonidos();
-        render();
+        document.getElementById("campana").pause();
+        window.speechSynthesis.cancel();
     }
 }
 
 function detenerAlarmaPorId(id) {
     eventosSilenciados.add(id);
-    if(idEventoActual === id) {
-        idEventoActual = null;
-        document.getElementById("pantalla-evento-activo").style.display = "none";
-        detenerSonidos();
-    }
+    if(idEventoActual === id) detenerAlarmaDirecto();
 }
 
-/* AVISOS PREVIOS (MANTIENEN LOGICA ORIGINAL) */
-async function secuenciaAviso(ev,textoDia){
-if(avisosPrevios.has(ev.id))return;
-avisosPrevios.add(ev.id);
-const c=document.getElementById("campana");
-c.loop = false;
-c.currentTime=0;
-c.play().catch(()=>{});
-setTimeout(()=>c.pause(), 5000);
-const texto = `Recordatorio. ${textoDia} ${ev.dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`;
-const u=new SpeechSynthesisUtterance(texto);
-u.lang="es-ES";
-speechSynthesis.speak(u);
+function hablarEvento(ev, dia) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(`${dia} a las ${ev.horaV.hora} ${ev.horaV.periodo} tienes ${ev.titulo}`);
+    u.lang = "es-ES";
+    window.speechSynthesis.speak(u);
+}
+
+function horaVisual(d){
+    let h=d.getHours(); let m=d.getMinutes();
+    let p = h < 12 ? "de la mañana" : "de la tarde";
+    let h12 = h % 12 || 12;
+    return { hora: h12 + ":" + (m<10?"0"+m:m), periodo: p };
 }
 
 function verificarAlertas(){
-const ahora=new Date();
-[eventosHoy,eventosManana].forEach((lista,i)=>{
-const textoDia=i===0?"Hoy":"Mañana";
-lista.forEach(ev=>{
-const min=Math.floor((ev.hora-ahora)/60000);
-if(ev.asteriscos===3 && min===180) secuenciaAviso(ev,textoDia);
-if(ev.asteriscos>=2 && min===120) secuenciaAviso(ev,textoDia);
-if(ev.asteriscos>=1 && min===60) secuenciaAviso(ev,textoDia);
-});
-});
+    const ahora=new Date();
+    [eventosHoy, eventosManana].forEach((lista, i) => {
+        lista.forEach(ev => {
+            const min = Math.floor((ev.hora - ahora) / 60000);
+            if((ev.asteriscos === 3 && min === 180) || (ev.asteriscos >= 2 && min === 120) || (ev.asteriscos >= 1 && min === 60)) {
+                if(!avisosPrevios.has(ev.id + "_" + min)) {
+                    avisosPrevios.add(ev.id + "_" + min);
+                    sonarAvisoPrevio(ev);
+                }
+            }
+        });
+    });
+}
+
+function sonarAvisoPrevio(ev) {
+    const c = document.getElementById("campana");
+    c.loop = false; c.play();
+    setTimeout(() => {
+        const u = new SpeechSynthesisUtterance(`Recordatorio: a las ${ev.horaV.hora} tienes ${ev.titulo}`);
+        u.lang="es-ES"; window.speechSynthesis.speak(u);
+    }, 2000);
 }
 
 function repasarDia(dia){
-const lista=(dia==="hoy"?eventosHoy:eventosManana);
-const ahora=new Date();
-const visibles=lista.filter(ev=>ahora<ev.hora.getTime()+3600000);
-if(visibles.length===0){ hablar("Nada anotado."); return; }
-let t=(dia==="hoy"?"Hoy tienes: ":"Mañana tienes: ");
-visibles.forEach(ev=>{
-  const hv = ev.horaV;
-  t+= hv.hora + " " + hv.periodo + ", " + ev.titulo + ". ";
-});
-hablar(t);
+    const lista = dia === "hoy" ? eventosHoy : eventosManana;
+    if(lista.length === 0) { window.speechSynthesis.speak(new SpeechSynthesisUtterance("No hay nada anotado")); return; }
+    let t = (dia === "hoy" ? "Hoy tienes: " : "Mañana tienes: ");
+    lista.forEach(ev => t += `${ev.horaV.hora}, ${ev.titulo}. `);
+    const u = new SpeechSynthesisUtterance(t); u.lang="es-ES"; window.speechSynthesis.speak(u);
 }
-
 </script>
 </body>
 </html>
