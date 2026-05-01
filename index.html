@@ -84,7 +84,7 @@ function actualizarReloj(){
     let h=ahora.getHours(); let m=ahora.getMinutes();
     let hMostrar = h % 12 || 12;
     document.getElementById("reloj").innerText = hMostrar + ":" + (m < 10 ? "0" + m : m);
-    render(); 
+    render(); // Esta línea es la que dibuja los eventos cada segundo
 }
 
 function iniciarSistema(){
@@ -103,7 +103,10 @@ async function cargarCalendario(){
     try {
         const r=await fetch(url);
         const d=await r.json();
-        if(d.items) organizarEventos(d.items);
+        if(d.items) {
+            organizarEventos(d.items);
+            render(); // Dibujar nada más descargar
+        }
     } catch(e) { console.log("Error API"); }
 }
 
@@ -133,6 +136,7 @@ function render(){
 
 function renderLista(lista, idCont){
     const cont=document.getElementById(idCont);
+    if(!cont) return;
     cont.innerHTML="";
     const ahora=new Date();
     lista.forEach(ev=>{
@@ -228,7 +232,7 @@ function horaVisual(d){
 
 function verificarAlertas(){
     const ahora=new Date();
-    eventosHoy.concat(eventosManana).forEach(ev => {
+    [...eventosHoy, ...eventosManana].forEach(ev => {
         const min = Math.floor((ev.hora - ahora) / 60000);
         if((ev.asteriscos === 3 && min === 180) || (ev.asteriscos >= 2 && min === 120) || (ev.asteriscos >= 1 && min === 60)) {
             if(!avisosPrevios.has(ev.id + "_" + min)) {
