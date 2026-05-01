@@ -17,7 +17,6 @@ body,html{ margin:0; padding:0; height:100%; font-family:'Arial Black',sans-seri
 .col-manana{ background:var(--manana-bg); }
 h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 
-/* Botones ajustados al ancho de los eventos */
 .btn-repaso{ 
     width: 100%; 
     padding: 15px; 
@@ -31,16 +30,17 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
     box-sizing: border-box;
 }
 
-.lista-eventos{ flex-grow:1; display:flex; flex-direction:column; gap:8px; }
+.lista-eventos{ flex-grow:1; display:flex; flex-direction:column; gap:8px; overflow-y: auto; }
 .evento{ background:#fff; border-radius:10px; border:3px solid #333; padding:10px; cursor:pointer; color:#000; width: 100%; box-sizing: border-box; }
-.evento h2{ margin:0; color:#d32f2f; font-size:2.5vh; }
-.evento p{ margin:2px 0 0; font-size:2.8vh; font-weight:bold; }
+.evento h2{ margin:0; color:#d32f2f; font-size:2.2vh; line-height: 1.1; }
+.periodo-texto { font-size: 1.6vh; color: #555; display: block; margin-top: 2px; }
+.evento p{ margin:5px 0 0; font-size:2.8vh; font-weight:bold; line-height: 1.2; }
 
 .urgente{ border:8px solid red !important; animation:blink 0.8s linear infinite; }
 @keyframes blink{ 0%{background:#00ff00;border-color:red;} 50%{background:#ffffff;border-color:#ffffff;} 100%{background:#00ff00;border-color:red;} }
 
 #pantalla-evento-activo { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ff0000; color: white; z-index: 100000; text-align: center; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
-#hora-evento-gigante { font-size: 9vh; color: #fff; margin: 0; }
+#hora-evento-gigante { font-size: 8vh; color: #fff; margin: 0; }
 #texto-evento-gigante { font-size: 10vh; margin: 10px 20px 30px 20px; color: #fff; text-transform: uppercase; }
 .instruccion { font-size: 3.5vh; background: #fff; color: #000; padding: 15px 40px; border-radius: 50px; animation: flash 1s infinite; font-weight: bold; }
 @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
@@ -48,7 +48,7 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 </head>
 <body>
 
-<button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR<br>PANTALLA COMPLETA Y SONIDO</button>
+<button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO</button>
 
 <div id="barra">
     <div id="fecha"></div>
@@ -99,6 +99,13 @@ function numeroALetras(n) {
     return unidades[n % 12];
 }
 
+function obtenerFranjaHoraria(h) {
+    if (h >= 7 && h < 13) return "de la mañana";
+    if (h >= 14 && h <= 20) return "de la tarde";
+    if (h >= 21 || h === 0) return "de la noche";
+    return "de la madrugada";
+}
+
 function actualizarReloj(){
     const ahora=new Date();
     document.getElementById("fecha").innerText=ahora.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
@@ -109,12 +116,9 @@ function actualizarReloj(){
 }
 
 function iniciarSistema(){
-    // Intentar poner en pantalla completa
     const docElm = document.documentElement;
-    if (docElm.requestFullscreen) docElm.requestFullscreen();
-    else if (docElm.mozRequestFullScreen) docElm.mozRequestFullScreen();
+    if (docElm.requestFullscreen) docElm.requestFullscreen({ navigationUI: "hide" });
     else if (docElm.webkitRequestFullScreen) docElm.webkitRequestFullScreen();
-    else if (docElm.msRequestFullscreen) docElm.msRequestFullscreen();
 
     document.getElementById("btn-inicial").style.display="none";
     document.querySelector(".container").style.display="flex";
@@ -144,14 +148,17 @@ function organizarEventos(items){
         const inicio=new Date(item.start.dateTime||item.start.date);
         const h = inicio.getHours();
         const m = inicio.getMinutes();
-        const momento = (h >= 6 && h < 12) ? 'de la mañana' : (h >= 12 && h < 21) ? 'de la tarde' : 'de la noche';
+        
+        const periodo = obtenerFranjaHoraria(h);
         const hTexto = numeroALetras(h);
         const mTexto = m === 0 ? "en punto" : "y " + m;
+        
         const ev={
             id: item.id + inicio.getTime(),
             titulo: (item.summary || "Sin título").replace(/^\*+/,'').trim(),
             hora: inicio,
-            textoVoz: `a las ${hTexto} ${mTexto} ${momento}`,
+            franja: periodo,
+            textoVoz: `a las ${hTexto} ${mTexto} ${periodo}`,
             horaPantalla: (h % 12 || 12) + ":" + (m < 10 ? "0" + m : m),
             asteriscos: (item.summary || "").match(/^\*+/)?.[0].length || 0
         };
@@ -176,7 +183,7 @@ function renderLista(lista, idCont){
         let urgente = !yaSilenciado && ((ahora >= ev.hora && ahora <= (ev.hora.getTime() + 3600000)) || (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > 0));
         const div=document.createElement("div");
         div.className="evento" + (urgente ? " urgente" : "");
-        div.innerHTML=`<h2>${ev.horaPantalla}</h2><p>${ev.titulo}</p>`;
+        div.innerHTML=`<h2>${ev.horaPantalla} <span class="periodo-texto">${ev.franja}</span></h2><p>${ev.titulo}</p>`;
         div.onclick=() => { hablarDirecto(`Mamá, ${ev.textoVoz} tienes ${ev.titulo}`); };
         cont.appendChild(div);
         if (idCont === "lista-hoy" && ahora >= ev.hora && ahora <= (ev.hora.getTime() + 600000)) {
@@ -187,7 +194,7 @@ function renderLista(lista, idCont){
 
 function lanzarPantallaGigante(ev) {
     idEventoActual = ev.id;
-    document.getElementById("hora-evento-gigante").innerText = ev.horaPantalla;
+    document.getElementById("hora-evento-gigante").innerHTML = ev.horaPantalla + "<br><small style='font-size:4vh'>" + ev.franja + "</small>";
     document.getElementById("texto-evento-gigante").innerText = ev.titulo;
     document.getElementById("pantalla-evento-activo").style.display = "flex";
     const campana = document.getElementById("campana");
