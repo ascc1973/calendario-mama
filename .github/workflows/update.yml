@@ -15,7 +15,7 @@ jobs:
 
     - name: Fetch ICS and convert to JSON
       run: |
-        curl "PEGA_TU_ICS_AQUI" -o calendar.ics
+        curl "https://calendar.google.com/calendar/embed?src=anacara1941%40gmail.com&ctz=Europe%2FMadrid" -o calendar.ics
 
         python3 - <<EOF
 import json
