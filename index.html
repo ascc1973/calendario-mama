@@ -3,50 +3,72 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendario Debug</title>
+<title>Calendario para Mamá</title>
 
 <style>
+:root{ --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
+
 body,html{
   margin:0;
   padding:0;
   height:100%;
-  font-family:Arial Black;
+  font-family:'Arial Black',sans-serif;
   background:#000;
-  color:#fff;
+  overflow:hidden;
 }
 
-#btn{
+#barra{
   position:fixed;
+  top:0;
+  left:0;
   width:100%;
-  height:100%;
-  background:red;
+  background:#000;
+  color:#fff;
+  text-align:center;
+  z-index:1000;
+}
+
+#fecha{font-size:2vh;}
+#reloj{font-size:4vh;}
+
+#btn-inicial{
+  position:fixed;
+  width:100vw;
+  height:100vh;
+  background:#ff0000;
   color:white;
-  font-size:4vh;
+  font-size:5vh;
   border:none;
+  z-index:99999;
 }
 
 .container{
   display:none;
   height:100vh;
+  padding-top:70px;
   display:flex;
-  padding-top:60px;
 }
 
 .col{
   width:50%;
   padding:10px;
+  box-sizing:border-box;
   overflow-y:auto;
 }
 
-.col-hoy{background:#ffeb3b;color:#000;}
-.col-manana{background:#1a237e;color:#fff;}
+.col-hoy{background:#FFEB3B;}
+.col-manana{background:#1A237E;color:#fff;}
+
+h1{
+  text-align:center;
+}
 
 .evento{
   background:#fff;
-  color:#000;
   margin-bottom:10px;
   padding:10px;
   border-radius:10px;
+  color:#000;
 }
 
 .evento h2{
@@ -54,159 +76,159 @@ body,html{
   color:red;
 }
 
-#debug{
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  background:#111;
-  font-size:12px;
-  padding:5px;
-  color:#0f0;
+.evento p{
+  margin:5px 0 0;
+  font-weight:bold;
 }
+
 </style>
 </head>
 
 <body>
 
-<button id="btn" onclick="start()">PULSA PARA INICIAR</button>
+<button id="btn-inicial" onclick="iniciarSistema()">
+PULSA PARA INICIAR
+</button>
+
+<div id="barra">
+  <div id="fecha"></div>
+  <div id="reloj"></div>
+</div>
 
 <div class="container">
   <div class="col col-hoy">
-    <h2>HOY</h2>
-    <div id="hoy"></div>
+    <h1>HOY</h1>
+    <div id="lista-hoy"></div>
   </div>
 
   <div class="col col-manana">
-    <h2>MAÑANA</h2>
-    <div id="manana"></div>
+    <h1>MAÑANA</h1>
+    <div id="lista-manana"></div>
   </div>
 </div>
 
-<div id="debug">DEBUG: esperando carga...</div>
-
 <script>
 
-let hoy = [];
-let manana = [];
+let eventosHoy=[];
+let eventosManana=[];
 
 /* ========================= */
-function start(){
-  document.getElementById("btn").style.display="none";
+function iniciarSistema(){
+
+  document.getElementById("btn-inicial").style.display="none";
   document.querySelector(".container").style.display="flex";
 
-  load();
-  setInterval(load,60000);
+  cargar();
+
+  setInterval(cargar,60000);
+  setInterval(reloj,1000);
 }
 
 /* ========================= */
-async function load(){
+function reloj(){
+  const a=new Date();
+
+  document.getElementById("fecha").innerText=
+    a.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+
+  document.getElementById("reloj").innerText=
+    a.getHours()+":"+String(a.getMinutes()).padStart(2,"0");
+}
+
+/* ========================= */
+async function cargar(){
 
   try{
 
-    const r = await fetch("events.json?t=" + Date.now());
+    const r = await fetch("events.json?t="+Date.now());
+    const d = await r.json();
 
-    const text = await r.text();
-
-    console.log("RAW JSON:", text);
-
-    const d = JSON.parse(text);
-
-    document.getElementById("debug").innerText =
-      "Eventos recibidos: " + d.length;
-
-    parse(d);
+    procesar(d);
     render();
 
   }catch(e){
-
-    document.getElementById("debug").innerText =
-      "ERROR JSON: " + e.message;
-
-    console.log(e);
+    console.log("error json", e);
   }
 }
 
 /* ========================= */
-function parse(items){
+function procesar(items){
 
-  hoy = [];
-  manana = [];
+  eventosHoy=[];
+  eventosManana=[];
 
-  const today = new Date();
-  today.setHours(0,0,0,0);
+  const hoy=new Date();
+  hoy.setHours(0,0,0,0);
 
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate()+1);
+  const manana=new Date(hoy);
+  manana.setDate(manana.getDate()+1);
 
-  items.forEach(e => {
+  items.forEach(e=>{
 
-    let raw =
+    const raw =
       e.start?.dateTime ||
       e.start ||
-      e.startDate ||
-      e.date ||
-      e.time;
+      e.date;
 
-    if(!raw){
-      console.log("Evento inválido:", e);
-      return;
-    }
+    if(!raw) return;
 
     const f = new Date(raw);
 
-    if(isNaN(f.getTime())){
-      console.log("Fecha inválida:", raw);
-      return;
-    }
+    if(isNaN(f)) return;
 
-    const ev = {
-      title: e.title || e.summary || "Sin título",
-      time: f,
-      text:
-        "a las " +
-        (f.getHours()%12||12) + ":" +
-        String(f.getMinutes()).padStart(2,"0")
+    const ev={
+      titulo:e.title || e.summary || "Sin título",
+      hora:f,
+      texto:`a las ${f.getHours()%12||12}:${String(f.getMinutes()).padStart(2,"0")}`
     };
 
-    const day = new Date(f);
-    day.setHours(0,0,0,0);
+    const d = new Date(f);
+    d.setHours(0,0,0,0);
 
-    if(day.getTime() === today.getTime()) hoy.push(ev);
-    if(day.getTime() === tomorrow.getTime()) manana.push(ev);
+    if(d.getTime()===hoy.getTime()) eventosHoy.push(ev);
+    if(d.getTime()===manana.getTime()) eventosManana.push(ev);
   });
-
-  document.getElementById("debug").innerText =
-    "HOY: " + hoy.length + " | MAÑANA: " + manana.length;
 }
 
 /* ========================= */
 function render(){
-  draw(hoy,"hoy");
-  draw(manana,"manana");
+  pintar(eventosHoy,"lista-hoy");
+  pintar(eventosManana,"lista-manana");
 }
 
 /* ========================= */
-function draw(list,id){
+function pintar(lista,id){
 
-  const c = document.getElementById(id);
-  c.innerHTML = "";
+  const c=document.getElementById(id);
+  c.innerHTML="";
 
-  if(list.length === 0){
-    c.innerHTML = "<p>No hay eventos</p>";
-    return;
-  }
+  lista.forEach(ev=>{
 
-  list.forEach(ev => {
+    const div=document.createElement("div");
+    div.className="evento";
 
-    const div = document.createElement("div");
-    div.className = "evento";
+    div.innerHTML=`<h2>${ev.texto}</h2><p>${ev.titulo}</p>`;
 
-    div.innerHTML =
-      `<h2>${ev.text}</h2>
-       <p>${ev.title}</p>`;
+    div.onclick=()=>hablar(ev);
 
     c.appendChild(div);
+  });
+}
+
+/* =========================
+   🔥 VOZ CORREGIDA (ESTABLE EN TABLET)
+========================= */
+function hablar(ev){
+
+  const texto = "Mamá, " + ev.texto + " tienes " + ev.titulo;
+
+  const audio = new Audio(
+    "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=" +
+    encodeURIComponent(texto)
+  );
+
+  audio.play().catch(e=>{
+    console.log("audio bloqueado", e);
   });
 }
 
