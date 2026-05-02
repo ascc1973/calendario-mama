@@ -332,7 +332,32 @@ function hablar(texto){
     window.speechSynthesis.speak(u);
   }, 50); 
 }
+function hablar(texto) {
+  if (!window.speechSynthesis) return;
+  
+  // Cancelamos cualquier intento previo
+  window.speechSynthesis.cancel();
 
+  const mensaje = new SpeechSynthesisUtterance(texto);
+  mensaje.lang = 'es-ES';
+  mensaje.volume = 1.0;
+  mensaje.rate = 0.9;
+
+  // TRUCO PARA ANDROID 9: Esperar a que las voces carguen
+  let voces = window.speechSynthesis.getVoices();
+  
+  if (voces.length > 0) {
+    mensaje.voice = voces.find(v => v.lang.includes('es')) || voces[0];
+    window.speechSynthesis.speak(mensaje);
+  } else {
+    // Si no hay voces, forzamos la carga y hablamos al terminar
+    window.speechSynthesis.onvoiceschanged = () => {
+      voces = window.speechSynthesis.getVoices();
+      mensaje.voice = voces.find(v => v.lang.includes('es')) || voces[0];
+      window.speechSynthesis.speak(mensaje);
+    };
+  }
+}
 function repasar(tipo){
   const lista = tipo === "hoy" ? eventosHoy : eventosManana;
   let texto = tipo === "hoy" ? "Para hoy tienes: " : "Para mañana tienes: ";
