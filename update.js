@@ -1,5 +1,5 @@
 async function updateCalendar() {
-  const icsUrl = "TU_ICS_PRIVADO_AQUI";
+  const icsUrl = "https://calendar.google.com/calendar/embed?src=anacara1941%40gmail.com&ctz=Europe%2FMadrid";
 
   const res = await fetch(icsUrl);
   const text = await res.text();
