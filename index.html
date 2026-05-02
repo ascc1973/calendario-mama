@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendario Mamá FINAL</title>
+<title>Calendario para Mamá</title>
 
 <style>
 body,html{
@@ -12,8 +12,21 @@ body,html{
   height:100%;
   font-family:Arial Black;
   background:#000;
-  color:#fff;
+  overflow:hidden;
 }
+
+#barra{
+  position:fixed;
+  top:0;
+  width:100%;
+  background:#000;
+  color:#fff;
+  text-align:center;
+  z-index:1000;
+}
+
+#fecha{font-size:2vh;}
+#reloj{font-size:4vh;}
 
 #btn{
   position:fixed;
@@ -29,26 +42,26 @@ body,html{
 .container{
   display:none;
   height:100vh;
+  padding-top:70px;
   display:flex;
-  padding-top:60px;
 }
 
 .col{
   width:50%;
   padding:10px;
-  overflow-y:auto;
   box-sizing:border-box;
 }
 
-.col-hoy{background:#ffeb3b;color:#000;}
-.col-manana{background:#1a237e;color:#fff;}
+.col-hoy{background:#FFEB3B;}
+.col-manana{background:#1A237E;color:white;}
 
 .evento{
-  background:#fff;
-  color:#000;
+  background:white;
   margin-bottom:10px;
   padding:10px;
   border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
 }
 
 .evento h2{
@@ -56,22 +69,21 @@ body,html{
   color:red;
 }
 
-#debug{
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  background:#111;
-  color:#0f0;
-  font-size:12px;
-  padding:5px;
+.evento p{
+  margin:5px 0 0;
 }
+
 </style>
 </head>
 
 <body>
 
 <button id="btn" onclick="start()">PULSA PARA INICIAR</button>
+
+<div id="barra">
+  <div id="fecha"></div>
+  <div id="reloj"></div>
+</div>
 
 <div class="container">
   <div class="col col-hoy">
@@ -85,12 +97,9 @@ body,html{
   </div>
 </div>
 
-<div id="debug">esperando datos...</div>
-
 <script>
 
-let hoy=[];
-let manana=[];
+let hoy=[], manana=[];
 
 /* ========================= */
 function start(){
@@ -99,95 +108,59 @@ function start(){
 
   load();
   setInterval(load,60000);
+  setInterval(clock,1000);
+}
+
+/* ========================= */
+function clock(){
+  const a=new Date();
+  document.getElementById("fecha").innerText=
+    a.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+
+  document.getElementById("reloj").innerText=
+    a.getHours()+":"+String(a.getMinutes()).padStart(2,"0");
 }
 
 /* ========================= */
 async function load(){
-
   try{
+    const r=await fetch("events.json?t="+Date.now());
+    const d=await r.json();
 
-    const r = await fetch("events.json?t="+Date.now());
-    const data = await r.json();
-
-    console.log("RAW DATA:", data);
-
-    if(!Array.isArray(data)){
-      document.getElementById("debug").innerText="ERROR: JSON no es array";
-      return;
-    }
-
-    process(data);
+    parse(d);
     render();
 
-  }catch(e){
-    document.getElementById("debug").innerText="ERROR FETCH JSON";
-    console.log(e);
-  }
+  }catch(e){}
 }
 
-/* =========================
-   🔥 PARSER UNIVERSAL (ESTO ES LA CLAVE)
-========================= */
-function process(items){
+/* ========================= */
+function parse(items){
 
   hoy=[];
   manana=[];
 
-  const today=new Date();
-  today.setHours(0,0,0,0);
+  const h=new Date();
+  h.setHours(0,0,0,0);
 
-  const tomorrow=new Date(today);
-  tomorrow.setDate(tomorrow.getDate()+1);
+  const m=new Date(h);
+  m.setDate(m.getDate()+1);
 
   items.forEach(e=>{
 
-    console.log("EVENTO RAW:", e);
+    const f=new Date(e.start);
 
-    // 🔥 MULTI-FORMATO REAL
-    let raw =
-      e.start?.dateTime ||
-      e.start ||
-      e.date ||
-      e.startDate ||
-      e.time ||
-      e.hora;
-
-    if(!raw){
-      console.log("SIN FECHA:", e);
-      return;
-    }
-
-    const f = new Date(raw);
-
-    if(isNaN(f.getTime())){
-      console.log("FECHA INVALIDA:", raw);
-      return;
-    }
-
-    const ev = {
-      title:
-        e.summary ||
-        e.title ||
-        e.nombre ||
-        "Sin título",
-
-      time: f,
-
-      text:
-        "a las " +
-        (f.getHours()%12||12) + ":" +
-        String(f.getMinutes()).padStart(2,"0")
+    const ev={
+      title:e.title,
+      time:f,
+      text:`a las ${f.getHours()%12||12}:${String(f.getMinutes()).padStart(2,"0")}`
     };
 
     const d=new Date(f);
     d.setHours(0,0,0,0);
 
-    if(d.getTime()===today.getTime()) hoy.push(ev);
-    if(d.getTime()===tomorrow.getTime()) manana.push(ev);
+    if(d.getTime()===h.getTime()) hoy.push(ev);
+    if(d.getTime()===m.getTime()) manana.push(ev);
   });
-
-  document.getElementById("debug").innerText=
-    "HOY: " + hoy.length + " | MAÑANA: " + manana.length;
 }
 
 /* ========================= */
@@ -198,37 +171,33 @@ function render(){
 
 /* ========================= */
 function draw(list,id){
-
   const c=document.getElementById(id);
   c.innerHTML="";
 
-  if(list.length===0){
-    c.innerHTML="<p>No hay eventos</p>";
-    return;
-  }
-
   list.forEach(ev=>{
-
     const div=document.createElement("div");
     div.className="evento";
 
-    div.innerHTML=
-      `<h2>${ev.text}</h2>
-       <p>${ev.title}</p>`;
+    div.innerHTML=`<h2>${ev.text}</h2><p>${ev.title}</p>`;
 
-    div.onclick=()=>{
-
-      const audio = new Audio(
-        "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=" +
-        encodeURIComponent("Mamá, " + ev.text + " tienes " + ev.title)
-      );
-
-      audio.play().catch(e=>{
-        console.log("audio bloqueado",e);
-      });
-    };
+    div.onclick=()=>speak("Mamá, "+ev.text+" tienes "+ev.title);
 
     c.appendChild(div);
+  });
+}
+
+/* =========================
+   VOZ 100% ESTABLE (WEB AUDIO)
+========================= */
+function speak(text){
+
+  const audio = new Audio(
+    "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=" +
+    encodeURIComponent(text)
+  );
+
+  audio.play().catch(err=>{
+    console.log("Audio bloqueado:", err);
   });
 }
 
