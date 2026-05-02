@@ -1,29 +1,50 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Calendario mamá</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Calendario</title>
+
 <style>
 body {
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   background: #111;
   color: white;
+  margin: 0;
   padding: 20px;
 }
-.event {
-  background: #2d2d2d;
-  margin: 10px 0;
-  padding: 15px;
-  border-radius: 10px;
+
+h1 {
+  text-align: center;
+  font-size: 32px;
+  margin-bottom: 20px;
 }
+
+#events {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.event {
+  background: #2b2b2b;
+  padding: 15px;
+  border-radius: 12px;
+}
+
 .title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
 }
+
 .time {
-  color: #aaa;
+  font-size: 16px;
+  color: #bbb;
+  margin-top: 5px;
 }
 </style>
+
 </head>
 
 <body>
@@ -34,28 +55,54 @@ body {
 
 <script>
 async function loadEvents() {
-  const res = await fetch("./events.json?_=" + Date.now());
-  const events = await res.json();
+  try {
+    const res = await fetch("./events.json?_=" + Date.now());
+    const events = await res.json();
 
-  const container = document.getElementById("events");
-  container.innerHTML = "";
+    const container = document.getElementById("events");
+    container.innerHTML = "";
 
-  events.forEach(ev => {
-    const div = document.createElement("div");
-    div.className = "event";
+    if (!events || events.length === 0) {
+      container.innerHTML = "<p>No hay eventos</p>";
+      return;
+    }
 
-    div.innerHTML = `
-      <div class="title">${ev.title}</div>
-      <div class="time">${ev.start}</div>
-    `;
+    events.forEach(ev => {
+      const div = document.createElement("div");
+      div.className = "event";
 
-    container.appendChild(div);
-  });
+      div.innerHTML = `
+        <div class="title">${ev.title || "Sin título"}</div>
+        <div class="time">${formatDate(ev.start)}</div>
+      `;
+
+      container.appendChild(div);
+    });
+
+  } catch (e) {
+    document.getElementById("events").innerHTML =
+      "<p>Error cargando eventos</p>";
+  }
 }
 
+// Formato simple legible para personas mayores
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+
+  // formato Google: 20260502T100000
+  const y = dateStr.substring(0,4);
+  const m = dateStr.substring(4,6);
+  const d = dateStr.substring(6,8);
+  const h = dateStr.substring(9,11);
+  const min = dateStr.substring(11,13);
+
+  return `${d}/${m}/${y} ${h}:${min}`;
+}
+
+// carga inicial
 loadEvents();
 
-// refresco rápido (cada 60 segundos)
+// refresco automático (cada 60 segundos)
 setInterval(loadEvents, 60000);
 </script>
 
