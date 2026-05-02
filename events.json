@@ -1,5 +1,20 @@
 [
   {
+    "start": "20260502T080000Z",
+    "end": "20260502T090000Z",
+    "title": "* TOMAR PASTILLAS DE LA MAÑANA"
+  },
+  {
+    "start": "20260501T075500Z",
+    "end": "20260501T083000Z",
+    "title": "* prueba una estrella"
+  },
+  {
+    "start": "20260502T210000Z",
+    "end": "20260502T220000Z",
+    "title": "* TOMAR PASTILLAS DE LA NOCHE"
+  },
+  {
     "start": "20260502T190000Z",
     "end": "20260502T200000Z",
     "title": "* TOMAR PASTILLAS DE LA CENA"
@@ -10,23 +25,8 @@
     "title": "** prueba dos estrellas"
   },
   {
-    "start": "20260502T210000Z",
-    "end": "20260502T220000Z",
-    "title": "* TOMAR PASTILLAS DE LA NOCHE"
-  },
-  {
     "start": "20260501T091000Z",
     "end": "20260501T091100Z",
     "title": "prueba sin estrellas"
-  },
-  {
-    "start": "20260501T075500Z",
-    "end": "20260501T083000Z",
-    "title": "* prueba una estrella"
-  },
-  {
-    "start": "20260502T080000Z",
-    "end": "20260502T090000Z",
-    "title": "* TOMAR PASTILLAS DE LA MAÑANA"
   }
 ]
