@@ -8,7 +8,7 @@
 
 <style>
 body {
-  font-family: Arial, sans-serif;
+  font-family: Arial;
   background: #111;
   color: white;
   margin: 0;
@@ -17,8 +17,7 @@ body {
 
 h1 {
   text-align: center;
-  font-size: 32px;
-  margin-bottom: 20px;
+  font-size: 34px;
 }
 
 #events {
@@ -29,7 +28,7 @@ h1 {
 
 .event {
   background: #2b2b2b;
-  padding: 15px;
+  padding: 16px;
   border-radius: 12px;
 }
 
@@ -44,7 +43,6 @@ h1 {
   margin-top: 5px;
 }
 </style>
-
 </head>
 
 <body>
@@ -62,17 +60,12 @@ async function loadEvents() {
     const container = document.getElementById("events");
     container.innerHTML = "";
 
-    if (!events || events.length === 0) {
-      container.innerHTML = "<p>No hay eventos</p>";
-      return;
-    }
-
     events.forEach(ev => {
       const div = document.createElement("div");
       div.className = "event";
 
       div.innerHTML = `
-        <div class="title">${ev.title || "Sin título"}</div>
+        <div class="title">${ev.title}</div>
         <div class="time">${formatDate(ev.start)}</div>
       `;
 
@@ -85,24 +78,12 @@ async function loadEvents() {
   }
 }
 
-// Formato simple legible para personas mayores
-function formatDate(dateStr) {
-  if (!dateStr) return "";
-
-  // formato Google: 20260502T100000
-  const y = dateStr.substring(0,4);
-  const m = dateStr.substring(4,6);
-  const d = dateStr.substring(6,8);
-  const h = dateStr.substring(9,11);
-  const min = dateStr.substring(11,13);
-
-  return `${d}/${m}/${y} ${h}:${min}`;
+function formatDate(d) {
+  if (!d) return "";
+  return d.replace("T", " ").substring(0, 16);
 }
 
-// carga inicial
 loadEvents();
-
-// refresco automático (cada 60 segundos)
 setInterval(loadEvents, 60000);
 </script>
 
