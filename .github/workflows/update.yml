@@ -19,49 +19,46 @@ jobs:
       - name: Download ICS
         run: curl -L "https://calendar.google.com/calendar/ical/anacara1941%40gmail.com/public/basic.ics" -o calendar.ics
 
-      - name: Convert ICS to JSON
+      - name: Generate events.json
         run: |
           python3 - << 'EOF'
           import json
 
-          def parse_ics(file):
-              events = []
-              event = {}
+          with open("calendar.ics", encoding="utf-8") as f:
+              lines = f.readlines()
 
-              with open(file, encoding="utf-8") as f:
-                  for line in f:
-                      line = line.strip()
+          events = []
+          event = None
 
-                      if line == "BEGIN:VEVENT":
-                          event = {}
+          for line in lines:
+              line = line.strip()
 
-                      elif line.startswith("SUMMARY:"):
-                          event["title"] = line.replace("SUMMARY:", "")
+              if line == "BEGIN:VEVENT":
+                  event = {}
 
-                      elif line.startswith("DTSTART"):
-                          event["start"] = line.split(":")[-1]
+              elif line.startswith("SUMMARY:"):
+                  event["title"] = line.replace("SUMMARY:", "").strip()
 
-                      elif line.startswith("DTEND"):
-                          event["end"] = line.split(":")[-1]
+              elif line.startswith("DTSTART"):
+                  event["start"] = line.split(":")[-1]
 
-                      elif line == "END:VEVENT":
-                          if "title" in event:
-                              events.append(event)
+              elif line.startswith("DTEND"):
+                  event["end"] = line.split(":")[-1]
 
-              return events
+              elif line == "END:VEVENT":
+                  if event and "title" in event:
+                      events.append(event)
 
-          events = parse_ics("calendar.ics")
+          print("EVENTOS ENCONTRADOS:", len(events))
 
           with open("events.json", "w", encoding="utf-8") as f:
               json.dump(events, f, indent=2, ensure_ascii=False)
-
-          print("EVENTOS GENERADOS:", len(events))
           EOF
 
-      - name: Commit & Push
+      - name: Commit and push events.json
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
           git add events.json
-          git commit -m "update events" || echo "no changes"
+          git commit -m "update events" || echo "no changes to commit"
           git push
