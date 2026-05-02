@@ -29,8 +29,8 @@ body,html{
   z-index:1000;
 }
 
-#fecha{font-size:2vh;}
-#reloj{font-size:4vh;}
+#fecha{font-size:2.5vh; padding-top: 5px;}
+#reloj{font-size:5vh; font-weight: bold;}
 
 #btn-inicial{
   position:fixed;
@@ -42,12 +42,13 @@ body,html{
   border:none;
   z-index:99999;
   cursor:pointer;
+  font-weight: bold;
 }
 
 .container{
   display:none;
   height:100vh;
-  padding-top:70px;
+  padding-top:85px;
   box-sizing:border-box;
   display:flex;
 }
@@ -60,55 +61,59 @@ body,html{
   box-sizing:border-box;
 }
 
-.col-hoy{ background:var(--hoy-bg); border-right:3px solid #000; }
+.col-hoy{ background:var(--hoy-bg); border-right:4px solid #000; }
 .col-manana{ background:var(--manana-bg); }
 
 h1{
-  font-size:2.2vh;
-  margin:2px 0 10px 0;
+  font-size:3vh;
+  margin:5px 0 15px 0;
   text-align:center;
-  color:#fff;
+  color:#000; /* Hoy texto negro para contraste */
 }
+.col-manana h1 { color: #fff; }
 
 .btn-repaso{
   width:100%;
-  padding:15px;
-  font-size:1.8vh;
-  border-radius:10px;
-  border:3px solid #000;
+  padding:20px;
+  font-size:2.2vh;
+  border-radius:15px;
+  border:4px solid #000;
   background:#fff;
-  margin-bottom:15px;
+  margin-bottom:20px;
   cursor:pointer;
   font-weight:bold;
+  text-transform: uppercase;
 }
 
 .lista-eventos{
   flex-grow:1;
   display:flex;
   flex-direction:column;
-  gap:8px;
+  gap:12px;
   overflow-y:auto;
 }
 
 .evento{
   background:#fff;
-  border-radius:10px;
-  border:3px solid #333;
-  padding:10px;
+  border-radius:15px;
+  border:4px solid #333;
+  padding:15px;
   cursor:pointer;
   color:#000;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
 }
 
 .evento h2{
   margin:0;
   color:#d32f2f;
-  font-size:2.5vh;
+  font-size:2.8vh;
 }
 
 .evento p{
-  margin:5px 0 0;
-  font-size:2.8vh;
+  margin:8px 0 0;
+  font-size:3.2vh;
   font-weight:bold;
+  line-height: 1.2;
 }
 
 #pantalla-evento-activo{
@@ -127,22 +132,17 @@ h1{
   align-items:center;
 }
 
-#hora-evento-gigante{
-  font-size:8vh;
-}
-
-#texto-evento-gigante{
-  font-size:10vh;
-  margin:10px 20px 30px 20px;
-}
+#hora-evento-gigante{ font-size:8vh; }
+#texto-evento-gigante{ font-size:10vh; margin:20px; }
 
 .instruccion{
-  font-size:3.5vh;
+  font-size:4vh;
   background:#fff;
   color:#000;
-  padding:15px 40px;
-  border-radius:50px;
+  padding:20px 50px;
+  border-radius:60px;
   animation:flash 1s infinite;
+  font-weight: bold;
 }
 
 @keyframes flash{
@@ -156,7 +156,7 @@ h1{
 <body>
 
 <button id="btn-inicial" onclick="iniciarSistema()">
-PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO
+PULSA AQUÍ PARA EMPEZAR<br><br>🔊
 </button>
 
 <div id="barra">
@@ -173,52 +173,39 @@ PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO
 <div class="container">
   <div class="col col-hoy">
     <h1>HOY</h1>
-    <button class="btn-repaso" onclick="repasar('hoy')">🔊 TODO HOY</button>
+    <button class="btn-repaso" onclick="repasar('hoy')">🔊 ESCUCHAR TODO HOY</button>
     <div id="lista-hoy" class="lista-eventos"></div>
   </div>
 
   <div class="col col-manana">
     <h1>MAÑANA</h1>
-    <button class="btn-repaso" onclick="repasar('manana')">🔊 TODO MAÑANA</button>
+    <button class="btn-repaso" onclick="repasar('manana')">🔊 ESCUCHAR MAÑANA</button>
     <div id="lista-manana" class="lista-eventos"></div>
   </div>
 </div>
 
-<audio id="campana" src="campana.mp3"></audio>
-
 <script>
-
 let eventosHoy=[];
 let eventosManana=[];
 
 /* =========================
-   INICIO
+   INICIO Y DESBLOQUEO
 ========================= */
 function iniciarSistema(){
-
-  document.documentElement.requestFullscreen?.();
+  // Intentar pantalla completa
+  if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(e => console.log(e));
+  }
 
   document.getElementById("btn-inicial").style.display="none";
   document.querySelector(".container").style.display="flex";
 
-  desbloquearVoz();
+  // Desbloqueo de audio con una frase inicial
+  hablar("Calendario activado. Hola mamá.");
 
   cargar();
-
   setInterval(actualizarReloj,1000);
-  setInterval(cargar,60000);
-}
-
-/* =========================
-   DESBLOQUEO VOZ (CLAVE TABLET)
-========================= */
-function desbloquearVoz(){
-  try{
-    const u = new SpeechSynthesisUtterance(" ");
-    u.volume = 0;
-    u.lang = "es-ES";
-    speechSynthesis.speak(u);
-  }catch(e){}
+  setInterval(cargar, 60000); // Recarga cada minuto
 }
 
 /* =========================
@@ -226,88 +213,64 @@ function desbloquearVoz(){
 ========================= */
 function actualizarReloj(){
   const a=new Date();
-
   document.getElementById("fecha").innerText=
     a.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
 
   let h=a.getHours();
   let m=a.getMinutes();
-
-  document.getElementById("reloj").innerText=
-    (h%12||12)+":"+(m<10?"0"+m:m);
+  document.getElementById("reloj").innerText= (h%12||12)+":"+(m<10?"0"+m:m) + (h>=12?" PM":" AM");
 }
 
 /* =========================
-   CARGA JSON
+   CARGA DE DATOS
 ========================= */
 async function cargar(){
   try{
     const r=await fetch("events.json?t="+Date.now());
     const d=await r.json();
-
     if(Array.isArray(d)){
       procesar(d);
       render();
     }
-
-  }catch(e){}
+  }catch(e){ console.error("Error cargando JSON", e); }
 }
 
-/* =========================
-   PARSEO FECHA
-========================= */
 function parseFecha(s){
   if(!s) return new Date(0);
-
   s=s.replace("Z","");
-
   if(s.includes("T")){
-    return new Date(
-      s.slice(0,4),
-      s.slice(4,6)-1,
-      s.slice(6,8),
-      s.slice(9,11),
-      s.slice(11,13)
-    );
+    return new Date(s.slice(0,4), s.slice(4,6)-1, s.slice(6,8), s.slice(9,11), s.slice(11,13));
   }
-
   return new Date(s);
 }
 
-/* =========================
-   ORGANIZAR
-========================= */
 function procesar(items){
-
   eventosHoy=[];
   eventosManana=[];
-
-  const hoy=new Date();
-  hoy.setHours(0,0,0,0);
-
-  const manana=new Date(hoy);
-  manana.setDate(manana.getDate()+1);
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const manana=new Date(hoy); manana.setDate(manana.getDate()+1);
 
   items.forEach(e=>{
-
     const f=parseFecha(e.start);
-
     const ev={
-      titulo:e.title,
-      hora:f,
-      texto:`a las ${f.getHours()%12||12}:${String(f.getMinutes()).padStart(2,"0")}`
+      titulo: e.title,
+      horaStr: (f.getHours()%12||12)+":"+String(f.getMinutes()).padStart(2,"0"),
+      textoVoz: `A las ${f.getHours()%12||12} y ${f.getMinutes() === 0 ? "punto" : f.getMinutes()}, ${e.title}`,
+      fechaObj: f
     };
 
-    const d=new Date(f);
-    d.setHours(0,0,0,0);
-
+    const d=new Date(f); d.setHours(0,0,0,0);
     if(d.getTime()===hoy.getTime()) eventosHoy.push(ev);
     if(d.getTime()===manana.getTime()) eventosManana.push(ev);
   });
+
+  // Ordenar por hora
+  eventosHoy.sort((a,b)=>a.fechaObj - b.fechaObj);
+  eventosManana.sort((a,b)=>a.fechaObj - b.fechaObj);
 }
 
 /* =========================
-   RENDER
+   RENDERIZADO
 ========================= */
 function render(){
   pintar(eventosHoy,"lista-hoy");
@@ -317,73 +280,57 @@ function render(){
 function pintar(lista,id){
   const c=document.getElementById(id);
   c.innerHTML="";
-
+  if(lista.length === 0){
+    c.innerHTML = "<p style='text-align:center; opacity:0.6;'>No hay tareas</p>";
+    return;
+  }
   lista.forEach(ev=>{
     const div=document.createElement("div");
     div.className="evento";
-
-    div.innerHTML=`<h2>${ev.texto}</h2><p>${ev.titulo}</p>`;
-
-    div.onclick=()=>hablar("Mamá, "+ev.texto+" tienes "+ev.titulo);
-
+    div.innerHTML=`<h2>${ev.horaStr}</h2><p>${ev.titulo}</p>`;
+    div.onclick=()=> hablar("Mamá, " + ev.textoVoz);
     c.appendChild(div);
   });
 }
 
 /* =========================
-   VOZ ESTABLE TABLET
+   SÍNTESIS DE VOZ (MEJORADA)
 ========================= */
 function hablar(texto){
+  if (!window.speechSynthesis) return;
 
-  function ejecutar(){
+  // Cancelar cualquier locución en curso
+  window.speechSynthesis.cancel();
 
-    const u=new SpeechSynthesisUtterance(texto);
+  const u = new SpeechSynthesisUtterance(texto);
+  u.lang = "es-ES";
+  u.rate = 0.85; // Un poco más lento para mejor comprensión
+  u.pitch = 1;
+  u.volume = 1;
 
-    const voces=speechSynthesis.getVoices();
-    const voz=voces.find(v=>v.lang.includes("es"));
+  // Intentar seleccionar una voz en español si está disponible
+  const voces = window.speechSynthesis.getVoices();
+  const voz = voces.find(v => v.lang.includes("es"));
+  if (voz) u.voice = voz;
 
-    if(voz) u.voice=voz;
-
-    u.lang="es-ES";
-    u.rate=0.95;
-    u.volume=1;
-
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-  }
-
-  if(!speechSynthesis.getVoices().length){
-    speechSynthesis.onvoiceschanged=ejecutar;
-  }else{
-    ejecutar();
-  }
+  window.speechSynthesis.speak(u);
 }
 
-/* =========================
-   REPASO
-========================= */
 function repasar(tipo){
-
-  const lista=tipo==="hoy"?eventosHoy:eventosManana;
-
-  let texto="";
-
-  lista.forEach(e=>{
-    texto+=e.texto+" "+e.titulo+". ";
-  });
-
-  hablar(texto||"No hay eventos");
+  const lista = tipo === "hoy" ? eventosHoy : eventosManana;
+  if(lista.length === 0) {
+    hablar("No tienes tareas para " + (tipo === "hoy" ? "hoy" : "mañana"));
+    return;
+  }
+  let texto = tipo === "hoy" ? "Para hoy tienes: " : "Para mañana tienes: ";
+  lista.forEach(e => { texto += e.textoVoz + ". "; });
+  hablar(texto);
 }
 
-/* =========================
-   STOP
-========================= */
 function detener(){
-  speechSynthesis.cancel();
+  window.speechSynthesis.cancel();
   document.getElementById("pantalla-evento-activo").style.display="none";
 }
-
 </script>
-
 </body>
 </html>
