@@ -213,23 +213,25 @@ function iniciarSistema(){
 
 function despertarVoz() {
   try {
-    // Esto crea un sonido electrónico invisible que "abre" el altavoz
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const oscillator = audioCtx.createOscillator();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
-    oscillator.connect(audioCtx.destination);
-    oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.0001); // Casi instantáneo
-
+    // 1. Limpiar cualquier proceso previo
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance("Sistema activado");
-    u.lang = "es-ES";
-    u.volume = 1;
-    window.speechSynthesis.speak(u);
-  } catch(e) { console.log("Error de audio"); }
-}
 
+    // 2. Cargar voces (Truco para Android 9)
+    let voces = window.speechSynthesis.getVoices();
+    
+    // 3. Crear mensaje de prueba
+    const u = new SpeechSynthesisUtterance("Iniciando");
+    u.lang = "es-ES";
+    u.volume = 1.0;
+    u.rate = 0.9;
+
+    // 4. Hablar
+    window.speechSynthesis.speak(u);
+    console.log("Comando de voz enviado");
+  } catch(e) {
+    console.log("Error al despertar voz:", e);
+  }
+}
 /* =========================
    RELOJ Y CARGA
 ========================= */
