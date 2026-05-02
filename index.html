@@ -3,72 +3,50 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendario para Mamá</title>
+<title>Calendario Mamá FIX</title>
 
 <style>
-:root{ --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
-
 body,html{
   margin:0;
   padding:0;
   height:100%;
-  font-family:'Arial Black',sans-serif;
-  background:#000;
-  overflow:hidden;
-}
-
-#barra{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
+  font-family:Arial Black;
   background:#000;
   color:#fff;
-  text-align:center;
-  z-index:1000;
 }
 
-#fecha{font-size:2vh;}
-#reloj{font-size:4vh;}
-
-#btn-inicial{
+#btn{
   position:fixed;
-  width:100vw;
-  height:100vh;
-  background:#ff0000;
+  width:100%;
+  height:100%;
+  background:red;
   color:white;
-  font-size:5vh;
+  font-size:4vh;
   border:none;
-  z-index:99999;
 }
 
 .container{
   display:none;
   height:100vh;
-  padding-top:70px;
   display:flex;
+  padding-top:60px;
 }
 
 .col{
   width:50%;
   padding:10px;
-  box-sizing:border-box;
   overflow-y:auto;
 }
 
-.col-hoy{background:#FFEB3B;}
-.col-manana{background:#1A237E;color:#fff;}
-
-h1{
-  text-align:center;
-}
+.col-hoy{background:#ffeb3b;color:#000;}
+.col-manana{background:#1a237e;color:#fff;}
 
 .evento{
   background:#fff;
+  color:#000;
   margin-bottom:10px;
   padding:10px;
   border-radius:10px;
-  color:#000;
 }
 
 .evento h2{
@@ -76,159 +54,156 @@ h1{
   color:red;
 }
 
-.evento p{
-  margin:5px 0 0;
-  font-weight:bold;
+#debug{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  background:#111;
+  font-size:12px;
+  padding:5px;
+  color:#0f0;
 }
-
 </style>
 </head>
 
 <body>
 
-<button id="btn-inicial" onclick="iniciarSistema()">
-PULSA PARA INICIAR
-</button>
-
-<div id="barra">
-  <div id="fecha"></div>
-  <div id="reloj"></div>
-</div>
+<button id="btn" onclick="start()">PULSA PARA INICIAR</button>
 
 <div class="container">
   <div class="col col-hoy">
-    <h1>HOY</h1>
-    <div id="lista-hoy"></div>
+    <h2>HOY</h2>
+    <div id="hoy"></div>
   </div>
 
   <div class="col col-manana">
-    <h1>MAÑANA</h1>
-    <div id="lista-manana"></div>
+    <h2>MAÑANA</h2>
+    <div id="manana"></div>
   </div>
 </div>
 
+<div id="debug">esperando...</div>
+
 <script>
 
-let eventosHoy=[];
-let eventosManana=[];
+let hoy=[], manana=[];
 
 /* ========================= */
-function iniciarSistema(){
-
-  document.getElementById("btn-inicial").style.display="none";
+function start(){
+  document.getElementById("btn").style.display="none";
   document.querySelector(".container").style.display="flex";
-
-  cargar();
-
-  setInterval(cargar,60000);
-  setInterval(reloj,1000);
+  load();
+  setInterval(load,60000);
 }
 
 /* ========================= */
-function reloj(){
-  const a=new Date();
-
-  document.getElementById("fecha").innerText=
-    a.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
-
-  document.getElementById("reloj").innerText=
-    a.getHours()+":"+String(a.getMinutes()).padStart(2,"0");
-}
-
-/* ========================= */
-async function cargar(){
+async function load(){
 
   try{
 
     const r = await fetch("events.json?t="+Date.now());
     const d = await r.json();
 
-    procesar(d);
+    console.log("JSON REAL:", d);
+
+    if(!Array.isArray(d)){
+      document.getElementById("debug").innerText="ERROR: JSON no es array";
+      return;
+    }
+
+    process(d);
     render();
 
   }catch(e){
-    console.log("error json", e);
+    document.getElementById("debug").innerText="ERROR FETCH";
+    console.log(e);
   }
 }
 
 /* ========================= */
-function procesar(items){
+function process(items){
 
-  eventosHoy=[];
-  eventosManana=[];
+  hoy=[];
+  manana=[];
 
-  const hoy=new Date();
-  hoy.setHours(0,0,0,0);
+  const today=new Date();
+  today.setHours(0,0,0,0);
 
-  const manana=new Date(hoy);
-  manana.setDate(manana.getDate()+1);
+  const tomorrow=new Date(today);
+  tomorrow.setDate(tomorrow.getDate()+1);
 
   items.forEach(e=>{
 
-    const raw =
+    // 🔥 NO asumimos estructura
+    console.log("EVENTO:", e);
+
+    let fecha =
       e.start?.dateTime ||
       e.start ||
-      e.date;
+      e.fecha ||
+      e.date ||
+      e.time;
 
-    if(!raw) return;
+    if(!fecha){
+      console.log("sin fecha:", e);
+      return;
+    }
 
-    const f = new Date(raw);
+    const f=new Date(fecha);
 
-    if(isNaN(f)) return;
+    if(isNaN(f.getTime())){
+      console.log("fecha inválida:", fecha);
+      return;
+    }
 
     const ev={
-      titulo:e.title || e.summary || "Sin título",
-      hora:f,
-      texto:`a las ${f.getHours()%12||12}:${String(f.getMinutes()).padStart(2,"0")}`
+      title: e.title || e.summary || e.nombre || "Sin título",
+      time: f,
+      text: "a las " +
+        (f.getHours()%12||12) + ":" +
+        String(f.getMinutes()).padStart(2,"0")
     };
 
-    const d = new Date(f);
+    const d=new Date(f);
     d.setHours(0,0,0,0);
 
-    if(d.getTime()===hoy.getTime()) eventosHoy.push(ev);
-    if(d.getTime()===manana.getTime()) eventosManana.push(ev);
+    if(d.getTime()===today.getTime()) hoy.push(ev);
+    if(d.getTime()===tomorrow.getTime()) manana.push(ev);
   });
+
+  document.getElementById("debug").innerText=
+    "HOY: " + hoy.length + " | MAÑANA: " + manana.length;
 }
 
 /* ========================= */
 function render(){
-  pintar(eventosHoy,"lista-hoy");
-  pintar(eventosManana,"lista-manana");
+  draw(hoy,"hoy");
+  draw(manana,"manana");
 }
 
 /* ========================= */
-function pintar(lista,id){
+function draw(list,id){
 
   const c=document.getElementById(id);
   c.innerHTML="";
 
-  lista.forEach(ev=>{
+  list.forEach(ev=>{
 
     const div=document.createElement("div");
     div.className="evento";
 
-    div.innerHTML=`<h2>${ev.texto}</h2><p>${ev.titulo}</p>`;
+    div.innerHTML=`<h2>${ev.text}</h2><p>${ev.title}</p>`;
 
-    div.onclick=()=>hablar(ev);
+    div.onclick=()=>{
+      const audio = new Audio(
+        "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=" +
+        encodeURIComponent("Mamá, " + ev.text + " tienes " + ev.title)
+      );
+      audio.play().catch(()=>{});
+    };
 
     c.appendChild(div);
-  });
-}
-
-/* =========================
-   🔥 VOZ CORREGIDA (ESTABLE EN TABLET)
-========================= */
-function hablar(ev){
-
-  const texto = "Mamá, " + ev.texto + " tienes " + ev.titulo;
-
-  const audio = new Audio(
-    "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=" +
-    encodeURIComponent(texto)
-  );
-
-  audio.play().catch(e=>{
-    console.log("audio bloqueado", e);
   });
 }
 
