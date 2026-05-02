@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download ICS
-        run: curl -L "https://calendar.google.com/calendar/embed?src=anacara1941%40gmail.com&ctz=Europe%2FMadrid" -o calendar.ics
+        run: curl -L "https://calendar.google.com/calendar/ical/anacara1941%40gmail.com/public/basic.ics" -o calendar.ics
 
       - name: Convert ICS to JSON (safe script file)
         run: |
