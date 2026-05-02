@@ -66,16 +66,16 @@ body,html{
 h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 
 .btn-repaso{ 
-    width: 100%; 
-    padding: 15px; 
-    font-size: 1.8vh; 
-    border-radius: 10px; 
-    border: 3px solid #000; 
-    background: #fff; 
-    margin-bottom: 15px; 
-    cursor: pointer; 
-    font-weight: bold;
-    box-sizing: border-box;
+  width:100%; 
+  padding:15px; 
+  font-size:1.8vh; 
+  border-radius:10px; 
+  border:3px solid #000; 
+  background:#fff; 
+  margin-bottom:15px; 
+  cursor:pointer; 
+  font-weight:bold;
+  box-sizing:border-box;
 }
 
 .lista-eventos{
@@ -113,17 +113,6 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
   font-weight:bold;
   line-height:1.2;
   color:#000;
-}
-
-.urgente{
-  border:8px solid red !important;
-  animation:blink 0.8s linear infinite;
-}
-
-@keyframes blink{
-  0%{background:#00ff00;border-color:red;}
-  50%{background:#ffffff;border-color:#ffffff;}
-  100%{background:#00ff00;border-color:red;}
 }
 
 #pantalla-evento-activo{
@@ -210,56 +199,39 @@ PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO
 let eventosHoy=[];
 let eventosManana=[];
 let idEventoActual=null;
-let eventosSilenciados=new Set();
-let avisosPrevios=new Set();
 let vozSeleccionada=null;
 
-function cargarVoces(){
-  const voces=window.speechSynthesis.getVoices();
-  vozSeleccionada=voces.find(v=>v.lang.startsWith("es")&&v.name.includes("Google"))||
-                  voces.find(v=>v.lang.startsWith("es"));
-}
-window.speechSynthesis.onvoiceschanged=cargarVoces;
-
-function obtenerFranjaHoraria(h){
-  if(h>=7&&h<13) return "de la mañana";
-  if(h>=14&&h<=20) return "de la tarde";
-  if(h>=21||h===0) return "de la noche";
-  return "de la madrugada";
-}
-
 function iniciarSistema(){
-  const doc=document.documentElement;
-  if(doc.requestFullscreen) doc.requestFullscreen();
-
+  document.documentElement.requestFullscreen?.();
   document.getElementById("btn-inicial").style.display="none";
   document.querySelector(".container").style.display="flex";
 
-  cargarVoces();
   cargarCalendario();
 
   setInterval(actualizarReloj,1000);
   setInterval(cargarCalendario,60000);
-  setInterval(verificarAlertas,5000);
 }
 
+/* =========================
+   RELOJ
+========================= */
 function actualizarReloj(){
   const ahora=new Date();
+
   document.getElementById("fecha").innerText=
     ahora.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
 
   let h=ahora.getHours();
   let m=ahora.getMinutes();
-  let h12=h%12||12;
 
   document.getElementById("reloj").innerText=
-    h12+":"+(m<10?"0"+m:m);
+    (h%12||12)+":"+ (m<10?"0"+m:m);
 
   render();
 }
 
 /* =========================
-   NUEVA FUENTE: events.json
+   CARGA EVENTS.JSON
 ========================= */
 async function cargarCalendario(){
   try{
@@ -272,11 +244,38 @@ async function cargarCalendario(){
     render();
 
   }catch(e){
-    console.log("Error cargando events.json",e);
+    console.log("ERROR events.json",e);
   }
 }
 
+/* =========================
+   PARSEO SEGURO DE FECHAS
+========================= */
+function parseFecha(str){
+  if(!str) return new Date(0);
+
+  // limpieza típica ICS
+  str = str.replace("Z","");
+
+  // formato YYYYMMDDTHHMMSS
+  if(str.includes("T")){
+    const y=str.slice(0,4);
+    const m=str.slice(4,6);
+    const d=str.slice(6,8);
+    const h=str.slice(9,11);
+    const mi=str.slice(11,13);
+
+    return new Date(y, m-1, d, h, mi);
+  }
+
+  return new Date(str);
+}
+
+/* =========================
+   ORGANIZACIÓN HOY / MAÑANA
+========================= */
 function organizarEventos(items){
+
   const hoy=new Date();
   hoy.setHours(0,0,0,0);
 
@@ -287,28 +286,31 @@ function organizarEventos(items){
   eventosManana=[];
 
   items.forEach(item=>{
-    const inicio=new Date(item.start);
 
-    const h=inicio.getHours();
-    const m=inicio.getMinutes();
+    const inicio=parseFecha(item.start);
 
     const ev={
       id:item.title+inicio.getTime(),
       titulo:item.title||"Sin título",
       hora:inicio,
-      franja:obtenerFranjaHoraria(h),
-      horaPantalla:(h%12||12)+":"+ (m<10?"0"+m:m),
-      textoVoz:`a las ${h%12||12}:${m<10?"0"+m:m} ${obtenerFranjaHoraria(h)}`
+      horaPantalla:(inicio.getHours()%12||12)+":"+String(inicio.getMinutes()).padStart(2,"0"),
+      textoVoz:`a las ${inicio.getHours()%12||12}:${String(inicio.getMinutes()).padStart(2,"0")}`
     };
 
-    if(inicio.toDateString()===hoy.toDateString()){
+    const dia=new Date(inicio);
+    dia.setHours(0,0,0,0);
+
+    if(dia.getTime()===hoy.getTime()){
       eventosHoy.push(ev);
-    } else if(inicio.toDateString()===manana.toDateString()){
+    } else if(dia.getTime()===manana.getTime()){
       eventosManana.push(ev);
     }
   });
 }
 
+/* =========================
+   RENDER
+========================= */
 function render(){
   renderLista(eventosHoy,"lista-hoy");
   renderLista(eventosManana,"lista-manana");
@@ -318,101 +320,63 @@ function renderLista(lista,id){
   const cont=document.getElementById(id);
   cont.innerHTML="";
 
-  const ahora=new Date();
-
   lista.forEach(ev=>{
     const div=document.createElement("div");
     div.className="evento";
 
-    div.innerHTML=`<h2>${ev.horaPantalla} ${ev.franja}</h2><p>${ev.titulo}</p>`;
+    div.innerHTML=`<h2>${ev.horaPantalla}</h2><p>${ev.titulo}</p>`;
 
-    div.onclick=()=>hablarDirecto(`Mamá, ${ev.textoVoz} tienes ${ev.titulo}`);
+    div.onclick=()=>{
+      const u=new SpeechSynthesisUtterance("Mamá, "+ev.textoVoz+" tienes "+ev.titulo);
+      u.lang="es-ES";
+      speechSynthesis.speak(u);
+    };
 
     cont.appendChild(div);
-
-    if(ahora>=ev.hora && ahora-ev.hora<600000){
-      lanzarPantallaGigante(ev);
-    }
   });
 }
 
+/* =========================
+   ALERTA VISUAL
+========================= */
 function lanzarPantallaGigante(ev){
   idEventoActual=ev.id;
 
-  document.getElementById("hora-evento-gigante").innerText=
-    ev.horaPantalla+" "+ev.franja;
-
+  document.getElementById("hora-evento-gigante").innerText=ev.horaPantalla;
   document.getElementById("texto-evento-gigante").innerText=ev.titulo;
 
   document.getElementById("pantalla-evento-activo").style.display="flex";
 
-  document.getElementById("campana").loop=true;
-  document.getElementById("campana").play().catch(()=>{});
-
-  hablarLoop(ev);
-}
-
-function hablarLoop(ev){
-  if(idEventoActual!==ev.id) return;
-
-  window.speechSynthesis.cancel();
-
-  const u=new SpeechSynthesisUtterance(`Mamá, ${ev.textoVoz} tienes ${ev.titulo}`);
-
-  if(vozSeleccionada) u.voice=vozSeleccionada;
+  const u=new SpeechSynthesisUtterance("Mamá, tienes "+ev.titulo);
   u.lang="es-ES";
-  u.rate=0.85;
 
-  u.onend=()=>{
-    if(idEventoActual===ev.id){
-      setTimeout(()=>hablarLoop(ev),1500);
-    }
-  };
-
-  window.speechSynthesis.speak(u);
+  speechSynthesis.speak(u);
 }
 
+/* =========================
+   STOP
+========================= */
 function detenerAlarmaDirecto(){
   idEventoActual=null;
   document.getElementById("pantalla-evento-activo").style.display="none";
-  document.getElementById("campana").pause();
-  window.speechSynthesis.cancel();
+  speechSynthesis.cancel();
 }
 
-function hablarDirecto(texto){
-  window.speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(texto);
-  if(vozSeleccionada) u.voice=vozSeleccionada;
-  u.lang="es-ES";
-  u.rate=0.9;
-  window.speechSynthesis.speak(u);
-}
-
-function verificarAlertas(){
-  const ahora=new Date();
-  [...eventosHoy,...eventosManana].forEach(ev=>{
-    const min=Math.floor((ev.hora-ahora)/60000);
-    if(min===60||min===120||min===180){
-      hablarDirecto(`Recordatorio: ${ev.textoVoz} tienes ${ev.titulo}`);
-    }
-  });
-}
-
+/* =========================
+   REPASO
+========================= */
 function repasarDia(tipo){
   const lista=tipo==="hoy"?eventosHoy:eventosManana;
 
-  if(lista.length===0){
-    hablarDirecto("No hay nada anotado");
-    return;
-  }
-
-  let t=tipo==="hoy"?"Para hoy tienes: ":"Para mañana tienes: ";
+  let texto="";
 
   lista.forEach(ev=>{
-    t+=`${ev.textoVoz}, ${ev.titulo}. `;
+    texto+=ev.textoVoz+" "+ev.titulo+". ";
   });
 
-  hablarDirecto(t);
+  const u=new SpeechSynthesisUtterance(texto||"No hay eventos");
+  u.lang="es-ES";
+  speechSynthesis.speak(u);
 }
 </script>
 
