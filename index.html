@@ -3,87 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendario para Mamá</title>
+<title>Calendario Mamá</title>
 
 <style>
-body,html{
-  margin:0;
-  padding:0;
-  height:100%;
-  font-family:Arial Black;
-  background:#000;
-  overflow:hidden;
-}
-
-#barra{
-  position:fixed;
-  top:0;
-  width:100%;
-  background:#000;
-  color:#fff;
-  text-align:center;
-  z-index:1000;
-}
-
-#fecha{font-size:2vh;}
-#reloj{font-size:4vh;}
-
-#btn{
-  position:fixed;
-  width:100%;
-  height:100%;
-  background:red;
-  color:white;
-  font-size:5vh;
-  border:none;
-  z-index:9999;
-}
-
-.container{
-  display:none;
-  height:100vh;
-  padding-top:70px;
-  display:flex;
-}
-
-.col{
-  width:50%;
-  padding:10px;
-  box-sizing:border-box;
-}
-
-.col-hoy{background:#FFEB3B;}
-.col-manana{background:#1A237E;color:white;}
-
-.evento{
-  background:white;
-  margin-bottom:10px;
-  padding:10px;
-  border-radius:10px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.evento h2{
-  margin:0;
-  color:red;
-}
-
-.evento p{
-  margin:5px 0 0;
-}
-
+body,html{margin:0;padding:0;height:100%;font-family:Arial;background:#000;color:#fff;}
+#btn{position:fixed;width:100%;height:100%;background:red;color:white;font-size:5vh;border:none;}
+.container{display:none;height:100vh;display:flex;padding-top:60px;}
+.col{width:50%;padding:10px;}
+.col-hoy{background:#ffeb3b;color:#000;}
+.col-manana{background:#1a237e;}
+.evento{background:#fff;color:#000;margin:10px 0;padding:10px;border-radius:10px;font-weight:bold;}
+.evento h2{color:red;margin:0;}
 </style>
 </head>
 
 <body>
 
 <button id="btn" onclick="start()">PULSA PARA INICIAR</button>
-
-<div id="barra">
-  <div id="fecha"></div>
-  <div id="reloj"></div>
-</div>
 
 <div class="container">
   <div class="col col-hoy">
@@ -108,17 +44,6 @@ function start(){
 
   load();
   setInterval(load,60000);
-  setInterval(clock,1000);
-}
-
-/* ========================= */
-function clock(){
-  const a=new Date();
-  document.getElementById("fecha").innerText=
-    a.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
-
-  document.getElementById("reloj").innerText=
-    a.getHours()+":"+String(a.getMinutes()).padStart(2,"0");
 }
 
 /* ========================= */
@@ -126,18 +51,15 @@ async function load(){
   try{
     const r=await fetch("events.json?t="+Date.now());
     const d=await r.json();
-
     parse(d);
     render();
-
   }catch(e){}
 }
 
 /* ========================= */
 function parse(items){
 
-  hoy=[];
-  manana=[];
+  hoy=[]; manana=[];
 
   const h=new Date();
   h.setHours(0,0,0,0);
@@ -180,24 +102,26 @@ function draw(list,id){
 
     div.innerHTML=`<h2>${ev.text}</h2><p>${ev.title}</p>`;
 
-    div.onclick=()=>speak("Mamá, "+ev.text+" tienes "+ev.title);
+    div.onclick=()=>playVoice(ev);
 
     c.appendChild(div);
   });
 }
 
 /* =========================
-   VOZ 100% ESTABLE (WEB AUDIO)
+   VOZ REAL (AUDIO HTML - FUNCIONA EN FULLY)
 ========================= */
-function speak(text){
+function playVoice(ev){
+
+  const text = "Mamá, " + ev.text + " tienes " + ev.title;
 
   const audio = new Audio(
     "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=" +
     encodeURIComponent(text)
   );
 
-  audio.play().catch(err=>{
-    console.log("Audio bloqueado:", err);
+  audio.play().catch(e=>{
+    console.log("bloqueado",e);
   });
 }
 
