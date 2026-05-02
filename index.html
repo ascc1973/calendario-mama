@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendario Mamá FIX</title>
+<title>Calendario Mamá FINAL</title>
 
 <style>
 body,html{
@@ -21,8 +21,9 @@ body,html{
   height:100%;
   background:red;
   color:white;
-  font-size:4vh;
+  font-size:5vh;
   border:none;
+  z-index:9999;
 }
 
 .container{
@@ -36,6 +37,7 @@ body,html{
   width:50%;
   padding:10px;
   overflow-y:auto;
+  box-sizing:border-box;
 }
 
 .col-hoy{background:#ffeb3b;color:#000;}
@@ -60,9 +62,9 @@ body,html{
   left:0;
   right:0;
   background:#111;
+  color:#0f0;
   font-size:12px;
   padding:5px;
-  color:#0f0;
 }
 </style>
 </head>
@@ -83,16 +85,18 @@ body,html{
   </div>
 </div>
 
-<div id="debug">esperando...</div>
+<div id="debug">esperando datos...</div>
 
 <script>
 
-let hoy=[], manana=[];
+let hoy=[];
+let manana=[];
 
 /* ========================= */
 function start(){
   document.getElementById("btn").style.display="none";
   document.querySelector(".container").style.display="flex";
+
   load();
   setInterval(load,60000);
 }
@@ -103,25 +107,27 @@ async function load(){
   try{
 
     const r = await fetch("events.json?t="+Date.now());
-    const d = await r.json();
+    const data = await r.json();
 
-    console.log("JSON REAL:", d);
+    console.log("RAW DATA:", data);
 
-    if(!Array.isArray(d)){
+    if(!Array.isArray(data)){
       document.getElementById("debug").innerText="ERROR: JSON no es array";
       return;
     }
 
-    process(d);
+    process(data);
     render();
 
   }catch(e){
-    document.getElementById("debug").innerText="ERROR FETCH";
+    document.getElementById("debug").innerText="ERROR FETCH JSON";
     console.log(e);
   }
 }
 
-/* ========================= */
+/* =========================
+   🔥 PARSER UNIVERSAL (ESTO ES LA CLAVE)
+========================= */
 function process(items){
 
   hoy=[];
@@ -135,32 +141,40 @@ function process(items){
 
   items.forEach(e=>{
 
-    // 🔥 NO asumimos estructura
-    console.log("EVENTO:", e);
+    console.log("EVENTO RAW:", e);
 
-    let fecha =
+    // 🔥 MULTI-FORMATO REAL
+    let raw =
       e.start?.dateTime ||
       e.start ||
-      e.fecha ||
       e.date ||
-      e.time;
+      e.startDate ||
+      e.time ||
+      e.hora;
 
-    if(!fecha){
-      console.log("sin fecha:", e);
+    if(!raw){
+      console.log("SIN FECHA:", e);
       return;
     }
 
-    const f=new Date(fecha);
+    const f = new Date(raw);
 
     if(isNaN(f.getTime())){
-      console.log("fecha inválida:", fecha);
+      console.log("FECHA INVALIDA:", raw);
       return;
     }
 
-    const ev={
-      title: e.title || e.summary || e.nombre || "Sin título",
+    const ev = {
+      title:
+        e.summary ||
+        e.title ||
+        e.nombre ||
+        "Sin título",
+
       time: f,
-      text: "a las " +
+
+      text:
+        "a las " +
         (f.getHours()%12||12) + ":" +
         String(f.getMinutes()).padStart(2,"0")
     };
@@ -188,19 +202,30 @@ function draw(list,id){
   const c=document.getElementById(id);
   c.innerHTML="";
 
+  if(list.length===0){
+    c.innerHTML="<p>No hay eventos</p>";
+    return;
+  }
+
   list.forEach(ev=>{
 
     const div=document.createElement("div");
     div.className="evento";
 
-    div.innerHTML=`<h2>${ev.text}</h2><p>${ev.title}</p>`;
+    div.innerHTML=
+      `<h2>${ev.text}</h2>
+       <p>${ev.title}</p>`;
 
     div.onclick=()=>{
+
       const audio = new Audio(
         "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=" +
         encodeURIComponent("Mamá, " + ev.text + " tienes " + ev.title)
       );
-      audio.play().catch(()=>{});
+
+      audio.play().catch(e=>{
+        console.log("audio bloqueado",e);
+      });
     };
 
     c.appendChild(div);
