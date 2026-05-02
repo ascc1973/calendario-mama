@@ -6,18 +6,22 @@
 <title>Calendario para Mamá</title>
 
 <style>
+:root{ --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
+
 body,html{
   margin:0;
   padding:0;
   height:100%;
-  font-family:Arial Black;
+  font-family:'Arial Black',sans-serif;
   background:#000;
   overflow:hidden;
+  touch-action: manipulation;
 }
 
 #barra{
   position:fixed;
   top:0;
+  left:0;
   width:100%;
   background:#000;
   color:#fff;
@@ -28,177 +32,366 @@ body,html{
 #fecha{font-size:2vh;}
 #reloj{font-size:4vh;}
 
-#btn{
+#btn-inicial{
   position:fixed;
-  width:100%;
-  height:100%;
-  background:red;
+  width:100vw;
+  height:100vh;
+  background:#ff0000;
   color:white;
   font-size:5vh;
   border:none;
-  z-index:9999;
+  z-index:99999;
+  cursor:pointer;
 }
 
 .container{
   display:none;
   height:100vh;
   padding-top:70px;
+  box-sizing:border-box;
   display:flex;
 }
 
 .col{
   width:50%;
   padding:10px;
+  display:flex;
+  flex-direction:column;
   box-sizing:border-box;
 }
 
-.col-hoy{background:#FFEB3B;}
-.col-manana{background:#1A237E;color:white;}
+.col-hoy{ background:var(--hoy-bg); border-right:3px solid #000; }
+.col-manana{ background:var(--manana-bg); }
+
+h1{
+  font-size:2.2vh;
+  margin:2px 0 10px 0;
+  text-align:center;
+  color:#fff;
+}
+
+.btn-repaso{
+  width:100%;
+  padding:15px;
+  font-size:1.8vh;
+  border-radius:10px;
+  border:3px solid #000;
+  background:#fff;
+  margin-bottom:15px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.lista-eventos{
+  flex-grow:1;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  overflow-y:auto;
+}
 
 .evento{
-  background:white;
-  margin-bottom:10px;
-  padding:10px;
+  background:#fff;
   border-radius:10px;
-  font-weight:bold;
+  border:3px solid #333;
+  padding:10px;
   cursor:pointer;
+  color:#000;
 }
 
 .evento h2{
   margin:0;
-  color:red;
+  color:#d32f2f;
+  font-size:2.5vh;
 }
 
 .evento p{
   margin:5px 0 0;
+  font-size:2.8vh;
+  font-weight:bold;
 }
 
+#pantalla-evento-activo{
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100vw;
+  height:100vh;
+  background:#ff0000;
+  color:white;
+  z-index:100000;
+  text-align:center;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+}
+
+#hora-evento-gigante{
+  font-size:8vh;
+}
+
+#texto-evento-gigante{
+  font-size:10vh;
+  margin:10px 20px 30px 20px;
+}
+
+.instruccion{
+  font-size:3.5vh;
+  background:#fff;
+  color:#000;
+  padding:15px 40px;
+  border-radius:50px;
+  animation:flash 1s infinite;
+}
+
+@keyframes flash{
+  0%{opacity:1;}
+  50%{opacity:0.5;}
+  100%{opacity:1;}
+}
 </style>
 </head>
 
 <body>
 
-<button id="btn" onclick="start()">PULSA PARA INICIAR</button>
+<button id="btn-inicial" onclick="iniciarSistema()">
+PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO
+</button>
 
 <div id="barra">
   <div id="fecha"></div>
   <div id="reloj"></div>
 </div>
 
+<div id="pantalla-evento-activo" onclick="detenerVoz()">
+  <div id="hora-evento-gigante"></div>
+  <div id="texto-evento-gigante"></div>
+  <div class="instruccion">TOCA PARA PARAR</div>
+</div>
+
 <div class="container">
   <div class="col col-hoy">
-    <h2>HOY</h2>
-    <div id="hoy"></div>
+    <h1>HOY</h1>
+    <button class="btn-repaso" onclick="repasar('hoy')">🔊 TODO HOY</button>
+    <div id="lista-hoy" class="lista-eventos"></div>
   </div>
 
   <div class="col col-manana">
-    <h2>MAÑANA</h2>
-    <div id="manana"></div>
+    <h1>MAÑANA</h1>
+    <button class="btn-repaso" onclick="repasar('manana')">🔊 TODO MAÑANA</button>
+    <div id="lista-manana" class="lista-eventos"></div>
   </div>
 </div>
 
+<audio id="campana" src="campana.mp3"></audio>
+
 <script>
 
-let hoy=[], manana=[];
+let eventosHoy=[];
+let eventosManana=[];
 
-/* ========================= */
-function start(){
-  document.getElementById("btn").style.display="none";
+/* =========================
+   INICIO
+========================= */
+function iniciarSistema(){
+
+  document.documentElement.requestFullscreen?.();
+
+  document.getElementById("btn-inicial").style.display="none";
   document.querySelector(".container").style.display="flex";
 
-  load();
-  setInterval(load,60000);
-  setInterval(clock,1000);
+  desbloquearVoz();
+
+  cargar();
+
+  setInterval(actualizarReloj,1000);
+  setInterval(cargar,60000);
 }
 
-/* ========================= */
-function clock(){
+/* =========================
+   DESBLOQUEO VOZ (CRÍTICO ANDROID)
+========================= */
+function desbloquearVoz(){
+  try{
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    u.lang = "es-ES";
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* =========================
+   RELOJ
+========================= */
+function actualizarReloj(){
+
   const a=new Date();
+
   document.getElementById("fecha").innerText=
-    a.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+    a.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
+
+  let h=a.getHours();
+  let m=a.getMinutes();
 
   document.getElementById("reloj").innerText=
-    a.getHours()+":"+String(a.getMinutes()).padStart(2,"0");
+    (h%12||12)+":"+(m<10?"0"+m:m);
 }
 
-/* ========================= */
-async function load(){
+/* =========================
+   CARGA EVENTS.JSON
+========================= */
+async function cargar(){
+
   try{
+
     const r=await fetch("events.json?t="+Date.now());
     const d=await r.json();
 
-    parse(d);
-    render();
+    if(Array.isArray(d)){
+      procesar(d);
+      render();
+    }
 
   }catch(e){}
 }
 
-/* ========================= */
-function parse(items){
+/* =========================
+   PARSEO FECHA SEGURO
+========================= */
+function parseFecha(s){
 
-  hoy=[];
-  manana=[];
+  if(!s) return new Date(0);
 
-  const h=new Date();
-  h.setHours(0,0,0,0);
+  s=s.replace("Z","");
 
-  const m=new Date(h);
-  m.setDate(m.getDate()+1);
+  if(s.includes("T")){
+    return new Date(
+      s.slice(0,4),
+      s.slice(4,6)-1,
+      s.slice(6,8),
+      s.slice(9,11),
+      s.slice(11,13)
+    );
+  }
+
+  return new Date(s);
+}
+
+/* =========================
+   ORGANIZAR HOY / MAÑANA
+========================= */
+function procesar(items){
+
+  eventosHoy=[];
+  eventosManana=[];
+
+  const hoy=new Date();
+  hoy.setHours(0,0,0,0);
+
+  const manana=new Date(hoy);
+  manana.setDate(manana.getDate()+1);
 
   items.forEach(e=>{
 
-    const f=new Date(e.start);
+    const f=parseFecha(e.start);
 
     const ev={
-      title:e.title,
-      time:f,
-      text:`a las ${f.getHours()%12||12}:${String(f.getMinutes()).padStart(2,"0")}`
+      titulo:e.title,
+      hora:f,
+      texto:`a las ${f.getHours()%12||12}:${String(f.getMinutes()).padStart(2,"0")}`
     };
 
     const d=new Date(f);
     d.setHours(0,0,0,0);
 
-    if(d.getTime()===h.getTime()) hoy.push(ev);
-    if(d.getTime()===m.getTime()) manana.push(ev);
+    if(d.getTime()===hoy.getTime()) eventosHoy.push(ev);
+    if(d.getTime()===manana.getTime()) eventosManana.push(ev);
   });
 }
 
-/* ========================= */
+/* =========================
+   RENDER
+========================= */
 function render(){
-  draw(hoy,"hoy");
-  draw(manana,"manana");
+  pintar(eventosHoy,"lista-hoy");
+  pintar(eventosManana,"lista-manana");
 }
 
-/* ========================= */
-function draw(list,id){
+function pintar(lista,id){
+
   const c=document.getElementById(id);
   c.innerHTML="";
 
-  list.forEach(ev=>{
+  lista.forEach(ev=>{
+
     const div=document.createElement("div");
     div.className="evento";
 
-    div.innerHTML=`<h2>${ev.text}</h2><p>${ev.title}</p>`;
+    div.innerHTML=`<h2>${ev.texto}</h2><p>${ev.titulo}</p>`;
 
-    div.onclick=()=>speak("Mamá, "+ev.text+" tienes "+ev.title);
+    div.onclick=()=>hablar("Mamá, "+ev.texto+" tienes "+ev.titulo);
 
     c.appendChild(div);
   });
 }
 
 /* =========================
-   VOZ 100% ESTABLE (WEB AUDIO)
+   VOZ ESTABLE (SIN INTENT ANDROID)
 ========================= */
-function speak(text){
+function hablar(texto){
 
-  const audio = new Audio(
-    "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=" +
-    encodeURIComponent(text)
-  );
+  const synth = window.speechSynthesis;
 
-  audio.play().catch(err=>{
-    console.log("Audio bloqueado:", err);
+  if(!synth) return;
+
+  function speak(){
+
+    synth.cancel();
+
+    const u = new SpeechSynthesisUtterance(texto);
+
+    const voces = synth.getVoices();
+    const vozES = voces.find(v => v.lang.includes("es"));
+
+    if(vozES) u.voice = vozES;
+
+    u.lang = "es-ES";
+    u.rate = 0.95;
+    u.volume = 1;
+
+    synth.speak(u);
+  }
+
+  if(synth.getVoices().length === 0){
+    synth.onvoiceschanged = speak;
+  } else {
+    speak();
+  }
+}
+
+/* =========================
+   REPASO
+========================= */
+function repasar(tipo){
+
+  const lista=tipo==="hoy"?eventosHoy:eventosManana;
+
+  let texto="";
+
+  lista.forEach(e=>{
+    texto+=e.texto+" "+e.titulo+". ";
   });
+
+  hablar(texto||"No hay eventos");
+}
+
+/* =========================
+   STOP VOZ
+========================= */
+function detenerVoz(){
+  speechSynthesis.cancel();
+  document.getElementById("pantalla-evento-activo").style.display="none";
 }
 
 </script>
