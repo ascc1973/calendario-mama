@@ -6,14 +6,62 @@
 <title>Calendario Mamá</title>
 
 <style>
-body,html{margin:0;padding:0;height:100%;font-family:Arial;background:#000;color:#fff;}
-#btn{position:fixed;width:100%;height:100%;background:red;color:white;font-size:5vh;border:none;}
-.container{display:none;height:100vh;display:flex;padding-top:60px;}
-.col{width:50%;padding:10px;}
+body,html{
+  margin:0;
+  padding:0;
+  height:100%;
+  font-family:Arial Black;
+  background:#000;
+  overflow:hidden;
+}
+
+#btn{
+  position:fixed;
+  width:100%;
+  height:100%;
+  background:red;
+  color:white;
+  font-size:5vh;
+  border:none;
+  z-index:9999;
+}
+
+.container{
+  display:none;
+  height:100vh;
+  display:flex;
+  padding-top:60px;
+}
+
+.col{
+  width:50%;
+  padding:10px;
+  box-sizing:border-box;
+  overflow-y:auto;
+}
+
 .col-hoy{background:#ffeb3b;color:#000;}
-.col-manana{background:#1a237e;}
-.evento{background:#fff;color:#000;margin:10px 0;padding:10px;border-radius:10px;font-weight:bold;}
-.evento h2{color:red;margin:0;}
+.col-manana{background:#1a237e;color:#fff;}
+
+.evento{
+  background:#fff;
+  margin-bottom:10px;
+  padding:10px;
+  border-radius:10px;
+  color:#000;
+}
+
+.evento h2{
+  margin:0;
+  color:red;
+  font-size:2.2vh;
+}
+
+.evento p{
+  margin:5px 0 0;
+  font-size:2.5vh;
+  font-weight:bold;
+}
 </style>
 </head>
 
@@ -49,39 +97,57 @@ function start(){
 /* ========================= */
 async function load(){
   try{
-    const r=await fetch("events.json?t="+Date.now());
-    const d=await r.json();
-    parse(d);
-    render();
-  }catch(e){}
+    const r = await fetch("events.json?t=" + Date.now());
+    const d = await r.json();
+
+    if(Array.isArray(d)){
+      parse(d);
+      render();
+    }
+
+  }catch(e){
+    console.log("error json", e);
+  }
 }
 
-/* ========================= */
+/* =========================
+   PARSEO CORRECTO GOOGLE CALENDAR
+========================= */
 function parse(items){
 
-  hoy=[]; manana=[];
+  hoy = [];
+  manana = [];
 
-  const h=new Date();
-  h.setHours(0,0,0,0);
+  const today = new Date();
+  today.setHours(0,0,0,0);
 
-  const m=new Date(h);
-  m.setDate(m.getDate()+1);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
-  items.forEach(e=>{
+  items.forEach(e => {
 
-    const f=new Date(e.start);
+    // 🔥 FIX IMPORTANTE: soporta formato Google Calendar real
+    let raw = e.start?.dateTime || e.start?.date;
 
-    const ev={
-      title:e.title,
-      time:f,
-      text:`a las ${f.getHours()%12||12}:${String(f.getMinutes()).padStart(2,"0")}`
+    if(!raw) return;
+
+    const f = new Date(raw);
+
+    if(isNaN(f.getTime())) return;
+
+    const ev = {
+      title: e.title || e.summary || "Sin título",
+      time: f,
+      text: "a las " +
+        (f.getHours()%12||12) + ":" +
+        String(f.getMinutes()).padStart(2,"0")
     };
 
-    const d=new Date(f);
-    d.setHours(0,0,0,0);
+    const day = new Date(f);
+    day.setHours(0,0,0,0);
 
-    if(d.getTime()===h.getTime()) hoy.push(ev);
-    if(d.getTime()===m.getTime()) manana.push(ev);
+    if(day.getTime() === today.getTime()) hoy.push(ev);
+    if(day.getTime() === tomorrow.getTime()) manana.push(ev);
   });
 }
 
@@ -93,35 +159,24 @@ function render(){
 
 /* ========================= */
 function draw(list,id){
-  const c=document.getElementById(id);
-  c.innerHTML="";
 
-  list.forEach(ev=>{
-    const div=document.createElement("div");
-    div.className="evento";
+  const c = document.getElementById(id);
+  c.innerHTML = "";
 
-    div.innerHTML=`<h2>${ev.text}</h2><p>${ev.title}</p>`;
+  list.forEach(ev => {
 
-    div.onclick=()=>playVoice(ev);
+    const div = document.createElement("div");
+    div.className = "evento";
+
+    div.innerHTML =
+      `<h2>${ev.text}</h2>
+       <p>${ev.title}</p>`;
+
+    div.onclick = () => {
+      alert("Mamá: " + ev.text + " tienes " + ev.title);
+    };
 
     c.appendChild(div);
-  });
-}
-
-/* =========================
-   VOZ REAL (AUDIO HTML - FUNCIONA EN FULLY)
-========================= */
-function playVoice(ev){
-
-  const text = "Mamá, " + ev.text + " tienes " + ev.title;
-
-  const audio = new Audio(
-    "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=" +
-    encodeURIComponent(text)
-  );
-
-  audio.play().catch(e=>{
-    console.log("bloqueado",e);
   });
 }
 
