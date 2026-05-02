@@ -17,20 +17,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download ICS
-        run: |
-          curl -L "https://calendar.google.com/calendar/embed?src=anacara1941%40gmail.com&ctz=Europe%2FMadrid" -o calendar.ics
+        run: curl -L "https://calendar.google.com/calendar/embed?src=anacara1941%40gmail.com&ctz=Europe%2FMadrid" -o calendar.ics
 
-      - name: Convert ICS to JSON
+      - name: Convert ICS to JSON (safe script file)
         run: |
-          python3 - << 'EOF'
-import json
+          echo 'import json
 
-try:
-    with open("calendar.ics", "r", encoding="utf-8") as f:
-        lines = f.read().splitlines()
-except Exception as e:
-    print("Error leyendo ICS:", e)
-    lines = []
+lines = open("calendar.ics", encoding="utf-8").read().splitlines()
 
 events = []
 event = {}
@@ -51,14 +44,15 @@ for line in lines:
         event["end"] = line.split(":")[-1].strip()
 
     elif "END:VEVENT" in line:
-        if event.get("title"):
+        if "title" in event:
             events.append(event)
 
 with open("events.json", "w", encoding="utf-8") as f:
     json.dump(events, f, indent=2, ensure_ascii=False)
 
-print("EVENTOS:", len(events))
-EOF
+print("EVENTOS:", len(events))' > script.py
+
+          python3 script.py
 
       - name: Commit changes
         run: |
