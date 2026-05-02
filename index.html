@@ -46,7 +46,7 @@ body,html{
 }
 
 .container{
-  display:none;
+  display:none; /* Se cambia a flex por JS */
   height:100vh;
   padding-top:85px;
   box-sizing:border-box;
@@ -167,7 +167,7 @@ PULSA AQUÍ PARA EMPEZAR<br><br>🔊
   <div class="instruccion">TOCA PARA PARAR</div>
 </div>
 
-<div class="container">
+<div class="container" id="main-container">
   <div class="col col-hoy">
     <h1>HOY</h1>
     <button class="btn-repaso" onclick="repasar('hoy')">🔊 ESCUCHAR TODO HOY</button>
@@ -186,31 +186,41 @@ let eventosHoy=[];
 let eventosManana=[];
 
 /* =========================
-   INICIO Y DESBLOQUEO AGRESIVO
+   INICIO (VERSIÓN BÚNKER)
 ========================= */
 function iniciarSistema(){
-  if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(e => console.log(e));
-  }
+  console.log("Iniciando sistema...");
 
-  // Despertar motor de voz inmediatamente al pulsar
+  // 1. Quitar botón rojo inmediatamente
+  document.getElementById("btn-inicial").style.display="none";
+  document.getElementById("main-container").style.display="flex";
+
+  // 2. Intentar pantalla completa (si falla, no bloquea lo demás)
+  try {
+    if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(err => console.log("Fullscreen bloqueado"));
+    }
+  } catch(e) {}
+
+  // 3. Despertar audio
   despertarVoz();
 
-  document.getElementById("btn-inicial").style.display="none";
-  document.querySelector(".container").style.display="flex";
-
+  // 4. Arrancar procesos
   cargar();
   setInterval(actualizarReloj,1000);
   setInterval(cargar, 60000);
 }
 
 function despertarVoz() {
-  window.speechSynthesis.cancel();
-  // Frase corta para ganar permiso de audio en Android
-  const u = new SpeechSynthesisUtterance("Sistema listo");
-  u.lang = "es-ES";
-  u.volume = 0.2; 
-  window.speechSynthesis.speak(u);
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance("Listo");
+    u.lang = "es-ES";
+    u.volume = 0.1; 
+    window.speechSynthesis.speak(u);
+  } catch(e) {
+    console.log("Error de audio inicial");
+  }
 }
 
 /* =========================
@@ -233,7 +243,7 @@ async function cargar(){
       procesar(d);
       render();
     }
-  }catch(e){ console.error("Error", e); }
+  }catch(e){ console.error("Error cargando JSON", e); }
 }
 
 function parseFecha(s){
@@ -277,15 +287,19 @@ function render(){
 function pintar(lista,id){
   const c=document.getElementById(id);
   c.innerHTML="";
+  if(lista.length === 0){
+    c.innerHTML = "<p style='text-align:center; opacity:0.6; color:#000;'>No hay tareas</p>";
+    return;
+  }
   lista.forEach(ev=>{
     const div=document.createElement("div");
     div.className="evento";
     div.innerHTML=`<h2>${ev.horaStr}</h2><p>${ev.titulo}</p>`;
     
-    // Listener robusto para tablets
-    div.addEventListener('click', function() {
+    // El evento 'click' es el más compatible
+    div.onclick = function() {
         hablar("Mamá, " + ev.textoVoz);
-    });
+    };
     
     c.appendChild(div);
   });
@@ -294,10 +308,8 @@ function pintar(lista,id){
 function hablar(texto){
   if (!window.speechSynthesis) return;
   
-  window.speechSynthesis.pause();
   window.speechSynthesis.cancel();
 
-  // Pequeño retraso para que el hardware procese la interacción
   setTimeout(() => {
     const u = new SpeechSynthesisUtterance(texto);
     u.lang = "es-ES";
