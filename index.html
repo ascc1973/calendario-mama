@@ -103,8 +103,6 @@ h1{
   margin:0;
   color:#d32f2f;
   font-size:2.5vh;
-  display:flex;
-  gap:10px;
 }
 
 .evento p{
@@ -166,7 +164,7 @@ PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO
   <div id="reloj"></div>
 </div>
 
-<div id="pantalla-evento-activo" onclick="detenerAlarma()">
+<div id="pantalla-evento-activo" onclick="detener()">
   <div id="hora-evento-gigante"></div>
   <div id="texto-evento-gigante"></div>
   <div class="instruccion">TOCA PARA PARAR</div>
@@ -189,21 +187,38 @@ PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO
 <audio id="campana" src="campana.mp3"></audio>
 
 <script>
+
 let eventosHoy=[];
 let eventosManana=[];
-let idActivo=null;
 
 /* =========================
    INICIO
 ========================= */
 function iniciarSistema(){
+
   document.documentElement.requestFullscreen?.();
+
   document.getElementById("btn-inicial").style.display="none";
   document.querySelector(".container").style.display="flex";
 
+  desbloquearVoz();
+
   cargar();
+
   setInterval(actualizarReloj,1000);
   setInterval(cargar,60000);
+}
+
+/* =========================
+   DESBLOQUEO VOZ (CLAVE TABLET)
+========================= */
+function desbloquearVoz(){
+  try{
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    u.lang = "es-ES";
+    speechSynthesis.speak(u);
+  }catch(e){}
 }
 
 /* =========================
@@ -223,7 +238,7 @@ function actualizarReloj(){
 }
 
 /* =========================
-   CARGA EVENTS.JSON
+   CARGA JSON
 ========================= */
 async function cargar(){
   try{
@@ -235,16 +250,15 @@ async function cargar(){
       render();
     }
 
-  }catch(e){
-    console.log("error events.json",e);
-  }
+  }catch(e){}
 }
 
 /* =========================
-   PARSEO FECHA SEGURO
+   PARSEO FECHA
 ========================= */
 function parseFecha(s){
   if(!s) return new Date(0);
+
   s=s.replace("Z","");
 
   if(s.includes("T")){
@@ -279,7 +293,6 @@ function procesar(items){
     const f=parseFecha(e.start);
 
     const ev={
-      id:e.title+f.getTime(),
       titulo:e.title,
       hora:f,
       texto:`a las ${f.getHours()%12||12}:${String(f.getMinutes()).padStart(2,"0")}`
@@ -311,59 +324,65 @@ function pintar(lista,id){
 
     div.innerHTML=`<h2>${ev.texto}</h2><p>${ev.titulo}</p>`;
 
-    div.onclick=()=>vozBlindada("Mamá, "+ev.texto+" tienes "+ev.titulo);
+    div.onclick=()=>hablar("Mamá, "+ev.texto+" tienes "+ev.titulo);
 
     c.appendChild(div);
   });
 }
 
 /* =========================
-   VOZ BLINDADA
+   VOZ ESTABLE TABLET
 ========================= */
-function vozBlindada(texto){
+function hablar(texto){
 
-  try{
-    window.speechSynthesis.cancel();
+  function ejecutar(){
 
     const u=new SpeechSynthesisUtterance(texto);
+
+    const voces=speechSynthesis.getVoices();
+    const voz=voces.find(v=>v.lang.includes("es"));
+
+    if(voz) u.voice=voz;
+
     u.lang="es-ES";
     u.rate=0.95;
+    u.volume=1;
 
-    u.onerror=()=>ttsAndroid(texto);
-
+    speechSynthesis.cancel();
     speechSynthesis.speak(u);
-
-  }catch(e){
-    ttsAndroid(texto);
   }
-}
 
-function ttsAndroid(texto){
-  window.location.href=
-    "intent://speak?text="+encodeURIComponent(texto)+
-    "#Intent;scheme=tts;package=com.android.tts;end";
+  if(!speechSynthesis.getVoices().length){
+    speechSynthesis.onvoiceschanged=ejecutar;
+  }else{
+    ejecutar();
+  }
 }
 
 /* =========================
    REPASO
 ========================= */
-function repasar(t){
-  const l=t==="hoy"?eventosHoy:eventosManana;
-  let txt="";
+function repasar(tipo){
 
-  l.forEach(e=>txt+=e.texto+" "+e.titulo+". ");
+  const lista=tipo==="hoy"?eventosHoy:eventosManana;
 
-  vozBlindada(txt||"No hay eventos");
+  let texto="";
+
+  lista.forEach(e=>{
+    texto+=e.texto+" "+e.titulo+". ";
+  });
+
+  hablar(texto||"No hay eventos");
 }
 
 /* =========================
-   ALARMA
+   STOP
 ========================= */
-function detenerAlarma(){
-  idActivo=null;
-  document.getElementById("pantalla-evento-activo").style.display="none";
+function detener(){
   speechSynthesis.cancel();
+  document.getElementById("pantalla-evento-activo").style.display="none";
 }
+
 </script>
 
 </body>
