@@ -164,7 +164,7 @@ PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO
   <div id="reloj"></div>
 </div>
 
-<div id="pantalla-evento-activo" onclick="detener()">
+<div id="pantalla-evento-activo" onclick="detenerVoz()">
   <div id="hora-evento-gigante"></div>
   <div id="texto-evento-gigante"></div>
   <div class="instruccion">TOCA PARA PARAR</div>
@@ -210,7 +210,7 @@ function iniciarSistema(){
 }
 
 /* =========================
-   DESBLOQUEO VOZ (CLAVE TABLET)
+   DESBLOQUEO VOZ (CRÍTICO ANDROID)
 ========================= */
 function desbloquearVoz(){
   try{
@@ -225,6 +225,7 @@ function desbloquearVoz(){
    RELOJ
 ========================= */
 function actualizarReloj(){
+
   const a=new Date();
 
   document.getElementById("fecha").innerText=
@@ -238,10 +239,12 @@ function actualizarReloj(){
 }
 
 /* =========================
-   CARGA JSON
+   CARGA EVENTS.JSON
 ========================= */
 async function cargar(){
+
   try{
+
     const r=await fetch("events.json?t="+Date.now());
     const d=await r.json();
 
@@ -254,9 +257,10 @@ async function cargar(){
 }
 
 /* =========================
-   PARSEO FECHA
+   PARSEO FECHA SEGURO
 ========================= */
 function parseFecha(s){
+
   if(!s) return new Date(0);
 
   s=s.replace("Z","");
@@ -275,7 +279,7 @@ function parseFecha(s){
 }
 
 /* =========================
-   ORGANIZAR
+   ORGANIZAR HOY / MAÑANA
 ========================= */
 function procesar(items){
 
@@ -315,10 +319,12 @@ function render(){
 }
 
 function pintar(lista,id){
+
   const c=document.getElementById(id);
   c.innerHTML="";
 
   lista.forEach(ev=>{
+
     const div=document.createElement("div");
     div.className="evento";
 
@@ -331,31 +337,36 @@ function pintar(lista,id){
 }
 
 /* =========================
-   VOZ ESTABLE TABLET
+   VOZ ESTABLE (SIN INTENT ANDROID)
 ========================= */
 function hablar(texto){
 
-  function ejecutar(){
+  const synth = window.speechSynthesis;
 
-    const u=new SpeechSynthesisUtterance(texto);
+  if(!synth) return;
 
-    const voces=speechSynthesis.getVoices();
-    const voz=voces.find(v=>v.lang.includes("es"));
+  function speak(){
 
-    if(voz) u.voice=voz;
+    synth.cancel();
 
-    u.lang="es-ES";
-    u.rate=0.95;
-    u.volume=1;
+    const u = new SpeechSynthesisUtterance(texto);
 
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
+    const voces = synth.getVoices();
+    const vozES = voces.find(v => v.lang.includes("es"));
+
+    if(vozES) u.voice = vozES;
+
+    u.lang = "es-ES";
+    u.rate = 0.95;
+    u.volume = 1;
+
+    synth.speak(u);
   }
 
-  if(!speechSynthesis.getVoices().length){
-    speechSynthesis.onvoiceschanged=ejecutar;
-  }else{
-    ejecutar();
+  if(synth.getVoices().length === 0){
+    synth.onvoiceschanged = speak;
+  } else {
+    speak();
   }
 }
 
@@ -376,9 +387,9 @@ function repasar(tipo){
 }
 
 /* =========================
-   STOP
+   STOP VOZ
 ========================= */
-function detener(){
+function detenerVoz(){
   speechSynthesis.cancel();
   document.getElementById("pantalla-evento-activo").style.display="none";
 }
