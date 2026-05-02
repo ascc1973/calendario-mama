@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendario Mamá</title>
+<title>Calendario Debug</title>
 
 <style>
 body,html{
@@ -12,7 +12,7 @@ body,html{
   height:100%;
   font-family:Arial Black;
   background:#000;
-  overflow:hidden;
+  color:#fff;
 }
 
 #btn{
@@ -21,9 +21,8 @@ body,html{
   height:100%;
   background:red;
   color:white;
-  font-size:5vh;
+  font-size:4vh;
   border:none;
-  z-index:9999;
 }
 
 .container{
@@ -36,7 +35,6 @@ body,html{
 .col{
   width:50%;
   padding:10px;
-  box-sizing:border-box;
   overflow-y:auto;
 }
 
@@ -45,22 +43,26 @@ body,html{
 
 .evento{
   background:#fff;
+  color:#000;
   margin-bottom:10px;
   padding:10px;
   border-radius:10px;
-  color:#000;
 }
 
 .evento h2{
   margin:0;
   color:red;
-  font-size:2.2vh;
 }
 
-.evento p{
-  margin:5px 0 0;
-  font-size:2.5vh;
-  font-weight:bold;
+#debug{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  background:#111;
+  font-size:12px;
+  padding:5px;
+  color:#0f0;
 }
 </style>
 </head>
@@ -81,9 +83,12 @@ body,html{
   </div>
 </div>
 
+<div id="debug">DEBUG: esperando carga...</div>
+
 <script>
 
-let hoy=[], manana=[];
+let hoy = [];
+let manana = [];
 
 /* ========================= */
 function start(){
@@ -96,23 +101,33 @@ function start(){
 
 /* ========================= */
 async function load(){
-  try{
-    const r = await fetch("events.json?t=" + Date.now());
-    const d = await r.json();
 
-    if(Array.isArray(d)){
-      parse(d);
-      render();
-    }
+  try{
+
+    const r = await fetch("events.json?t=" + Date.now());
+
+    const text = await r.text();
+
+    console.log("RAW JSON:", text);
+
+    const d = JSON.parse(text);
+
+    document.getElementById("debug").innerText =
+      "Eventos recibidos: " + d.length;
+
+    parse(d);
+    render();
 
   }catch(e){
-    console.log("error json", e);
+
+    document.getElementById("debug").innerText =
+      "ERROR JSON: " + e.message;
+
+    console.log(e);
   }
 }
 
-/* =========================
-   PARSEO CORRECTO GOOGLE CALENDAR
-========================= */
+/* ========================= */
 function parse(items){
 
   hoy = [];
@@ -122,23 +137,34 @@ function parse(items){
   today.setHours(0,0,0,0);
 
   const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setDate(tomorrow.getDate()+1);
 
   items.forEach(e => {
 
-    // 🔥 FIX IMPORTANTE: soporta formato Google Calendar real
-    let raw = e.start?.dateTime || e.start?.date;
+    let raw =
+      e.start?.dateTime ||
+      e.start ||
+      e.startDate ||
+      e.date ||
+      e.time;
 
-    if(!raw) return;
+    if(!raw){
+      console.log("Evento inválido:", e);
+      return;
+    }
 
     const f = new Date(raw);
 
-    if(isNaN(f.getTime())) return;
+    if(isNaN(f.getTime())){
+      console.log("Fecha inválida:", raw);
+      return;
+    }
 
     const ev = {
       title: e.title || e.summary || "Sin título",
       time: f,
-      text: "a las " +
+      text:
+        "a las " +
         (f.getHours()%12||12) + ":" +
         String(f.getMinutes()).padStart(2,"0")
     };
@@ -149,6 +175,9 @@ function parse(items){
     if(day.getTime() === today.getTime()) hoy.push(ev);
     if(day.getTime() === tomorrow.getTime()) manana.push(ev);
   });
+
+  document.getElementById("debug").innerText =
+    "HOY: " + hoy.length + " | MAÑANA: " + manana.length;
 }
 
 /* ========================= */
@@ -163,6 +192,11 @@ function draw(list,id){
   const c = document.getElementById(id);
   c.innerHTML = "";
 
+  if(list.length === 0){
+    c.innerHTML = "<p>No hay eventos</p>";
+    return;
+  }
+
   list.forEach(ev => {
 
     const div = document.createElement("div");
@@ -171,10 +205,6 @@ function draw(list,id){
     div.innerHTML =
       `<h2>${ev.text}</h2>
        <p>${ev.title}</p>`;
-
-    div.onclick = () => {
-      alert("Mamá: " + ev.text + " tienes " + ev.title);
-    };
 
     c.appendChild(div);
   });
