@@ -62,6 +62,19 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 #texto-evento-gigante { font-size: 10vh; margin: 10px 20px 30px 20px; text-transform: uppercase; }
 .instruccion { font-size: 3.5vh; background: #fff; color: #000; padding: 15px 40px; border-radius: 50px; animation: flash 1s infinite; font-weight: bold; }
 @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+/* Este código hace que el texto sea invisible para el selector de Google */
+.evento p, .evento h2, #reloj, #fecha {
+    pointer-events: none; /* El sistema ignora el texto al tocarlo */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.evento {
+    pointer-events: auto; /* El cuadro blanco sí recibe el toque para hablar */
+    cursor: pointer;
+    touch-action: manipulation;
+}
 </style>
 </head>
 <body>
