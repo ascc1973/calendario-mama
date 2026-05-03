@@ -1,337 +1,284 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calendario para Mamá</title>
-    <style>
-        :root {
-            --bg-color: #f4f4f9;
-            --text-color: #333;
-            --accent-color: #d32f2f;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendario para Mamá</title>
+<style>
+:root{ --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
+body,html{ margin:0; padding:0; height:100%; font-family:'Arial Black',sans-serif; background:#000; overflow:hidden; touch-action: manipulation; }
+#barra{ position:fixed; top:0; left:0; width:100%; background:#000; color:#fff; text-align:center; z-index:1000; }
+#fecha{font-size:2vh;}
+#reloj{font-size:4vh;}
+#btn-inicial{ position:fixed; width:100vw; height:100vh; background:#ff0000; color:white; font-size:5vh; border:none; z-index:99999; cursor:pointer; }
+.container{ display:none; height:100vh; padding-top:70px; box-sizing:border-box; display:flex; }
+.col{ width:50%; padding:10px; display:flex; flex-direction:column; box-sizing:border-box; }
+.col-hoy{ background:var(--hoy-bg); border-right:3px solid #000; }
+.col-manana{ background:var(--manana-bg); }
+h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
+.btn-repaso{ 
+    width: 100%; 
+    padding: 15px; 
+    font-size: 1.8vh; 
+    border-radius: 10px; 
+    border: 3px solid #000; 
+    background: #fff; 
+    margin-bottom: 15px; 
+    cursor: pointer; 
+    font-weight: bold;
+    box-sizing: border-box;
+}
 
-        #reloj {
-            font-size: 5rem;
-            font-weight: bold;
-            text-align: center;
-            padding: 20px;
-            background: #fff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+.lista-eventos{ flex-grow:1; display:flex; flex-direction:column; gap:8px; overflow-y: auto; }
+.evento{ background:#fff; border-radius:10px; border:3px solid #333; padding:10px; cursor:pointer; color:#000; width: 100%; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        #contenedor-eventos {
-            display: flex;
-            flex: 1;
-            padding: 20px;
-            gap: 20px;
-            overflow: hidden;
-        }
+/* Estilo unificado para Hora y Franja */
+.evento h2{ 
+    margin:0; 
+    color:#d32f2f; 
+    font-size:2.5vh; 
+    display: flex; 
+    gap: 10px; 
+    align-items: baseline;
+    white-space: nowrap;
+}
 
-        .columna {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+.evento p{ margin:5px 0 0; font-size:2.8vh; font-weight:bold; line-height: 1.2; color: #000; }
 
-        .columna h2 {
-            text-align: center;
-            font-size: 2rem;
-            color: #555;
-            border-bottom: 3px solid #ccc;
-            padding-bottom: 10px;
-        }
+.urgente{ border:8px solid red !important; animation:blink 0.8s linear infinite; }
+@keyframes blink{ 0%{background:#00ff00;border-color:red;} 50%{background:#ffffff;border-color:#ffffff;} 100%{background:#00ff00;border-color:red;} }
 
-        #eventos-hoy, #eventos-manana {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            overflow-y: auto;
-        }
-
-        .evento {
-            background: #fff;
-            padding: 20px;
-            border-radius: 15px;
-            border-left: 10px solid #ccc;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            font-size: 1.8rem;
-        }
-
-        .evento.urgente {
-            border-left-color: var(--accent-color);
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        #pantalla-alarma {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--accent-color);
-            color: white;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            text-align: center;
-        }
-
-        #alarma-titulo { font-size: 6rem; font-weight: bold; margin-bottom: 20px; padding: 0 20px; }
-        #alarma-hora { font-size: 4rem; }
-        #boton-parar {
-            margin-top: 50px;
-            padding: 30px 60px;
-            font-size: 3rem;
-            background: white;
-            color: var(--accent-color);
-            border: none;
-            border-radius: 20px;
-            font-weight: bold;
-        }
-    </style>
+#pantalla-evento-activo { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ff0000; color: white; z-index: 100000; text-align: center; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+#hora-evento-gigante { font-size: 8vh; color: #fff; margin: 0; line-height: 1; }
+#texto-evento-gigante { font-size: 10vh; margin: 10px 20px 30px 20px; color: #fff; text-transform: uppercase; }
+.instruccion { font-size: 3.5vh; background: #fff; color: #000; padding: 15px 40px; border-radius: 50px; animation: flash 1s infinite; font-weight: bold; }
+@keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+</style>
 </head>
 <body>
 
-    <div id="reloj">00:00</div>
+<button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO</button>
 
-    <div id="contenedor-eventos">
-        <div class="columna">
-            <h2>HOY</h2>
-            <div id="eventos-hoy"></div>
-        </div>
-        <div class="columna">
-            <h2>MAÑANA</h2>
-            <div id="eventos-manana"></div>
-        </div>
+<div id="barra">
+    <div id="fecha"></div>
+    <div id="reloj"></div>
+</div>
+
+<div id="pantalla-evento-activo" onclick="detenerAlarmaDirecto()">
+    <div id="hora-evento-gigante"></div>
+    <div id="texto-evento-gigante"></div>
+    <div class="instruccion">TOCA AQUÍ PARA PARAR</div>
+</div>
+
+<div class="container">
+    <div class="col col-hoy">
+        <h1 id="titulo-hoy">HOY</h1>
+        <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
+        <div id="lista-hoy" class="lista-eventos"></div>
     </div>
-
-    <div id="pantalla-alarma" onclick="detenerAlarmaDirecto()">
-        <div id="alarma-titulo">TITULO</div>
-        <div id="alarma-hora">00:00</div>
-        <button id="boton-parar">TOCA PARA PARAR</button>
+    <div class="col col-manana">
+        <h1 id="titulo-manana">MAÑANA</h1>
+        <button class="btn-repaso" onclick="repasarDia('manana')">🔊 TODO MAÑANA</button>
+        <div id="lista-manana" class="lista-eventos"></div>
     </div>
+</div>
 
-    <audio id="campana" src="campana.mp3" loop></audio>
+<audio id="campana" src="campana.mp3"></audio>
 
-    <!-- CARGA DE LIBRERÍAS DE GOOGLE -->
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+<script>
+const API_KEY="AIzaSyDh0DjfE2qqaBeVfww5u84FLp4_elsF7Uc";
+const CALENDAR_ID="anacara1941@gmail.com";
 
-    <script>
-        // CONFIGURACIÓN DE TU CALENDARIO (Mantén tus IDs aquí)
-        const CLIENT_ID = 'TU_CLIENT_ID'; 
-        const API_KEY = 'TU_API_KEY';
-        const DISCOVERY_DOC = "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest";
-        const SCOPES = "https://www.googleapis.com/auth/calendar.readonly";
+let eventosHoy=[];
+let eventosManana=[];
+let idEventoActual = null;
+let eventosSilenciados = new Set();
+let avisosPrevios = new Set();
+let vozSeleccionada = null;
 
-        let tokenClient;
-        let gapiInited = false;
-        let gisInited = false;
-        let eventos = [];
-        let avisosPrevios = new Set();
-        let eventoActivo = null;
-        let inicioAvisoDiezSeg = 0;
-        let wakeLock = null;
+function cargarVoces() {
+    const voces = window.speechSynthesis.getVoices();
+    vozSeleccionada = voces.find(v => v.lang.startsWith("es") && v.name.includes("Google")) || 
+                      voces.find(v => v.lang.startsWith("es"));
+}
+window.speechSynthesis.onvoiceschanged = cargarVoces;
 
-        // --- INICIALIZACIÓN DE API ---
-        function gapiLoaded() { gapi.load('client', initializeGapiClient); }
-        async function initializeGapiClient() {
-            await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
-            gapiInited = true;
-            maybeStart();
+function numeroALetras(n) {
+    const unidades = ['doce', 'una', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez', 'once'];
+    return unidades[n % 12];
+}
+
+function obtenerFranjaHoraria(h) {
+    if (h >= 7 && h < 13) return "de la mañana";
+    if (h >= 14 && h <= 20) return "de la tarde";
+    if (h >= 21 || h === 0) return "de la noche";
+    return "de la madrugada";
+}
+
+function actualizarReloj(){
+    const ahora=new Date();
+    document.getElementById("fecha").innerText=ahora.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
+    let h=ahora.getHours(); let m=ahora.getMinutes();
+    let hMostrar = h % 12 || 12;
+    document.getElementById("reloj").innerText = hMostrar + ":" + (m < 10 ? "0" + m : m);
+    render(); 
+}
+
+function iniciarSistema(){
+    const docElm = document.documentElement;
+    if (docElm.requestFullscreen) docElm.requestFullscreen({ navigationUI: "hide" });
+
+    document.getElementById("btn-inicial").style.display="none";
+    document.querySelector(".container").style.display="flex";
+    cargarVoces();
+    cargarCalendario();
+    setInterval(actualizarReloj, 1000);
+    setInterval(cargarCalendario, 60000);
+    setInterval(verificarAlertas, 5000);
+}
+
+async function cargarCalendario(){
+    const min=new Date(); min.setHours(0,0,0,0);
+    const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
+    try {
+        const r=await fetch(url);
+        const d=await r.json();
+        if(d.items) { organizarEventos(d.items); render(); }
+    } catch(e) { console.log("Error API"); }
+}
+
+function organizarEventos(items){
+    const hoyStr=new Date().toLocaleDateString();
+    const manana=new Date(); manana.setDate(manana.getDate()+1);
+    const mananaStr=manana.toLocaleDateString();
+    eventosHoy=[]; eventosManana=[];
+    items.forEach(item=>{
+        const inicio=new Date(item.start.dateTime||item.start.date);
+        const h = inicio.getHours();
+        const m = inicio.getMinutes();
+        
+        const periodo = obtenerFranjaHoraria(h);
+        const hTexto = numeroALetras(h);
+        const mTexto = m === 0 ? "en punto" : "y " + m;
+        
+        const ev={
+            id: item.id + inicio.getTime(),
+            titulo: (item.summary || "Sin título").replace(/^\*+/,'').trim(),
+            hora: inicio,
+            franja: periodo,
+            textoVoz: `a las ${hTexto} ${mTexto} ${periodo}`,
+            horaPantalla: (h % 12 || 12) + ":" + (m < 10 ? "0" + m : m),
+            asteriscos: (item.summary || "").match(/^\*+/)?.[0].length || 0
+        };
+        if(inicio.toLocaleDateString() === hoyStr) eventosHoy.push(ev);
+        else if(inicio.toLocaleDateString() === mananaStr) eventosManana.push(ev);
+    });
+}
+
+function render(){
+    renderLista(eventosHoy, "lista-hoy");
+    renderLista(eventosManana, "lista-manana");
+}
+
+function renderLista(lista, idCont){
+    const cont=document.getElementById(idCont);
+    if(!cont) return;
+    cont.innerHTML="";
+    const ahora=new Date();
+    lista.forEach(ev=>{
+        const yaSilenciado = eventosSilenciados.has(ev.id);
+        const diffMin = (ev.hora - ahora) / 60000;
+        let urgente = !yaSilenciado && ((ahora >= ev.hora && ahora <= (ev.hora.getTime() + 3600000)) || (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > 0));
+        
+        const div=document.createElement("div");
+        div.className="evento" + (urgente ? " urgente" : "");
+        
+        // Unimos hora y franja en el mismo h2 con el mismo estilo
+        div.innerHTML=`<h2>${ev.horaPantalla} ${ev.franja}</h2><p>${ev.titulo}</p>`;
+        
+        // Bloqueo de búsqueda de Google al tocar
+        div.addEventListener('click', (e) => {
+            e.preventDefault();
+            hablarDirecto(`Mamá, ${ev.textoVoz} tienes ${ev.titulo}`);
+        });
+
+        cont.appendChild(div);
+        if (idCont === "lista-hoy" && ahora >= ev.hora && ahora <= (ev.hora.getTime() + 600000)) {
+            if (!yaSilenciado && idEventoActual !== ev.id) lanzarPantallaGigante(ev);
         }
-        function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID, scope: SCOPES, callback: '', 
-            });
-            gisInited = true;
-            maybeStart();
-        }
-        function maybeStart() {
-            if (gapiInited && gisInited) {
-                // Autenticar automáticamente si ya tienes token o esperar click
-                console.log("APIs listas");
+    });
+}
+
+function lanzarPantallaGigante(ev) {
+    idEventoActual = ev.id;
+    document.getElementById("hora-evento-gigante").innerText = ev.horaPantalla + " " + ev.franja;
+    document.getElementById("texto-evento-gigante").innerText = ev.titulo;
+    document.getElementById("pantalla-evento-activo").style.display = "flex";
+    const campana = document.getElementById("campana");
+    campana.volume = 0.15;
+    campana.loop = true;
+    campana.play().catch(()=>{});
+    ejecutarVozInfinita(ev);
+}
+
+function ejecutarVozInfinita(ev) {
+    if (idEventoActual !== ev.id) return;
+    const textoFinal = `Mamá, ${ev.textoVoz} tienes ${ev.titulo}`;
+    window.speechSynthesis.cancel();
+    setTimeout(() => {
+        if (idEventoActual !== ev.id) return;
+        const msg = new SpeechSynthesisUtterance(textoFinal);
+        if(vozSeleccionada) msg.voice = vozSeleccionada;
+        msg.lang = "es-ES";
+        msg.rate = 0.85; 
+        msg.onend = () => { if (idEventoActual === ev.id) setTimeout(() => ejecutarVozInfinita(ev), 2000); };
+        window.speechSynthesis.speak(msg);
+    }, 50);
+}
+
+function detenerAlarmaDirecto() {
+    if(idEventoActual) {
+        eventosSilenciados.add(idEventoActual);
+        idEventoActual = null;
+        document.getElementById("pantalla-evento-activo").style.display = "none";
+        document.getElementById("campana").pause();
+        window.speechSynthesis.cancel();
+        render(); 
+    }
+}
+
+function hablarDirecto(texto) {
+    window.speechSynthesis.cancel();
+    setTimeout(() => {
+        const u = new SpeechSynthesisUtterance(texto);
+        if(vozSeleccionada) u.voice = vozSeleccionada;
+        u.lang = "es-ES";
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+    }, 10);
+}
+
+function verificarAlertas(){
+    const ahora=new Date();
+    [...eventosHoy, ...eventosManana].forEach(ev => {
+        const min = Math.floor((ev.hora - ahora) / 60000);
+        if((ev.asteriscos === 3 && min === 180) || (ev.asteriscos >= 2 && min === 120) || (ev.asteriscos >= 1 && min === 60)) {
+            if(!avisosPrevios.has(ev.id + "_" + min)) {
+                avisosPrevios.add(ev.id + "_" + min);
+                hablarDirecto(`Recordatorio: ${ev.textoVoz} tienes ${ev.titulo}`);
             }
         }
+    });
+}
 
-        // --- LÓGICA PRINCIPAL ---
-        function actualizarSistema() {
-            const ahora = new Date();
-            document.getElementById('reloj').innerText = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-            verificarAlertas();
-        }
-
-        async function listarEventos() {
-            try {
-                const ahora = new Date();
-                ahora.setHours(0,0,0,0);
-                const respuesta = await gapi.client.calendar.events.list({
-                    'calendarId': 'primary',
-                    'timeMin': ahora.toISOString(),
-                    'showDeleted': false,
-                    'singleEvents': true,
-                    'orderBy': 'startTime',
-                });
-                
-                const items = respuesta.result.items;
-                eventos = items.map(item => {
-                    const titulo = item.summary || 'Sin título';
-                    const asteriscos = (titulo.match(/\*/g) || []).length;
-                    return {
-                        id: item.id,
-                        titulo: titulo.replace(/\*/g, '').trim(),
-                        asteriscos: asteriscos,
-                        fecha: new Date(item.start.dateTime || item.start.date)
-                    };
-                });
-                renderizarLista();
-            } catch (err) { console.error(err); }
-        }
-
-        function renderizarLista() {
-            const hoyCont = document.getElementById('eventos-hoy');
-            const manCont = document.getElementById('eventos-manana');
-            hoyCont.innerHTML = '';
-            manCont.innerHTML = '';
-
-            const ahora = new Date();
-            const mañana = new Date(ahora);
-            mañana.setDate(ahora.getDate() + 1);
-
-            eventos.forEach(ev => {
-                const div = document.createElement('div');
-                div.className = 'evento';
-                
-                // Si faltan menos de 2 horas y tiene 2 o más estrellas, parpadea
-                const diffMin = (ev.fecha - ahora) / 60000;
-                if (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > -60) {
-                    div.classList.add('urgente');
-                }
-
-                div.innerHTML = `<strong>${ev.fecha.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</strong> - ${ev.titulo}`;
-                div.onclick = () => hablar(`Mamá, a las ${ev.fecha.getHours()} y ${ev.fecha.getMinutes()} tienes ${ev.titulo}`);
-
-                if (ev.fecha.toDateString() === ahora.toDateString()) hoyCont.appendChild(div);
-                else if (ev.fecha.toDateString() === mañana.toDateString()) manCont.appendChild(div);
-            });
-        }
-
-        // --- LAS NUEVAS ALERTAS DE VOZ Y PANTALLA ---
-        function verificarAlertas() {
-            const ahora = new Date();
-            const ahoraMs = ahora.getTime();
-
-            eventos.forEach(ev => {
-                const diffMs = ev.fecha - ahoraMs;
-                const min = Math.floor(diffMs / 60000);
-
-                // 1. AVISO 3 HORAS (***) - 10 SEG REPETICIÓN
-                if (ev.asteriscos === 3 && min === 180) {
-                    if (!avisosPrevios.has(ev.id + "-180")) {
-                        hablar(`Recordatorio: en tres horas, ${ev.titulo}`);
-                        inicioAvisoDiezSeg = ahoraMs;
-                        avisosPrevios.add(ev.id + "-180");
-                    } else if (ahoraMs - inicioAvisoDiezSeg < 10000) {
-                        if (!window.speechSynthesis.speaking) hablar(`Recordatorio: en tres horas, ${ev.titulo}`);
-                    }
-                }
-
-                // 2. AVISO 2 HORAS (** y ***) - 10 SEG REPETICIÓN
-                if (ev.asteriscos >= 2 && min === 120) {
-                    if (!avisosPrevios.has(ev.id + "-120")) {
-                        hablar(`Recordatorio: en dos horas, ${ev.titulo}`);
-                        inicioAvisoDiezSeg = ahoraMs;
-                        avisosPrevios.add(ev.id + "-120");
-                    } else if (ahoraMs - inicioAvisoDiezSeg < 10000) {
-                        if (!window.speechSynthesis.speaking) hablar(`Recordatorio: en dos horas, ${ev.titulo}`);
-                    }
-                }
-
-                // 3. AVISO 1 HORA (ALARMA GIGANTE para ** y ***)
-                if (min === 60) {
-                    if (ev.asteriscos >= 2) {
-                        if (eventoActivo !== ev.id + "-pre") {
-                            lanzarAlarma(ev, "EN 1 HORA");
-                            eventoActivo = ev.id + "-pre"; 
-                        }
-                    } else if (ev.asteriscos === 1 && !avisosPrevios.has(ev.id + "-60")) {
-                        hablar(`Recordatorio: en una hora, ${ev.titulo}`);
-                        avisosPrevios.add(ev.id + "-60");
-                    }
-                }
-
-                // 4. HORA CERO
-                if (min === 0 && eventoActivo !== ev.id) {
-                    lanzarAlarma(ev, "¡AHORA!");
-                    eventoActivo = ev.id;
-                }
-            });
-        }
-
-        function lanzarAlarma(ev, texto) {
-            document.getElementById('alarma-titulo').innerText = ev.titulo;
-            document.getElementById('alarma-hora').innerText = texto;
-            document.getElementById('pantalla-alarma').style.display = 'flex';
-            document.getElementById('campana').play();
-            
-            window.speechSynthesis.cancel();
-            const loop = () => {
-                if (document.getElementById('pantalla-alarma').style.display === 'flex') {
-                    hablar(`Mamá, ${texto} tienes ${ev.titulo}`, loop);
-                }
-            };
-            loop();
-            document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(()=>{});
-        }
-
-        function detenerAlarmaDirecto() {
-            document.getElementById('pantalla-alarma').style.display = 'none';
-            document.getElementById('campana').pause();
-            window.speechSynthesis.cancel();
-        }
-
-        function hablar(t, callback) {
-            const u = new SpeechSynthesisUtterance(t);
-            u.lang = 'es-ES'; u.rate = 0.85;
-            if (callback) u.onend = callback;
-            window.speechSynthesis.speak(u);
-        }
-
-        // --- WAKELOCK Y TIMERS ---
-        async function reqWake() {
-            try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
-        }
-
-        setInterval(actualizarSistema, 5000);
-        setInterval(listarEventos, 300000); // Recarga Google cada 5 min
-
-        document.body.onclick = () => {
-            reqWake();
-            actualizarSistema();
-            listarEventos();
-        };
-
-    </script>
+function repasarDia(dia){
+    const lista = dia === "hoy" ? eventosHoy : eventosManana;
+    if(lista.length === 0) { hablarDirecto("No hay nada anotado"); return; }
+    let t = (dia === "hoy" ? "Mamá, para hoy tienes: " : "Para mañana tienes: ");
+    lista.forEach(ev => { t += `${ev.textoVoz}, ${ev.titulo}. `; });
+    hablarDirecto(t);
+}
+</script>
 </body>
 </html>
