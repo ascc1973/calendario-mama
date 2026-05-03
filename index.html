@@ -2,47 +2,54 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- Etiquetas para ocultar barras del navegador -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+
 <title>Calendario para Mamá</title>
 <style>
 :root{ --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
-body,html{ margin:0; padding:0; height:100%; font-family:'Arial Black',sans-serif; background:#000; overflow:hidden; touch-action: manipulation; }
+
+/* Bloqueo de desplazamientos extraños */
+body, html { 
+    margin:0; padding:0; height:100%; 
+    font-family:'Arial Black',sans-serif; 
+    background:#000; 
+    overflow:hidden; 
+    touch-action: none; /* Impide gestos del navegador como deslizar para refrescar */
+    position: fixed; 
+    width: 100%;
+}
+
 #barra{ position:fixed; top:0; left:0; width:100%; background:#000; color:#fff; text-align:center; z-index:1000; }
 #fecha{font-size:2vh;}
 #reloj{font-size:4vh;}
+
 #btn-inicial{ position:fixed; width:100vw; height:100vh; background:#ff0000; color:white; font-size:5vh; border:none; z-index:99999; cursor:pointer; }
-.container{ display:none; height:100vh; padding-top:70px; box-sizing:border-box; display:flex; }
+
+.container{ 
+    display:none; height:100vh; padding-top:70px; 
+    box-sizing:border-box; display:flex; 
+    overscroll-behavior: none; /* Evita el efecto rebote en Chrome/Android */
+}
+
 .col{ width:50%; padding:10px; display:flex; flex-direction:column; box-sizing:border-box; }
 .col-hoy{ background:var(--hoy-bg); border-right:3px solid #000; }
 .col-manana{ background:var(--manana-bg); }
 h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 
 .btn-repaso{ 
-    width: 100%; 
-    padding: 15px; 
-    font-size: 1.8vh; 
-    border-radius: 10px; 
-    border: 3px solid #000; 
-    background: #fff; 
-    margin-bottom: 15px; 
-    cursor: pointer; 
-    font-weight: bold;
-    box-sizing: border-box;
+    width: 100%; padding: 15px; font-size: 1.8vh; 
+    border-radius: 10px; border: 3px solid #000; 
+    background: #fff; margin-bottom: 15px; cursor: pointer; 
+    font-weight: bold; box-sizing: border-box;
 }
 
 .lista-eventos{ flex-grow:1; display:flex; flex-direction:column; gap:8px; overflow-y: auto; }
 .evento{ background:#fff; border-radius:10px; border:3px solid #333; padding:10px; cursor:pointer; color:#000; width: 100%; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-.evento h2{ 
-    margin:0; 
-    color:#d32f2f; 
-    font-size:2.5vh; 
-    display: flex; 
-    gap: 10px; 
-    align-items: baseline;
-    white-space: nowrap;
-}
-
+.evento h2{ margin:0; color:#d32f2f; font-size:2.5vh; display: flex; gap: 10px; align-items: baseline; white-space: nowrap; }
 .evento p{ margin:5px 0 0; font-size:2.8vh; font-weight:bold; line-height: 1.2; color: #000; }
 
 .urgente{ border:8px solid red !important; animation:blink 0.8s linear infinite; }
@@ -55,7 +62,7 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 </style>
 </head>
-<body>
+<body oncontextmenu="return false;"> <!-- Evita menús al mantener pulsado -->
 
 <button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO</button>
 
@@ -70,7 +77,7 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
     <div class="instruccion">TOCA AQUÍ PARA PARAR</div>
 </div>
 
-<div class="container">
+<div class="container" id="mainContainer">
     <div class="col col-hoy">
         <h1 id="titulo-hoy">HOY</h1>
         <button class="btn-repaso" onclick="repasarDia('hoy')">🔊 TODO HOY</button>
@@ -86,20 +93,15 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 <audio id="campana" src="campana.mp3"></audio>
 
 <script>
+// ... (Aquí va toda tu lógica de API y eventos igual que antes) ...
 const API_KEY="AIzaSyDh0DjfE2qqaBeVfww5u84FLp4_elsF7Uc";
 const CALENDAR_ID="anacara1941@gmail.com";
-
-let eventosHoy=[];
-let eventosManana=[];
-let idEventoActual = null;
-let eventosSilenciados = new Set();
-let avisosPrevios = new Set();
-let vozSeleccionada = null;
+let eventosHoy=[]; let eventosManana=[]; let idEventoActual = null;
+let eventosSilenciados = new Set(); let avisosPrevios = new Set(); let vozSeleccionada = null;
 
 function cargarVoces() {
     const voces = window.speechSynthesis.getVoices();
-    vozSeleccionada = voces.find(v => v.lang.startsWith("es") && v.name.includes("Google")) || 
-                      voces.find(v => v.lang.startsWith("es"));
+    vozSeleccionada = voces.find(v => v.lang.startsWith("es") && v.name.includes("Google")) || voces.find(v => v.lang.startsWith("es"));
 }
 window.speechSynthesis.onvoiceschanged = cargarVoces;
 
@@ -126,16 +128,23 @@ function actualizarReloj(){
 
 function iniciarSistema(){
     const docElm = document.documentElement;
-    if (docElm.requestFullscreen) docElm.requestFullscreen({ navigationUI: "hide" });
-
+    if (docElm.requestFullscreen) {
+        docElm.requestFullscreen({ navigationUI: "hide" }).catch(e => console.log(e));
+    }
     document.getElementById("btn-inicial").style.display="none";
-    document.querySelector(".container").style.display="flex";
+    document.getElementById("mainContainer").style.display="flex";
     cargarVoces();
     cargarCalendario();
     setInterval(actualizarReloj, 1000);
     setInterval(cargarCalendario, 60000);
     setInterval(verificarAlertas, 5000);
 }
+
+// Bloqueo preventivo de scroll para evitar que baje la barra del navegador
+document.addEventListener('touchmove', function(e) {
+    if (e.target.closest('.lista-eventos')) return; // Permite scroll solo en las listas
+    e.preventDefault();
+}, { passive: false });
 
 async function cargarCalendario(){
     const min=new Date(); min.setHours(0,0,0,0);
@@ -149,40 +158,26 @@ async function cargarCalendario(){
 
 function organizarEventos(items){
     const hoy = new Date();
-    // String de hoy para comparar: AAAA-MM-DD
     const hoyISO = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, '0') + "-" + String(hoy.getDate()).padStart(2, '0');
-    
     const manana = new Date(); manana.setDate(manana.getDate()+1);
     const mananaISO = manana.getFullYear() + "-" + String(manana.getMonth() + 1).padStart(2, '0') + "-" + String(manana.getDate()).padStart(2, '0');
-
     eventosHoy=[]; eventosManana=[];
-    
     items.forEach(item=>{
         const startRaw = item.start.dateTime || item.start.date;
         if (!startRaw) return;
-
-        // Interpretación literal para evitar el error de "madrugada" por desfase horario
-        // El formato suele ser "2026-05-03T13:06:00Z" o similar
         const partesFecha = startRaw.split('T');
-        const fechaEvento = partesFecha[0]; // AAAA-MM-DD
-        
-        // Si es evento de todo el día no tiene 'T'
+        const fechaEvento = partesFecha[0];
         let h = 0, m = 0;
         if (partesFecha[1]) {
             const partesHora = partesFecha[1].split(':');
             h = parseInt(partesHora[0]);
             m = parseInt(partesHora[1]);
         }
-
         const inicioLiteral = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), h, m);
-        if (fechaEvento === mananaISO) {
-            inicioLiteral.setFullYear(manana.getFullYear(), manana.getMonth(), manana.getDate());
-        }
-
+        if (fechaEvento === mananaISO) inicioLiteral.setFullYear(manana.getFullYear(), manana.getMonth(), manana.getDate());
         const periodo = obtenerFranjaHoraria(h);
         const hTexto = numeroALetras(h);
         const mTexto = m === 0 ? "en punto" : "y " + (m < 10 ? "0"+m : m);
-        
         const ev={
             id: item.id + startRaw,
             titulo: (item.summary || "Sin título").replace(/^\*+/,'').trim(),
@@ -192,7 +187,6 @@ function organizarEventos(items){
             horaPantalla: (h % 12 || 12) + ":" + (m < 10 ? "0" + m : m),
             asteriscos: (item.summary || "").match(/^\*+/)?.[0].length || 0
         };
-
         if(fechaEvento === hoyISO) eventosHoy.push(ev);
         else if(fechaEvento === mananaISO) eventosManana.push(ev);
     });
@@ -211,18 +205,12 @@ function renderLista(lista, idCont){
     lista.forEach(ev=>{
         const yaSilenciado = eventosSilenciados.has(ev.id);
         const diffMin = (ev.hora - ahora) / 60000;
-        
-        // Urgente si es la hora o si tiene 2-3 estrellas y faltan < 2 horas
         let urgente = !yaSilenciado && ((ahora >= ev.hora && ahora <= (ev.hora.getTime() + 3600000)) || (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > 0));
-        
         const div=document.createElement("div");
         div.className="evento" + (urgente ? " urgente" : "");
         div.innerHTML=`<h2>${ev.horaPantalla} ${ev.franja}</h2><p>${ev.titulo}</p>`;
-        
         div.onclick = () => hablarDirecto(`Mamá, ${ev.textoVoz} tienes ${ev.titulo}`);
-
         cont.appendChild(div);
-
         if (idCont === "lista-hoy" && !yaSilenciado && idEventoActual !== ev.id) {
             const esHoraExacta = (ahora >= ev.hora && ahora <= (ev.hora.getTime() + 600000));
             const esPreaviso60Min = (ev.asteriscos >= 2 && diffMin <= 60 && diffMin > 0);
@@ -237,8 +225,7 @@ function lanzarPantallaGigante(ev) {
     document.getElementById("texto-evento-gigante").innerText = ev.titulo;
     document.getElementById("pantalla-evento-activo").style.display = "flex";
     const campana = document.getElementById("campana");
-    campana.volume = 0.15;
-    campana.loop = true;
+    campana.volume = 0.15; campana.loop = true;
     campana.play().catch(()=>{});
     ejecutarVozInfinita(ev);
 }
@@ -251,8 +238,7 @@ function ejecutarVozInfinita(ev) {
         if (idEventoActual !== ev.id) return;
         const msg = new SpeechSynthesisUtterance(textoFinal);
         if(vozSeleccionada) msg.voice = vozSeleccionada;
-        msg.lang = "es-ES";
-        msg.rate = 0.85; 
+        msg.lang = "es-ES"; msg.rate = 0.85; 
         msg.onend = () => { if (idEventoActual === ev.id) setTimeout(() => ejecutarVozInfinita(ev), 2000); };
         window.speechSynthesis.speak(msg);
     }, 50);
@@ -274,8 +260,7 @@ function hablarDirecto(texto) {
     setTimeout(() => {
         const u = new SpeechSynthesisUtterance(texto);
         if(vozSeleccionada) u.voice = vozSeleccionada;
-        u.lang = "es-ES";
-        u.rate = 0.9;
+        u.lang = "es-ES"; u.rate = 0.9;
         window.speechSynthesis.speak(u);
     }, 10);
 }
@@ -285,7 +270,6 @@ function verificarAlertas(){
     [...eventosHoy, ...eventosManana].forEach(ev => {
         const diffMs = ev.hora - ahora;
         const min = Math.floor(diffMs / 60000);
-        
         if((ev.asteriscos === 3 && min === 180) || (ev.asteriscos >= 2 && min === 120)) {
             const alertaKey = ev.id + "_" + min;
             if(!avisosPrevios.has(alertaKey)) {
@@ -296,8 +280,7 @@ function verificarAlertas(){
                     if (Date.now() - tiempoInicio < 10000) {
                         const u = new SpeechSynthesisUtterance(textoRecordatorio);
                         if(vozSeleccionada) u.voice = vozSeleccionada;
-                        u.lang = "es-ES";
-                        u.rate = 0.9;
+                        u.lang = "es-ES"; u.rate = 0.9;
                         u.onend = () => setTimeout(repetirDiezSeg, 1000);
                         window.speechSynthesis.speak(u);
                     }
@@ -305,7 +288,6 @@ function verificarAlertas(){
                 repetirDiezSeg();
             }
         }
-        
         if(ev.asteriscos >= 1 && min === 60) {
             const alertaKey = ev.id + "_" + min;
             if(!avisosPrevios.has(alertaKey)) {
