@@ -6,69 +6,33 @@
     <title>Calendario para Mamá</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body, html { 
-            width: 100%; height: 100%; overflow: hidden; 
-            background-color: #000; font-family: 'Arial Black', sans-serif; 
-        }
-
-        /* PANTALLA INICIAL ROJA */
-        #pantalla-inicio {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: red; color: white; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 300; text-align: center;
-        }
-
-        /* CABECERA */
-        #barra {
-            height: 15vh; background: black; color: white;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: 'Arial Black', sans-serif; }
+        #pantalla-inicio { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: red; color: white; display: flex; justify-content: center; align-items: center; z-index: 300; cursor: pointer; }
+        #barra { height: 15vh; background: black; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         #reloj { font-size: 5rem; font-weight: bold; }
         #fecha { font-size: 2rem; text-transform: uppercase; }
-
-        /* COLUMNAS */
         .container { display: flex; height: 85vh; width: 100%; }
         .columna { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 15px; }
         .hoy { background-color: #f1d933; color: black; }
         .manana { background-color: #1a237e; color: white; }
-
-        .btn-escuchar {
-            background: white; border: 4px solid black; padding: 15px;
-            font-size: 1.5rem; border-radius: 15px; margin-bottom: 20px; font-weight: bold; cursor: pointer;
-        }
-
+        .btn-escuchar { background: white; border: 4px solid black; padding: 15px; font-size: 1.5rem; border-radius: 15px; margin-bottom: 20px; font-weight: bold; cursor: pointer; }
         .lista-tareas { width: 100%; overflow-y: auto; text-align: center; }
-        .evento {
-            background: white; margin: 15px; padding: 25px;
-            border-radius: 20px; border: 8px solid transparent; font-size: 2.3rem; color: black;
-        }
-
-        /* PARPADEO */
-        .urgente {
-            border-color: red !important;
-            -webkit-animation: parpadeo 0.8s infinite;
-            animation: parpadeo 0.8s infinite;
-        }
+        .evento { background: white; margin: 15px; padding: 25px; border-radius: 20px; border: 8px solid transparent; font-size: 2.2rem; color: black; line-height: 1.2; }
+        .urgente { border-color: red !important; -webkit-animation: parpadeo 0.8s infinite; animation: parpadeo 0.8s infinite; }
         @-webkit-keyframes parpadeo { 0% { background: #fff; } 50% { background: #ffb3b3; } 100% { background: #fff; } }
         @keyframes parpadeo { 0% { background: #fff; } 50% { background: #ffb3b3; } 100% { background: #fff; } }
-
-        /* PANTALLA ALARMA */
-        #pantalla-alarma {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #ff0000; color: white; display: none; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 200; text-align: center;
-        }
+        #pantalla-alarma { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ff0000; color: white; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 200; text-align: center; }
     </style>
 </head>
 <body>
 
     <div id="pantalla-inicio" onclick="iniciarSistema()">
-        <h1 style="font-size: 5rem;">TOCAR AQUÍ PARA EMPEZAR</h1>
+        <h1 style="font-size: 5rem; text-align: center;">TOCAR PARA EMPEZAR</h1>
     </div>
 
     <div id="pantalla-alarma" onclick="detenerAlarma()">
-        <h1 id="alarma-texto" style="font-size: 4rem;">AVISO</h1>
-        <button class="btn-escuchar" style="font-size: 3rem; padding: 40px; margin-top: 30px;">PARAR ALARMA</button>
+        <h1 id="alarma-texto" style="font-size: 4rem; padding: 20px;">AVISO</h1>
+        <button class="btn-escuchar" style="font-size: 3rem; padding: 40px; margin-top: 30px;">PARAR</button>
     </div>
 
     <div id="barra">
@@ -80,65 +44,113 @@
         <div class="columna hoy">
             <h1 style="font-size: 3rem; margin-bottom: 10px;">HOY</h1>
             <button class="btn-escuchar" onclick="leer('lista-hoy')">🔊 ESCUCHAR HOY</button>
-            <div id="lista-hoy" class="lista-tareas">Cargando tareas...</div>
+            <div id="lista-hoy" class="lista-tareas">Cargando...</div>
         </div>
         <div class="columna manana">
             <h1 style="font-size: 3rem; margin-bottom: 10px;">MAÑANA</h1>
             <button class="btn-escuchar" onclick="leer('lista-manana')">🔊 ESCUCHAR MAÑANA</button>
-            <div id="lista-manana" class="lista-tareas">Cargando tareas...</div>
+            <div id="lista-manana" class="lista-tareas">Cargando...</div>
         </div>
     </div>
 
     <audio id="campana" src="https://raw.githubusercontent.com/ascc1973/calendario-mama/main/campana.mp3" loop></audio>
 
     <script>
-        // URL corregida con "s" y parámetros para evitar el error de conexión
         const urlJSON = "https://raw.githubusercontent.com/ascc1973/calendario-mama/main/events.json";
         let eventosGlobales = [];
+        let avisoActivo = null;
+
+        function hablar(t, callback) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(t);
+            u.lang = 'es-ES'; u.rate = 0.8;
+            if (callback) u.onend = callback;
+            window.speechSynthesis.speak(u);
+        }
 
         async function cargar() {
             try {
-                // El cache: 'no-store' obliga a la tablet a descargar el archivo nuevo
                 const res = await fetch(urlJSON, { cache: 'no-store' });
-                if (!res.ok) throw new Error();
                 const datos = await res.json();
-                eventosGlobales = datos;
+                
+                // Procesar datos de Google
+                eventosGlobales = datos.map(e => {
+                    const año = e.start.substring(0,4);
+                    const mes = e.start.substring(4,6);
+                    const dia = e.start.substring(6,8);
+                    const hora = e.start.substring(9,11);
+                    const min = e.start.substring(11,13);
+                    
+                    return {
+                        fecha: `${año}-${mes}-${dia}`,
+                        hora: `${hora}:${min}`,
+                        tarea: e.title,
+                        minutosTotales: (parseInt(hora) * 60) + parseInt(min)
+                    };
+                });
                 
                 const hoyF = new Date().toISOString().split('T')[0];
-                const mañana = new Date(); mañana.setDate(mañana.getDate() + 1);
-                const mananaF = mañana.toISOString().split('T')[0];
+                const man = new Date(); man.setDate(man.getDate() + 1);
+                const manF = man.toISOString().split('T')[0];
 
-                render(datos.filter(e => e.fecha === hoyF), 'lista-hoy');
-                render(datos.filter(e => e.fecha === mananaF), 'lista-manana');
-            } catch (e) {
-                document.getElementById('lista-hoy').innerHTML = "Reintentando conexión...";
-                setTimeout(cargar, 5000); // Si falla, lo intenta de nuevo en 5 segundos
-            }
+                render(eventosGlobales.filter(e => e.fecha === hoyF), 'lista-hoy');
+                render(eventosGlobales.filter(e => e.fecha === manF), 'lista-manana');
+            } catch (e) { console.error(e); }
         }
 
         function render(lista, id) {
             const cont = document.getElementById(id);
             if (lista.length === 0) { cont.innerHTML = "<h2>No hay tareas</h2>"; return; }
+            
             const ahora = new Date();
-            cont.innerHTML = lista.map(e => {
-                const [h, m] = e.hora.split(':');
-                const fechaEv = new Date();
-                fechaEv.setHours(parseInt(h), parseInt(m), 0);
-                const diffMin = (fechaEv - ahora) / 60000;
+            const ahoraMin = (ahora.getHours() * 60) + ahora.getMinutes();
+            
+            cont.innerHTML = lista.sort((a,b) => a.minutosTotales - b.minutosTotales).map(e => {
+                const diff = e.minutosTotales - ahoraMin;
                 const asteriscos = (e.tarea.match(/\*/g) || []).length;
-                let urgente = (asteriscos >= 2 && diffMin <= 125 && diffMin > -60) ? 'urgente' : '';
+                let urgente = (asteriscos >= 2 && diff <= 125 && diff > -60) ? 'urgente' : '';
                 return `<div class="evento ${urgente}"><b>${e.hora}</b><br>${e.tarea.replace(/\*/g, '')}</div>`;
             }).join('');
         }
 
+        function verificarAlertas() {
+            const ahora = new Date();
+            const ahoraMin = (ahora.getHours() * 60) + ahora.getMinutes();
+            const hoyF = ahora.toISOString().split('T')[0];
+
+            eventosGlobales.filter(e => e.fecha === hoyF).forEach(e => {
+                const diff = e.minutosTotales - ahoraMin;
+                const asteriscos = (e.tarea.match(/\*/g) || []).length;
+
+                if ((diff === 60 && asteriscos >= 2 && avisoActivo !== e.tarea + "1h") || (diff === 0 && avisoActivo !== e.tarea)) {
+                    avisoActivo = (diff === 60) ? e.tarea + "1h" : e.tarea;
+                    lanzarAlarma(e.tarea.replace(/\*/g, ''));
+                }
+            });
+        }
+
+        function lanzarAlarma(msg) {
+            document.getElementById('alarma-texto').innerText = msg;
+            document.getElementById('pantalla-alarma').style.display = 'flex';
+            document.getElementById('campana').play();
+            const bucle = () => { if(document.getElementById('pantalla-alarma').style.display === 'flex') hablar("Mamá, tienes " + msg, bucle); };
+            bucle();
+        }
+
+        function detenerAlarma() {
+            document.getElementById('pantalla-alarma').style.display = 'none';
+            document.getElementById('campana').pause();
+            window.speechSynthesis.cancel();
+        }
+
         function iniciarSistema() {
             document.getElementById('pantalla-inicio').style.display = 'none';
-            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
             actualizarReloj();
             cargar();
             setInterval(actualizarReloj, 1000);
-            setInterval(cargar, 60000); // Recarga cada minuto
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance("Calendario encendido"));
+            setInterval(verificarAlertas, 10000);
+            setInterval(cargar, 60000);
+            hablar("Sistema listo");
         }
 
         function actualizarReloj() {
@@ -149,15 +161,7 @@
 
         function leer(id) {
             const t = document.getElementById(id).innerText;
-            const u = new SpeechSynthesisUtterance(t.includes("No hay tareas") ? "No hay nada pendiente" : "Tienes: " + t);
-            u.lang = 'es-ES';
-            window.speechSynthesis.speak(u);
-        }
-
-        function detenerAlarma() {
-            document.getElementById('pantalla-alarma').style.display = 'none';
-            document.getElementById('campana').pause();
-            window.speechSynthesis.cancel();
+            hablar(t.includes("No hay tareas") ? "No tienes tareas" : "Tienes: " + t);
         }
     </script>
 </body>
