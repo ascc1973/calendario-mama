@@ -149,22 +149,36 @@ async function cargarCalendario(){
 
 function organizarEventos(items){
     const hoy = new Date();
-    const hoyStr = hoy.toISOString().split('T')[0].replace(/-/g,'');
-    const manana = new Date(); manana.setDate(manana.getDate()+1);
-    const mananaStr = manana.toISOString().split('T')[0].replace(/-/g,'');
+    // String de hoy para comparar: AAAA-MM-DD
+    const hoyISO = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, '0') + "-" + String(hoy.getDate()).padStart(2, '0');
     
+    const manana = new Date(); manana.setDate(manana.getDate()+1);
+    const mananaISO = manana.getFullYear() + "-" + String(manana.getMonth() + 1).padStart(2, '0') + "-" + String(manana.getDate()).padStart(2, '0');
+
     eventosHoy=[]; eventosManana=[];
     
     items.forEach(item=>{
         const startRaw = item.start.dateTime || item.start.date;
-        // Corregimos la interpretación de la hora para que sea literal
-        const inicio = new Date(startRaw);
+        if (!startRaw) return;
+
+        // Interpretación literal para evitar el error de "madrugada" por desfase horario
+        // El formato suele ser "2026-05-03T13:06:00Z" o similar
+        const partesFecha = startRaw.split('T');
+        const fechaEvento = partesFecha[0]; // AAAA-MM-DD
         
-        // Extraemos valores literales para evitar el desfase UTC
-        const fechaEventoStr = startRaw.substring(0,10).replace(/-/g,'');
-        const h = inicio.getHours();
-        const m = inicio.getMinutes();
-        
+        // Si es evento de todo el día no tiene 'T'
+        let h = 0, m = 0;
+        if (partesFecha[1]) {
+            const partesHora = partesFecha[1].split(':');
+            h = parseInt(partesHora[0]);
+            m = parseInt(partesHora[1]);
+        }
+
+        const inicioLiteral = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), h, m);
+        if (fechaEvento === mananaISO) {
+            inicioLiteral.setFullYear(manana.getFullYear(), manana.getMonth(), manana.getDate());
+        }
+
         const periodo = obtenerFranjaHoraria(h);
         const hTexto = numeroALetras(h);
         const mTexto = m === 0 ? "en punto" : "y " + (m < 10 ? "0"+m : m);
@@ -172,15 +186,15 @@ function organizarEventos(items){
         const ev={
             id: item.id + startRaw,
             titulo: (item.summary || "Sin título").replace(/^\*+/,'').trim(),
-            hora: inicio,
+            hora: inicioLiteral,
             franja: periodo,
             textoVoz: `a las ${hTexto} ${mTexto} ${periodo}`,
             horaPantalla: (h % 12 || 12) + ":" + (m < 10 ? "0" + m : m),
             asteriscos: (item.summary || "").match(/^\*+/)?.[0].length || 0
         };
 
-        if(fechaEventoStr === hoyStr) eventosHoy.push(ev);
-        else if(fechaEventoStr === mananaStr) eventosManana.push(ev);
+        if(fechaEvento === hoyISO) eventosHoy.push(ev);
+        else if(fechaEvento === mananaISO) eventosManana.push(ev);
     });
 }
 
@@ -198,6 +212,7 @@ function renderLista(lista, idCont){
         const yaSilenciado = eventosSilenciados.has(ev.id);
         const diffMin = (ev.hora - ahora) / 60000;
         
+        // Urgente si es la hora o si tiene 2-3 estrellas y faltan < 2 horas
         let urgente = !yaSilenciado && ((ahora >= ev.hora && ahora <= (ev.hora.getTime() + 3600000)) || (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > 0));
         
         const div=document.createElement("div");
