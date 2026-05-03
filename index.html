@@ -7,214 +7,126 @@
     <title>Calendario para Mamá</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Arial Black', sans-serif;
-            position: fixed;
+        body, html { 
+            width: 100%; height: 100%; overflow: hidden; 
+            background-color: #000; font-family: 'Arial Black', sans-serif; 
         }
 
-        /* Pantalla de inicio necesaria para activar el audio en Chrome */
+        /* Capa de inicio */
         #pantalla-inicio {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100vw;
-            background-color: #000;
-            z-index: 9999;
-            position: absolute;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; display: flex; justify-content: center; align-items: center; z-index: 100;
         }
-
         #btn-rojo {
-            width: 300px;
-            height: 300px;
-            background-color: #ff0000;
-            border-radius: 50%;
-            border: 15px solid #fff;
-            color: white;
-            font-size: 2.5rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 0 60px rgba(255,0,0,0.7);
+            width: 280px; height: 280px; background: red; color: white;
+            border-radius: 50%; border: 10px solid white; font-size: 2rem; font-weight: bold;
         }
 
-        /* Contenedor principal dividido en dos columnas */
-        #main-container {
-            display: none;
-            display: flex;
-            width: 100vw;
-            height: 100vh;
+        /* Cabecera con fecha y hora */
+        #barra {
+            height: 15vh; background: black; color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
+        #fecha { font-size: 2.5rem; text-transform: uppercase; }
+        #reloj { font-size: 4rem; font-weight: bold; }
 
-        .columna {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .hoy { background-color: #f1d933; color: #000; } /* Amarillo */
-        .manana { background-color: #1a237e; color: #fff; } /* Azul oscuro */
-
-        h1 { font-size: 3.5rem; margin-bottom: 20px; text-transform: uppercase; }
+        /* Contenedor de dos columnas */
+        .container { display: flex; height: 85vh; width: 100%; }
+        .columna { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         
+        .hoy { background-color: #f1d933; color: black; }
+        .manana { background-color: #1a237e; color: white; }
+
         .btn-escuchar {
-            padding: 20px 40px;
-            font-size: 1.5rem;
-            border-radius: 20px;
-            border: 4px solid #000;
-            cursor: pointer;
-            margin-bottom: 30px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            background: white; border: 4px solid black; padding: 15px;
+            font-size: 1.5rem; border-radius: 15px; margin-bottom: 20px; font-weight: bold;
         }
 
+        .lista-tareas { width: 100%; overflow-y: auto; }
         .evento {
-            background: rgba(255, 255, 255, 0.2);
-            margin: 10px 0;
-            padding: 20px;
-            border-radius: 15px;
-            width: 90%;
-            font-size: 1.8rem;
-            border: 2px solid rgba(0,0,0,0.1);
+            background: rgba(0,0,0,0.1); margin: 10px; padding: 20px;
+            border-radius: 15px; border-left: 10px solid #00ff00; font-size: 1.8rem;
         }
-
-        .no-tareas { font-size: 2rem; opacity: 0.6; margin-top: 50px; }
-
-        #fecha-encabezado {
-            position: absolute;
-            top: 0;
-            width: 100%;
-            background: #000;
-            color: #fff;
-            text-align: center;
-            padding: 10px;
-            font-size: 2rem;
-            z-index: 10;
-        }
+        .manana .evento { background: rgba(255,255,255,0.1); border-left: 10px solid #00e5ff; }
     </style>
 </head>
 <body>
 
     <div id="pantalla-inicio">
-        <button id="btn-rojo" onclick="iniciarSistema()">PULSAR<br>INICIO</button>
+        <button id="btn-rojo" onclick="iniciarSistema()">PULSAR INICIO</button>
     </div>
 
-    <div id="fecha-encabezado"></div>
+    <div id="barra">
+        <div id="fecha"></div>
+        <div id="reloj"></div>
+    </div>
 
-    <div id="main-container" style="display: none;">
-        <!-- Columna HOY -->
+    <div class="container">
         <div class="columna hoy">
             <h1>HOY</h1>
-            <button class="btn-escuchar" onclick="escucharTareas('lista-hoy', 'hoy')">
-                🔊 ESCUCHAR TODO HOY
-            </button>
-            <div id="lista-hoy" style="width: 100%;"></div>
+            <button class="btn-escuchar" onclick="leer('lista-hoy')">🔊 ESCUCHAR TODO HOY</button>
+            <div id="lista-hoy" class="lista-tareas"></div>
         </div>
-
-        <!-- Columna MAÑANA -->
         <div class="columna manana">
             <h1>MAÑANA</h1>
-            <button class="btn-escuchar" onclick="escucharTareas('lista-manana', 'mañana')">
-                🔊 ESCUCHAR MAÑANA
-            </button>
-            <div id="lista-manana" style="width: 100%;"></div>
+            <button class="btn-escuchar" onclick="leer('lista-manana')">🔊 ESCUCHAR MAÑANA</button>
+            <div id="lista-manana" class="lista-tareas"></div>
         </div>
     </div>
 
     <script>
         const urlJSON = "https://raw.githubusercontent.com/ascc1973/calendario-mama/main/eventos.json";
 
-        // 1. VOZ (Optimizado para evitar cortes en Chrome/Android)
-        function hablar(texto) {
+        function hablar(t) {
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(texto);
-            utterance.lang = 'es-ES';
-            utterance.rate = 0.85; // Un poco más lento para mejor comprensión
-            window.speechSynthesis.speak(utterance);
+            const u = new SpeechSynthesisUtterance(t);
+            u.lang = 'es-ES';
+            window.speechSynthesis.speak(u);
         }
 
-        // 2. INICIO DEL SISTEMA
-        function iniciarSistema() {
-            document.getElementById('pantalla-inicio').style.display = 'none';
-            document.getElementById('main-container').style.display = 'flex';
-            
-            // Forzar pantalla completa para ocultar botones
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
-            }
-
-            actualizarReloj();
-            cargarDatos();
-            hablar("Calendario activado.");
-        }
-
-        // 3. CARGA DE DATOS DESDE GITHUB
-        async function cargarDatos() {
+        async function cargar() {
             try {
                 const res = await fetch(`${urlJSON}?t=${Date.now()}`);
-                const eventos = await res.json();
+                const datos = await res.json();
                 
-                const hoyStr = new Date().toISOString().split('T')[0];
-                const manana = new Date();
-                manana.setDate(manana.getDate() + 1);
-                const mananaStr = manana.toISOString().split('T')[0];
+                const hoy = new Date().toISOString().split('T')[0];
+                const man = new Date(); man.setDate(man.getDate() + 1);
+                const manStr = man.toISOString().split('T')[0];
 
-                renderizar(eventos.filter(e => e.fecha === hoyStr), 'lista-hoy');
-                renderizar(eventos.filter(e => e.fecha === mananaStr), 'lista-manana');
-            } catch (e) {
-                console.error("Error:", e);
-            }
+                render(datos.filter(e => e.fecha === hoy), 'lista-hoy');
+                render(datos.filter(e => e.fecha === manStr), 'lista-manana');
+            } catch (e) { console.log(e); }
         }
 
-        function renderizar(lista, id) {
-            const container = document.getElementById(id);
-            if (lista.length === 0) {
-                container.innerHTML = '<p class="no-tareas">No hay tareas</p>';
-                return;
-            }
-            container.innerHTML = lista.map(ev => `
-                <div class="evento">
-                    <strong>${ev.hora}</strong> - ${ev.tarea}
-                </div>
-            `).join('');
+        function render(lista, id) {
+            const cont = document.getElementById(id);
+            if (lista.length === 0) { cont.innerHTML = "<h3>No hay tareas</h3>"; return; }
+            cont.innerHTML = lista.map(e => `<div class="evento"><b>${e.hora}</b> - ${e.tarea}</div>`).join('');
         }
 
-        // 4. LECTURA DE TAREAS
-        function escucharTareas(idLista, dia) {
-            const eventos = document.getElementById(idLista).querySelectorAll('.evento');
-            if (eventos.length === 0) {
-                hablar(`No hay tareas para ${dia}.`);
-                return;
-            }
-            let texto = `Tus tareas para ${dia} son: `;
-            eventos.forEach(ev => texto += ev.innerText + ". ");
-            hablar(texto);
+        function iniciarSistema() {
+            document.getElementById('pantalla-inicio').style.display = 'none';
+            // IMPORTANTE: RequestFullscreen ahora se ejecuta por el click del usuario (evita error consola)
+            document.documentElement.requestFullscreen().catch(e => console.log(e));
+            actualizarReloj();
+            cargar();
+            hablar("Sistema listo");
+        }
+
+        function leer(id) {
+            const items = document.getElementById(id).innerText;
+            hablar(items.includes("No hay tareas") ? "No tienes tareas." : "Tus tareas son: " + items);
         }
 
         function actualizarReloj() {
-            const ahora = new Date();
+            const n = new Date();
             const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
-            document.getElementById('fecha-encabezado').innerText = ahora.toLocaleDateString('es-ES', opciones).toUpperCase();
+            document.getElementById('fecha').innerText = n.toLocaleDateString('es-ES', opciones);
+            document.getElementById('reloj').innerText = n.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
         }
 
-        // 5. PERSISTENCIA DE PANTALLA COMPLETA
-        window.addEventListener('resize', () => {
-            if (window.innerHeight < screen.height) {
-                setTimeout(() => document.documentElement.requestFullscreen(), 3000);
-            }
-        });
-
-        // Auto-actualizar cada hora
-        setInterval(cargarDatos, 3600000);
+        setInterval(actualizarReloj, 1000);
+        setInterval(cargar, 600000); // Recarga cada 10 min
     </script>
 </body>
 </html>
