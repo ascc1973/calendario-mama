@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calendario para Mamá (Google Directo)</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Calendario para Mamá</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body, html { 
@@ -11,206 +12,241 @@
             background-color: #000; font-family: 'Arial Black', sans-serif; 
         }
 
-        /* Pantalla de Inicio */
+        /* Pantalla de inicio para activar audio/pantalla completa */
         #pantalla-inicio {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; display: flex; justify-content: center; align-items: center; z-index: 200;
         }
         #btn-rojo {
             width: 280px; height: 280px; background: red; color: white;
-            border-radius: 50%; border: 10px solid white; font-size: 2rem; font-weight: bold;
+            border-radius: 50%; border: 10px solid white; font-size: 2rem; font-weight: bold; cursor: pointer;
         }
 
-        /* Pantalla de Alarma Roja */
+        /* Pantalla de Alarma Roja Gigante */
         #pantalla-alarma {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: red; color: white; display: none; flex-direction: column;
             justify-content: center; align-items: center; z-index: 150; text-align: center;
         }
-        #alarma-texto { font-size: 4rem; padding: 20px; }
+        #alarma-texto { font-size: 4rem; padding: 20px; text-transform: uppercase; }
+        #alarma-reloj { font-size: 6rem; margin-bottom: 30px; }
 
         /* Cabecera */
         #barra {
             height: 15vh; background: black; color: white;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
-        #reloj { font-size: 4rem; font-weight: bold; }
+        #fecha { font-size: 2.2rem; text-transform: uppercase; }
+        #reloj { font-size: 4.5rem; font-weight: bold; }
 
-        /* Columnas */
+        /* Contenedor de columnas */
         .container { display: flex; height: 85vh; width: 100%; }
-        .columna { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .columna { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 15px; }
         .hoy { background-color: #f1d933; color: black; }
         .manana { background-color: #1a237e; color: white; }
 
+        .btn-escuchar {
+            background: white; border: 4px solid black; padding: 15px;
+            font-size: 1.5rem; border-radius: 15px; margin-bottom: 20px; font-weight: bold; cursor: pointer;
+        }
+
         .lista-tareas { width: 100%; overflow-y: auto; }
         .evento {
-            background: rgba(255,255,255,0.8); margin: 10px; padding: 20px;
-            border-radius: 15px; border: 5px solid transparent; font-size: 1.8rem; color: black;
+            background: rgba(255,255,255,0.9); margin: 10px; padding: 20px;
+            border-radius: 15px; border: 8px solid transparent; font-size: 1.8rem; color: black;
         }
-        
+
+        /* PARPADEO COMPATIBLE CON TABLET */
         .urgente {
             border-color: red !important;
-            animation: parpadeo 1s infinite;
+            -webkit-animation: parpadeoRapido 0.8s infinite;
+            animation: parpadeoRapido 0.8s infinite;
         }
-        @keyframes parpadeo {
-            0% { background: white; }
-            50% { background: #ffcccc; }
-            100% { background: white; }
+        @-webkit-keyframes parpadeoRapido {
+            0% { background-color: #fff; }
+            50% { background-color: #ffb3b3; }
+            100% { background-color: #fff; }
+        }
+        @keyframes parpadeoRapido {
+            0% { background-color: #fff; }
+            50% { background-color: #ffb3b3; }
+            100% { background-color: #fff; }
         }
     </style>
 </head>
 <body>
 
     <div id="pantalla-inicio">
-        <button id="btn-rojo" onclick="iniciarSistema()">CONECTAR GOOGLE</button>
+        <button id="btn-rojo" onclick="iniciarSistema()">PULSAR INICIO</button>
     </div>
 
     <div id="pantalla-alarma" onclick="detenerAlarma()">
+        <div id="alarma-reloj">00:00</div>
         <div id="alarma-texto">TAREA</div>
-        <h1 style="font-size: 5rem;">TOCA PARA PARAR</h1>
+        <button class="btn-escuchar" style="font-size: 2.5rem; padding: 30px; margin-top: 20px;">TOCAR PARA PARAR</button>
     </div>
 
     <div id="barra">
-        <div id="reloj">00:00</div>
+        <div id="fecha"></div>
+        <div id="reloj"></div>
     </div>
 
     <div class="container">
         <div class="columna hoy">
             <h1>HOY</h1>
+            <button class="btn-escuchar" onclick="leer('lista-hoy')">🔊 ESCUCHAR TODO HOY</button>
             <div id="lista-hoy" class="lista-tareas"></div>
         </div>
         <div class="columna manana">
             <h1>MAÑANA</h1>
+            <button class="btn-escuchar" onclick="leer('lista-manana')">🔊 ESCUCHAR MAÑANA</button>
             <div id="lista-manana" class="lista-tareas"></div>
         </div>
     </div>
 
     <audio id="campana" src="https://raw.githubusercontent.com/ascc1973/calendario-mama/main/campana.mp3" loop></audio>
 
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
-
     <script>
-        // CONFIGURACIÓN OBLIGATORIA
-        const CLIENT_ID = 'anacara1941@gmail.com'; 
-        const API_KEY = 'AIzaSyDh0DjfE2qqaBeVfww5u84FLp4_elsF7Uc';
-        const DISCOVERY_DOC = "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest";
-        const SCOPES = "https://www.googleapis.com/auth/calendar.readonly";
-
-        let tokenClient;
-        let gapiInited = false;
-        let gisInited = false;
-        let eventos = [];
+        const urlJSON = "https://raw.githubusercontent.com/ascc1973/calendario-mama/main/eventos.json";
+        let eventosGlobales = [];
         let avisosPrevios = new Set();
         let eventoActivoId = null;
+        let inicioAvisoDiezSeg = 0;
 
-        function gapiLoaded() { gapi.load('client', async () => {
-            await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
-            gapiInited = true;
-        });}
-
-        function gisLoaded() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID, scope: SCOPES, callback: '', 
-            });
-            gisInited = true;
+        function hablar(t, callback) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(t);
+            u.lang = 'es-ES';
+            u.rate = 0.85;
+            if (callback) u.onend = callback;
+            window.speechSynthesis.speak(u);
         }
 
-        async function listarEventos() {
-            const ahora = new Date();
-            ahora.setHours(0,0,0,0);
-            const res = await gapi.client.calendar.events.list({
-                'calendarId': 'primary',
-                'timeMin': ahora.toISOString(),
-                'showDeleted': false,
-                'singleEvents': true,
-                'orderBy': 'startTime',
-            });
-            
-            eventos = res.result.items.map(item => {
-                const titulo = item.summary || 'Sin título';
-                return {
-                    id: item.id,
-                    titulo: titulo.replace(/\*/g, '').trim(),
-                    asteriscos: (titulo.match(/\*/g) || []).length,
-                    fecha: new Date(item.start.dateTime || item.start.date)
-                };
-            });
-            render();
+        async function cargar() {
+            try {
+                const res = await fetch(`${urlJSON}?t=${Date.now()}`);
+                const datos = await res.json();
+                eventosGlobales = datos;
+                
+                const ahora = new Date();
+                const hoyStr = ahora.toISOString().split('T')[0];
+                const man = new Date(); man.setDate(ahora.getDate() + 1);
+                const manStr = man.toISOString().split('T')[0];
+
+                render(datos.filter(e => e.fecha === hoyStr), 'lista-hoy');
+                render(datos.filter(e => e.fecha === manStr), 'lista-manana');
+            } catch (e) { console.log("Error cargando JSON:", e); }
         }
 
-        function render() {
-            const hoyCont = document.getElementById('lista-hoy');
-            const manCont = document.getElementById('lista-manana');
-            hoyCont.innerHTML = ''; manCont.innerHTML = '';
+        function render(lista, id) {
+            const cont = document.getElementById(id);
+            if (lista.length === 0) { cont.innerHTML = "<h3>No hay tareas</h3>"; return; }
             
             const ahora = new Date();
-            const mañana = new Date(ahora); mañana.setDate(ahora.getDate() + 1);
-
-            eventos.forEach(ev => {
-                const diffMin = (ev.fecha - ahora) / 60000;
-                const div = document.createElement('div');
-                div.className = 'evento';
-                if (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > -60) div.classList.add('urgente');
+            
+            cont.innerHTML = lista.map(e => {
+                const [h, m] = e.hora.split(':');
+                const fechaEv = new Date();
+                fechaEv.setHours(h, m, 0);
                 
-                div.innerHTML = `<b>${ev.fecha.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</b> - ${ev.titulo}`;
+                const diffMin = (fechaEv - ahora) / 60000;
+                const asteriscos = (e.tarea.match(/\*/g) || []).length;
                 
-                if (ev.fecha.toDateString() === ahora.toDateString()) hoyCont.appendChild(div);
-                else if (ev.fecha.toDateString() === mañana.toDateString()) manCont.appendChild(div);
-            });
+                // PARPADEO: Margen de 125 min para compensar desfases de reloj
+                let claseUrgente = (asteriscos >= 2 && diffMin <= 125 && diffMin > -60) ? 'urgente' : '';
+                
+                return `<div class="evento ${claseUrgente}"><b>${e.hora}</b> - ${e.tarea.replace(/\*/g, '')}</div>`;
+            }).join('');
         }
 
         function verificarAlertas() {
             const ahora = new Date();
-            eventos.forEach(ev => {
-                const min = Math.floor((ev.fecha - ahora) / 60000);
+            const ahoraMs = ahora.getTime();
+
+            eventosGlobales.forEach(e => {
+                const [h, m] = e.hora.split(':');
+                const fechaEv = new Date();
+                fechaEv.setHours(h, m, 0);
                 
-                // Alarma 1 hora antes para ** y ***
-                if (min === 60 && ev.asteriscos >= 2 && eventoActivoId !== ev.id + "-pre") {
-                    lanzarAlarma(ev, "EN 1 HORA");
-                    eventoActivoId = ev.id + "-pre";
+                const diffMs = fechaEv.getTime() - ahoraMs;
+                const min = Math.floor(diffMs / 60000);
+                const asteriscos = (e.tarea.match(/\*/g) || []).length;
+                const tareaLimpia = e.tarea.replace(/\*/g, '');
+
+                // AVISOS 3H Y 2H (10 SEGUNDOS REPETICIÓN)
+                if ((asteriscos === 3 && min === 180) || (asteriscos >= 2 && min === 120)) {
+                    const idAviso = `${e.fecha}-${e.hora}-${min}`;
+                    if (!avisosPrevios.has(idAviso)) {
+                        hablar(`Recordatorio: en ${min/60} horas, ${tareaLimpia}`);
+                        inicioAvisoDiezSeg = ahoraMs;
+                        avisosPrevios.add(idAviso);
+                    } else if (ahoraMs - inicioAvisoDiezSeg < 10000) {
+                        if (!window.speechSynthesis.speaking) hablar(`Recordatorio: en ${min/60} horas, ${tareaLimpia}`);
+                    }
                 }
-                // Alarma Hora exacta
-                if (min === 0 && eventoActivoId !== ev.id) {
-                    lanzarAlarma(ev, "AHORA");
-                    eventoActivoId = ev.id;
+
+                // ALARMA 1 HORA ANTES (PANTALLA ROJA)
+                if (min === 60 && asteriscos >= 2 && eventoActivoId !== e.tarea + "-pre") {
+                    lanzarAlarma(e, "EN UNA HORA");
+                    eventoActivoId = e.tarea + "-pre";
+                }
+
+                // ALARMA HORA EXACTA
+                if (min === 0 && eventoActivoId !== e.tarea) {
+                    lanzarAlarma(e, "AHORA");
+                    eventoActivoId = e.tarea;
                 }
             });
         }
 
-        function lanzarAlarma(ev, texto) {
-            document.getElementById('alarma-texto').innerText = `${texto}: ${ev.titulo}`;
-            document.getElementById('pantalla-alarma').style.display = 'flex';
+        function lanzarAlarma(e, texto) {
+            const p = document.getElementById('pantalla-alarma');
+            document.getElementById('alarma-texto').innerText = `${texto}: ${e.tarea.replace(/\*/g, '')}`;
+            p.style.display = 'flex';
             document.getElementById('campana').play();
-            hablar(`Mamá, ${texto} tienes ${ev.titulo}`);
+            
+            const bucleVoz = () => {
+                if (p.style.display === 'flex') {
+                    hablar(`Mamá, ${texto} tienes ${e.tarea.replace(/\*/g, '')}`, bucleVoz);
+                }
+            };
+            bucleVoz();
         }
 
         function detenerAlarma() {
             document.getElementById('pantalla-alarma').style.display = 'none';
             document.getElementById('campana').pause();
+            document.getElementById('campana').currentTime = 0;
             window.speechSynthesis.cancel();
         }
 
-        function hablar(t) {
-            const u = new SpeechSynthesisUtterance(t);
-            u.lang = 'es-ES'; window.speechSynthesis.speak(u);
-        }
-
         function iniciarSistema() {
-            tokenClient.callback = async (resp) => {
-                if (resp.error !== undefined) throw (resp);
-                document.getElementById('pantalla-inicio').style.display = 'none';
-                setInterval(listarEventos, 300000);
-                setInterval(verificarAlertas, 5000);
-                listarEventos();
-            };
-            tokenClient.requestAccessToken({prompt: 'consent'});
+            document.getElementById('pantalla-inicio').style.display = 'none';
+            document.documentElement.requestFullscreen().catch(e => console.log(e));
+            actualizarReloj();
+            cargar();
+            setInterval(verificarAlertas, 5000);
+            hablar("Sistema listo");
         }
 
-        setInterval(() => {
+        function actualizarReloj() {
             const n = new Date();
-            document.getElementById('reloj').innerText = n.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
-        }, 1000);
+            const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
+            document.getElementById('fecha').innerText = n.toLocaleDateString('es-ES', opciones);
+            const horaStr = n.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+            document.getElementById('reloj').innerText = horaStr;
+            if(document.getElementById('pantalla-alarma').style.display === 'flex') {
+                document.getElementById('alarma-reloj').innerText = horaStr;
+            }
+        }
+
+        function leer(id) {
+            const items = document.getElementById(id).innerText;
+            hablar(items.includes("No hay tareas") ? "No tienes tareas." : "Tus tareas son: " + items);
+        }
+
+        setInterval(actualizarReloj, 1000);
+        setInterval(cargar, 300000); // Recarga JSON cada 5 min
     </script>
 </body>
 </html>
