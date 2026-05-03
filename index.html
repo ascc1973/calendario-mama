@@ -285,6 +285,21 @@ function repasarDia(dia){
     lista.forEach(ev => { t += `${ev.textoVoz}, ${ev.titulo}. `; });
     hablarDirecto(t);
 }
+// Evita gestos de búsqueda y navegación accidental
+document.addEventListener('touchstart', (e) => {
+    // Si el toque es muy cerca del borde inferior o superior, lo ignoramos
+    if (e.touches[0].clientY > window.innerHeight - 20 || e.touches[0].clientY < 20) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+// Bloquea el menú contextual (clic derecho o pulsación larga)
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// Bloquea el zoom con dos dedos (que a veces invoca barras del sistema)
+document.addEventListener('touchmove', (e) => {
+    if (e.scale !== 1) { e.preventDefault(); }
+}, { passive: false });
 </script>
 </body>
 </html>
