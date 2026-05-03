@@ -127,18 +127,12 @@ function actualizarReloj(){
 
 function iniciarSistema(){
     const docElm = document.documentElement;
-    // Forzamos el modo pantalla completa ocultando toda la interfaz de navegación
-    if (docElm.requestFullscreen) {
-        docElm.requestFullscreen({ navigationUI: "hide" }).catch(e => console.log(e));
-    } else if (docElm.webkitRequestFullScreen) {
-        docElm.webkitRequestFullScreen();
-    }
+    if (docElm.requestFullscreen) docElm.requestFullscreen({ navigationUI: "hide" });
 
     document.getElementById("btn-inicial").style.display="none";
     document.querySelector(".container").style.display="flex";
     cargarVoces();
     cargarCalendario();
-    actualizarReloj(); // Llamada inmediata para evitar delay
     setInterval(actualizarReloj, 1000);
     setInterval(cargarCalendario, 60000);
     setInterval(verificarAlertas, 5000);
