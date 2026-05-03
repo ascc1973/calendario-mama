@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="mobile-web-app-capable" content="yes">
     <title>Calendario para Mamá</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,26 +11,24 @@
             background-color: #000; font-family: 'Arial Black', sans-serif; 
         }
 
-        /* Pantalla de inicio para activar audio/pantalla completa */
+        /* PANTALLA INICIAL TODA ROJA */
         #pantalla-inicio {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; display: flex; justify-content: center; align-items: center; z-index: 200;
+            background: red; color: white; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 300; text-align: center;
+            cursor: pointer;
         }
-        #btn-rojo {
-            width: 280px; height: 280px; background: red; color: white;
-            border-radius: 50%; border: 10px solid white; font-size: 2rem; font-weight: bold; cursor: pointer;
-        }
+        #pantalla-inicio h1 { font-size: 5rem; margin-bottom: 20px; }
+        #pantalla-inicio p { font-size: 2rem; }
 
-        /* Pantalla de Alarma Roja Gigante */
+        /* PANTALLA ALARMA ROJA (PARA AVISOS) */
         #pantalla-alarma {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: red; color: white; display: none; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 150; text-align: center;
+            background: #ff0000; color: white; display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 200; text-align: center;
         }
-        #alarma-texto { font-size: 4rem; padding: 20px; text-transform: uppercase; }
-        #alarma-reloj { font-size: 6rem; margin-bottom: 30px; }
 
-        /* Cabecera */
+        /* CABECERA Y RELOJ */
         #barra {
             height: 15vh; background: black; color: white;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -39,7 +36,7 @@
         #fecha { font-size: 2.2rem; text-transform: uppercase; }
         #reloj { font-size: 4.5rem; font-weight: bold; }
 
-        /* Contenedor de columnas */
+        /* COLUMNAS HOY/MAÑANA */
         .container { display: flex; height: 85vh; width: 100%; }
         .columna { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 15px; }
         .hoy { background-color: #f1d933; color: black; }
@@ -47,48 +44,51 @@
 
         .btn-escuchar {
             background: white; border: 4px solid black; padding: 15px;
-            font-size: 1.5rem; border-radius: 15px; margin-bottom: 20px; font-weight: bold; cursor: pointer;
+            font-size: 1.5rem; border-radius: 15px; margin-bottom: 20px; font-weight: bold;
         }
 
         .lista-tareas { width: 100%; overflow-y: auto; }
         .evento {
             background: rgba(255,255,255,0.9); margin: 10px; padding: 20px;
-            border-radius: 15px; border: 8px solid transparent; font-size: 1.8rem; color: black;
+            border-radius: 15px; border: 8px solid transparent; font-size: 2rem; color: black;
         }
 
-        /* PARPADEO COMPATIBLE CON TABLET */
+        /* ANIMACIÓN PARPADEO ROJO */
         .urgente {
             border-color: red !important;
-            -webkit-animation: parpadeoRapido 0.8s infinite;
-            animation: parpadeoRapido 0.8s infinite;
+            -webkit-animation: parpadeo 0.8s infinite;
+            animation: parpadeo 0.8s infinite;
         }
-        @-webkit-keyframes parpadeoRapido {
+        @-webkit-keyframes parpadeo {
             0% { background-color: #fff; }
-            50% { background-color: #ffb3b3; }
+            50% { background-color: #ffcccc; }
             100% { background-color: #fff; }
         }
-        @keyframes parpadeoRapido {
+        @keyframes parpadeo {
             0% { background-color: #fff; }
-            50% { background-color: #ffb3b3; }
+            50% { background-color: #ffcccc; }
             100% { background-color: #fff; }
         }
     </style>
 </head>
 <body>
 
-    <div id="pantalla-inicio">
-        <button id="btn-rojo" onclick="iniciarSistema()">PULSAR INICIO</button>
+    <!-- Pantalla Inicial Roja -->
+    <div id="pantalla-inicio" onclick="iniciarSistema()">
+        <h1>PULSAR PARA EMPEZAR</h1>
+        <p>Toca cualquier parte de la pantalla</p>
     </div>
 
+    <!-- Pantalla de Alarma -->
     <div id="pantalla-alarma" onclick="detenerAlarma()">
-        <div id="alarma-reloj">00:00</div>
-        <div id="alarma-texto">TAREA</div>
-        <button class="btn-escuchar" style="font-size: 2.5rem; padding: 30px; margin-top: 20px;">TOCAR PARA PARAR</button>
+        <h1 id="alarma-texto" style="font-size: 4rem;">TAREA</h1>
+        <div id="alarma-reloj" style="font-size: 6rem;">00:00</div>
+        <button class="btn-escuchar" style="font-size: 3rem; padding: 30px; margin-top: 20px;">TOCAR PARA PARAR</button>
     </div>
 
     <div id="barra">
         <div id="fecha"></div>
-        <div id="reloj"></div>
+        <div id="reloj">00:00</div>
     </div>
 
     <div class="container">
@@ -109,37 +109,36 @@
     <script>
         const urlJSON = "https://raw.githubusercontent.com/ascc1973/calendario-mama/main/eventos.json";
         let eventosGlobales = [];
-        let avisosPrevios = new Set();
+        let avisosHechos = new Set();
         let eventoActivoId = null;
-        let inicioAvisoDiezSeg = 0;
 
-        function hablar(t, callback) {
+        function hablar(texto, callback) {
             window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(t);
+            const u = new SpeechSynthesisUtterance(texto);
             u.lang = 'es-ES';
             u.rate = 0.85;
             if (callback) u.onend = callback;
             window.speechSynthesis.speak(u);
         }
 
-        async function cargar() {
+        async function cargarDatos() {
             try {
-                const res = await fetch(`${urlJSON}?t=${Date.now()}`);
-                const datos = await res.json();
+                // El Date.now evita que la tablet use una versión vieja guardada en memoria
+                const respuesta = await fetch(`${urlJSON}?t=${Date.now()}`);
+                const datos = await respuesta.json();
                 eventosGlobales = datos;
                 
-                const ahora = new Date();
-                const hoyStr = ahora.toISOString().split('T')[0];
-                const man = new Date(); man.setDate(ahora.getDate() + 1);
-                const manStr = man.toISOString().split('T')[0];
+                const hoyStr = new Date().toISOString().split('T')[0];
+                const manana = new Date(); manana.setDate(manana.getDate() + 1);
+                const manStr = manana.toISOString().split('T')[0];
 
-                render(datos.filter(e => e.fecha === hoyStr), 'lista-hoy');
-                render(datos.filter(e => e.fecha === manStr), 'lista-manana');
-            } catch (e) { console.log("Error cargando JSON:", e); }
+                renderizar(datos.filter(e => e.fecha === hoyStr), 'lista-hoy');
+                renderizar(datos.filter(e => e.fecha === manStr), 'lista-manana');
+            } catch (e) { console.error("Error al cargar:", e); }
         }
 
-        function render(lista, id) {
-            const cont = document.getElementById(id);
+        function renderizar(lista, idContenedor) {
+            const cont = document.getElementById(idContenedor);
             if (lista.length === 0) { cont.innerHTML = "<h3>No hay tareas</h3>"; return; }
             
             const ahora = new Date();
@@ -152,101 +151,93 @@
                 const diffMin = (fechaEv - ahora) / 60000;
                 const asteriscos = (e.tarea.match(/\*/g) || []).length;
                 
-                // PARPADEO: Margen de 125 min para compensar desfases de reloj
+                // Parpadeo si tiene 2 o 3 estrellas y faltan menos de 2 horas (125 min)
                 let claseUrgente = (asteriscos >= 2 && diffMin <= 125 && diffMin > -60) ? 'urgente' : '';
                 
                 return `<div class="evento ${claseUrgente}"><b>${e.hora}</b> - ${e.tarea.replace(/\*/g, '')}</div>`;
             }).join('');
         }
 
-        function verificarAlertas() {
+        function revisarAlertas() {
             const ahora = new Date();
-            const ahoraMs = ahora.getTime();
-
             eventosGlobales.forEach(e => {
                 const [h, m] = e.hora.split(':');
                 const fechaEv = new Date();
                 fechaEv.setHours(h, m, 0);
                 
-                const diffMs = fechaEv.getTime() - ahoraMs;
-                const min = Math.floor(diffMs / 60000);
+                const min = Math.floor((fechaEv - ahora) / 60000);
                 const asteriscos = (e.tarea.match(/\*/g) || []).length;
                 const tareaLimpia = e.tarea.replace(/\*/g, '');
 
-                // AVISOS 3H Y 2H (10 SEGUNDOS REPETICIÓN)
+                // Avisos previos de voz (3h y 2h)
                 if ((asteriscos === 3 && min === 180) || (asteriscos >= 2 && min === 120)) {
                     const idAviso = `${e.fecha}-${e.hora}-${min}`;
-                    if (!avisosPrevios.has(idAviso)) {
-                        hablar(`Recordatorio: en ${min/60} horas, ${tareaLimpia}`);
-                        inicioAvisoDiezSeg = ahoraMs;
-                        avisosPrevios.add(idAviso);
-                    } else if (ahoraMs - inicioAvisoDiezSeg < 10000) {
-                        if (!window.speechSynthesis.speaking) hablar(`Recordatorio: en ${min/60} horas, ${tareaLimpia}`);
+                    if (!avisosHechos.has(idAviso)) {
+                        hablar(`Recordatorio para mamá: en ${min/60} horas tienes ${tareaLimpia}`);
+                        avisosHechos.add(idAviso);
                     }
                 }
 
-                // ALARMA 1 HORA ANTES (PANTALLA ROJA)
-                if (min === 60 && asteriscos >= 2 && eventoActivoId !== e.tarea + "-pre") {
-                    lanzarAlarma(e, "EN UNA HORA");
-                    eventoActivoId = e.tarea + "-pre";
+                // Pantalla Roja de ALARMA (1 hora antes para ** y ***)
+                if (min === 60 && asteriscos >= 2 && eventoActivoId !== e.tarea + "-1h") {
+                    mostrarAlarma(e, "EN UNA HORA");
+                    eventoActivoId = e.tarea + "-1h";
                 }
 
-                // ALARMA HORA EXACTA
+                // Pantalla Roja de ALARMA (Hora exacta para todos)
                 if (min === 0 && eventoActivoId !== e.tarea) {
-                    lanzarAlarma(e, "AHORA");
+                    mostrarAlarma(e, "AHORA");
                     eventoActivoId = e.tarea;
                 }
             });
         }
 
-        function lanzarAlarma(e, texto) {
+        function mostrarAlarma(e, prefijo) {
             const p = document.getElementById('pantalla-alarma');
-            document.getElementById('alarma-texto').innerText = `${texto}: ${e.tarea.replace(/\*/g, '')}`;
+            document.getElementById('alarma-texto').innerText = `${prefijo}: ${e.tarea.replace(/\*/g, '')}`;
+            document.getElementById('alarma-reloj').innerText = e.hora;
             p.style.display = 'flex';
             document.getElementById('campana').play();
             
-            const bucleVoz = () => {
+            const repetirVoz = () => {
                 if (p.style.display === 'flex') {
-                    hablar(`Mamá, ${texto} tienes ${e.tarea.replace(/\*/g, '')}`, bucleVoz);
+                    hablar(`Mamá, ${prefijo} tienes ${e.tarea.replace(/\*/g, '')}`, repetirVoz);
                 }
             };
-            bucleVoz();
+            repetirVoz();
         }
 
         function detenerAlarma() {
             document.getElementById('pantalla-alarma').style.display = 'none';
             document.getElementById('campana').pause();
-            document.getElementById('campana').currentTime = 0;
             window.speechSynthesis.cancel();
         }
 
         function iniciarSistema() {
             document.getElementById('pantalla-inicio').style.display = 'none';
-            document.documentElement.requestFullscreen().catch(e => console.log(e));
+            // Intentar poner pantalla completa
+            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+            
             actualizarReloj();
-            cargar();
-            setInterval(verificarAlertas, 5000);
-            hablar("Sistema listo");
+            cargarDatos();
+            setInterval(revisarAlertas, 10000); // Revisa cada 10 segundos
+            setInterval(cargarDatos, 300000);  // Recarga JSON cada 5 min
+            hablar("Sistema encendido.");
         }
 
         function actualizarReloj() {
             const n = new Date();
             const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
             document.getElementById('fecha').innerText = n.toLocaleDateString('es-ES', opciones);
-            const horaStr = n.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
-            document.getElementById('reloj').innerText = horaStr;
-            if(document.getElementById('pantalla-alarma').style.display === 'flex') {
-                document.getElementById('alarma-reloj').innerText = horaStr;
-            }
+            document.getElementById('reloj').innerText = n.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
         }
 
         function leer(id) {
-            const items = document.getElementById(id).innerText;
-            hablar(items.includes("No hay tareas") ? "No tienes tareas." : "Tus tareas son: " + items);
+            const texto = document.getElementById(id).innerText;
+            hablar(texto.includes("No hay tareas") ? "No hay nada pendiente." : "Tus tareas son: " + texto);
         }
 
         setInterval(actualizarReloj, 1000);
-        setInterval(cargar, 300000); // Recarga JSON cada 5 min
     </script>
 </body>
 </html>
