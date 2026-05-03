@@ -2,25 +2,28 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<!-- Etiquetas para ocultar barras del navegador -->
+<!-- 1. Metaetiquetas para forzar el modo App real y bloquear el zoom que activa barras -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <title>Calendario para Mamá</title>
 <style>
 :root{ --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
 
-/* Bloqueo de desplazamientos extraños */
+/* 2. CSS CRÍTICO: Bloqueamos el rebote (overscroll) que hace aparecer la barra de Chrome */
 body, html { 
     margin:0; padding:0; height:100%; 
     font-family:'Arial Black',sans-serif; 
     background:#000; 
     overflow:hidden; 
-    touch-action: none; /* Impide gestos del navegador como deslizar para refrescar */
+    /* Evita que el navegador "tire" de la página hacia abajo */
+    overscroll-behavior-y: none; 
+    overscroll-behavior-x: none;
     position: fixed; 
     width: 100%;
+    touch-action: none; 
 }
 
 #barra{ position:fixed; top:0; left:0; width:100%; background:#000; color:#fff; text-align:center; z-index:1000; }
@@ -32,7 +35,6 @@ body, html {
 .container{ 
     display:none; height:100vh; padding-top:70px; 
     box-sizing:border-box; display:flex; 
-    overscroll-behavior: none; /* Evita el efecto rebote en Chrome/Android */
 }
 
 .col{ width:50%; padding:10px; display:flex; flex-direction:column; box-sizing:border-box; }
@@ -47,7 +49,14 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
     font-weight: bold; box-sizing: border-box;
 }
 
-.lista-eventos{ flex-grow:1; display:flex; flex-direction:column; gap:8px; overflow-y: auto; }
+/* 3. Permitimos scroll SOLO dentro de las listas, protegiendo el resto del área */
+.lista-eventos{ 
+    flex-grow:1; display:flex; flex-direction:column; gap:8px; 
+    overflow-y: auto; 
+    touch-action: pan-y; 
+    -webkit-overflow-scrolling: touch;
+}
+
 .evento{ background:#fff; border-radius:10px; border:3px solid #333; padding:10px; cursor:pointer; color:#000; width: 100%; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 .evento h2{ margin:0; color:#d32f2f; font-size:2.5vh; display: flex; gap: 10px; align-items: baseline; white-space: nowrap; }
 .evento p{ margin:5px 0 0; font-size:2.8vh; font-weight:bold; line-height: 1.2; color: #000; }
@@ -62,7 +71,7 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 </style>
 </head>
-<body oncontextmenu="return false;"> <!-- Evita menús al mantener pulsado -->
+<body oncontextmenu="return false;">
 
 <button id="btn-inicial" onclick="iniciarSistema()">PULSA PARA ACTIVAR<br>CALENDARIO COMPLETO</button>
 
@@ -93,7 +102,7 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 <audio id="campana" src="campana.mp3"></audio>
 
 <script>
-// ... (Aquí va toda tu lógica de API y eventos igual que antes) ...
+// Lógica de fechas corregida para evitar el error de "madrugada"
 const API_KEY="AIzaSyDh0DjfE2qqaBeVfww5u84FLp4_elsF7Uc";
 const CALENDAR_ID="anacara1941@gmail.com";
 let eventosHoy=[]; let eventosManana=[]; let idEventoActual = null;
@@ -140,10 +149,10 @@ function iniciarSistema(){
     setInterval(verificarAlertas, 5000);
 }
 
-// Bloqueo preventivo de scroll para evitar que baje la barra del navegador
+// 4. BLOQUEO DE GESTOS: Impide que el navegador detecte el deslizamiento hacia abajo en toda la pantalla
 document.addEventListener('touchmove', function(e) {
-    if (e.target.closest('.lista-eventos')) return; // Permite scroll solo en las listas
-    e.preventDefault();
+    if (e.target.closest('.lista-eventos')) return; 
+    e.preventDefault(); 
 }, { passive: false });
 
 async function cargarCalendario(){
