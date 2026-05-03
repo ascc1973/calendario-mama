@@ -1,395 +1,159 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendario para Mamá</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Calendario para Mamá</title>
+    <style>
+        /* Estilos para evitar que la interfaz se mueva */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<style>
-:root{ --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            position: fixed;
+        }
 
-body,html{
-  margin:0;
-  padding:0;
-  height:100%;
-  font-family:'Arial Black',sans-serif;
-  background:#000;
-  overflow:hidden;
-  touch-action: manipulation;
-}
+        /* Pantalla de inicio (Botón Rojo) */
+        #pantalla-inicio {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            background-color: #222;
+            z-index: 9999;
+        }
 
-#barra{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  background:#000;
-  color:#fff;
-  text-align:center;
-  z-index:1000;
-}
+        #btn-rojo {
+            width: 250px;
+            height: 250px;
+            background-color: #ff0000;
+            border-radius: 50%;
+            border: 10px solid #fff;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 50px rgba(255,0,0,0.5);
+        }
 
-#fecha{font-size:2.5vh; padding-top: 5px;}
-#reloj{font-size:5vh; font-weight: bold;}
+        /* Contenedor Principal */
+        #calendario-container {
+            display: none; /* Se activa al pulsar el botón */
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            color: white;
+            padding: 20px;
+        }
 
-#btn-inicial{
-  position:fixed;
-  width:100vw;
-  height:100vh;
-  background:#ff0000;
-  color:white;
-  font-size:5vh;
-  border:none;
-  z-index:99999;
-  cursor:pointer;
-  font-weight: bold;
-}
+        .evento {
+            background: #333;
+            margin: 10px 0;
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 10px solid #00ff00;
+        }
 
-.container{
-  display:none; /* Se cambia a flex por JS */
-  height:100vh;
-  padding-top:85px;
-  box-sizing:border-box;
-  display:flex;
-}
-
-.col{
-  width:50%;
-  padding:10px;
-  display:flex;
-  flex-direction:column;
-  box-sizing:border-box;
-}
-
-.col-hoy{ background:var(--hoy-bg); border-right:4px solid #000; }
-.col-manana{ background:var(--manana-bg); }
-
-h1{
-  font-size:3vh;
-  margin:5px 0 15px 0;
-  text-align:center;
-  color:#000;
-}
-.col-manana h1 { color: #fff; }
-
-.btn-repaso{
-  width:100%;
-  padding:20px;
-  font-size:2.2vh;
-  border-radius:15px;
-  border:4px solid #000;
-  background:#fff;
-  margin-bottom:20px;
-  cursor:pointer;
-  font-weight:bold;
-  text-transform: uppercase;
-}
-
-.lista-eventos{
-  flex-grow:1;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  overflow-y:auto;
-}
-
-.evento{
-  background:#fff;
-  border-radius:15px;
-  border:4px solid #333;
-  padding:15px;
-  cursor:pointer;
-  color:#000;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-}
-
-.evento h2{
-  margin:0;
-  color:#d32f2f;
-  font-size:2.8vh;
-}
-
-.evento p{
-  margin:8px 0 0;
-  font-size:3.2vh;
-  font-weight:bold;
-  line-height: 1.2;
-}
-
-#pantalla-evento-activo{
-  display:none;
-  position:fixed;
-  top:0;
-  left:0;
-  width:100vw;
-  height:100vh;
-  background:#ff0000;
-  color:white;
-  z-index:100000;
-  text-align:center;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-}
-
-.instruccion{
-  font-size:4vh;
-  background:#fff;
-  color:#000;
-  padding:20px 50px;
-  border-radius:60px;
-  animation:flash 1s infinite;
-  font-weight: bold;
-}
-
-@keyframes flash{
-  0%{opacity:1;}
-  50%{opacity:0.5;}
-  100%{opacity:1;}
-}
-</style>
+        h1 { font-size: 3rem; text-align: center; margin-bottom: 20px; }
+        p { font-size: 1.5rem; }
+    </style>
 </head>
-
 <body>
 
-<button id="btn-inicial" onclick="iniciarSistema()">
-PULSA AQUÍ PARA EMPEZAR<br><br>🔊
-</button>
+    <!-- Botón inicial para cumplir con la política de Autoplay de Chrome -->
+    <div id="pantalla-inicio">
+        <button id="btn-rojo" onclick="iniciarSistema()">PULSAR<br>PARA EMPEZAR</button>
+    </div>
 
-<div id="barra">
-  <div id="fecha"></div>
-  <div id="reloj"></div>
-</div>
+    <div id="calendario-container">
+        <h1 id="fecha-hoy">Cargando...</h1>
+        <div id="lista-eventos">
+            <!-- Aquí se cargan tus eventos -->
+        </div>
+    </div>
 
-<div id="pantalla-evento-activo" onclick="detener()">
-  <div id="hora-evento-gigante"></div>
-  <div id="texto-evento-gigante"></div>
-  <div class="instruccion">TOCA PARA PARAR</div>
-</div>
+    <script>
+        // 1. CONFIGURACIÓN DE VOZ (Optimizada para Android 9)
+        function hablar(texto) {
+            window.speechSynthesis.cancel(); // Detener cualquier audio previo
+            
+            const mensaje = new SpeechSynthesisUtterance(texto);
+            mensaje.lang = 'es-ES';
+            mensaje.volume = 1.0;
+            mensaje.rate = 0.9;
 
-<div class="container" id="main-container">
-  <div class="col col-hoy">
-    <h1>HOY</h1>
-    <button class="btn-repaso" onclick="repasar('hoy')">🔊 ESCUCHAR TODO HOY</button>
-    <div id="lista-hoy" class="lista-eventos"></div>
-  </div>
+            // Forzar carga de voces en Chrome
+            let voces = window.speechSynthesis.getVoices();
+            mensaje.voice = voces.find(v => v.lang.includes('es')) || voces[0];
+            
+            window.speechSynthesis.speak(mensaje);
+        }
 
-  <div class="col col-manana">
-    <h1>MAÑANA</h1>
-    <button class="btn-repaso" onclick="repasar('manana')">🔊 ESCUCHAR MAÑANA</button>
-    <div id="lista-manana" class="lista-eventos"></div>
-  </div>
-</div>
+        // 2. FUNCIÓN DE INICIO (Se activa al tocar el botón rojo)
+        function iniciarSistema() {
+            // Ocultar botón y mostrar calendario
+            document.getElementById('pantalla-inicio').style.display = 'none';
+            document.getElementById('calendario-container').style.display = 'flex';
 
-<script>
-let eventosHoy=[];
-let eventosManana=[];
+            // Forzar Pantalla Completa (Modo Inmersivo por Software)
+            const docElm = document.documentElement;
+            if (docElm.requestFullscreen) { docElm.requestFullscreen(); }
+            else if (docElm.webkitRequestFullScreen) { docElm.webkitRequestFullScreen(); }
 
-/* =========================
-   INICIO (VERSIÓN BÚNKER)
-========================= */
-function iniciarSistema(){
-  console.log("Iniciando sistema...");
+            // Saludo inicial y cargar datos
+            hablar("Sistema activado. Cargando el calendario de hoy.");
+            actualizarFecha();
+            cargarEventos(); // Aquí llamas a tu función que trae los datos de GitHub/JSON
+        }
 
-  // 1. Quitar botón rojo inmediatamente
-  document.getElementById("btn-inicial").style.display="none";
-  document.getElementById("main-container").style.display="flex";
+        function actualizarFecha() {
+            const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-ES', opciones);
+        }
 
-  // 2. Intentar pantalla completa (si falla, no bloquea lo demás)
-  try {
-    if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(err => console.log("Fullscreen bloqueado"));
-    }
-  } catch(e) {}
+        // 3. BLOQUEO DE INTERFERENCIAS
+        // Si el usuario desliza y salen los botones, intentamos ocultarlos tras 2 segundos
+        window.addEventListener('resize', () => {
+            if (window.innerHeight < screen.height) {
+                setTimeout(() => {
+                    if (document.fullscreenElement === null) {
+                        document.documentElement.requestFullscreen();
+                    }
+                }, 2000);
+            }
+        });
 
-  // 3. Despertar audio
-  despertarVoz();
+        // Evitar que se recargue la página al deslizar hacia abajo (Pull-to-refresh)
+        document.body.style.overscrollBehavior = 'none';
 
-  // 4. Arrancar procesos
-  cargar();
-  setInterval(actualizarReloj,1000);
-  setInterval(cargar, 60000);
-}
+        // 4. MANTENER EL SISTEMA DESPIERTO
+        // Cada 15 minutos "re-activamos" la voz con un silencio para que Chrome no la duerma
+        setInterval(() => {
+            const silencio = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(silencio);
+        }, 900000);
 
-function despertarVoz() {
-  try {
-    // 1. Limpiar cualquier proceso previo
-    window.speechSynthesis.cancel();
-
-    // 2. Cargar voces (Truco para Android 9)
-    let voces = window.speechSynthesis.getVoices();
-    
-    // 3. Crear mensaje de prueba
-    const u = new SpeechSynthesisUtterance("Iniciando");
-    u.lang = "es-ES";
-    u.volume = 1.0;
-    u.rate = 0.9;
-
-    // 4. Hablar
-    window.speechSynthesis.speak(u);
-    console.log("Comando de voz enviado");
-  } catch(e) {
-    console.log("Error al despertar voz:", e);
-  }
-}
-/* =========================
-   RELOJ Y CARGA
-========================= */
-function actualizarReloj(){
-  const a=new Date();
-  document.getElementById("fecha").innerText=
-    a.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).toUpperCase();
-  let h=a.getHours();
-  let m=a.getMinutes();
-  document.getElementById("reloj").innerText= (h%12||12)+":"+(m<10?"0"+m:m) + (h>=12?" PM":" AM");
-}
-
-async function cargar(){
-  try{
-    const r=await fetch("events.json?t="+Date.now());
-    const d=await r.json();
-    if(Array.isArray(d)){
-      procesar(d);
-      render();
-    }
-  }catch(e){ console.error("Error cargando JSON", e); }
-}
-
-function parseFecha(s){
-  if(!s) return new Date(0);
-  s=s.replace("Z","");
-  if(s.includes("T")){
-    return new Date(s.slice(0,4), s.slice(4,6)-1, s.slice(6,8), s.slice(9,11), s.slice(11,13));
-  }
-  return new Date(s);
-}
-
-function procesar(items){
-  eventosHoy=[]; eventosManana=[];
-  const hoy=new Date(); hoy.setHours(0,0,0,0);
-  const manana=new Date(hoy); manana.setDate(manana.getDate()+1);
-
-  items.forEach(e=>{
-    const f=parseFecha(e.start);
-    const ev={
-      titulo: e.title,
-      horaStr: (f.getHours()%12||12)+":"+String(f.getMinutes()).padStart(2,"0"),
-      textoVoz: `A las ${f.getHours()%12||12} y ${f.getMinutes() === 0 ? "punto" : f.getMinutes()}, ${e.title}`,
-      fechaObj: f
-    };
-    const d=new Date(f); d.setHours(0,0,0,0);
-    if(d.getTime()===hoy.getTime()) eventosHoy.push(ev);
-    if(d.getTime()===manana.getTime()) eventosManana.push(ev);
-  });
-  eventosHoy.sort((a,b)=>a.fechaObj - b.fechaObj);
-  eventosManana.sort((a,b)=>a.fechaObj - b.fechaObj);
-}
-
-/* =========================
-   RENDER Y HABLAR
-========================= */
-function render(){
-  pintar(eventosHoy,"lista-hoy");
-  pintar(eventosManana,"lista-manana");
-}
-
-function pintar(lista,id){
-  const c=document.getElementById(id);
-  c.innerHTML="";
-  if(lista.length === 0){
-    c.innerHTML = "<p style='text-align:center; opacity:0.6; color:#000;'>No hay tareas</p>";
-    return;
-  }
-  lista.forEach(ev=>{
-    const div=document.createElement("div");
-    div.className="evento";
-    div.innerHTML=`<h2>${ev.horaStr}</h2><p>${ev.titulo}</p>`;
-    
-    // El evento 'click' es el más compatible
-    div.onclick = function() {
-        hablar("Mamá, " + ev.textoVoz);
-    };
-    
-    c.appendChild(div);
-  });
-}
-
-function hablar(texto){
-  if (!window.speechSynthesis) return;
-  
-  window.speechSynthesis.cancel();
-
-  setTimeout(() => {
-    const u = new SpeechSynthesisUtterance(texto);
-    u.lang = "es-ES";
-    u.rate = 0.85;
-    u.volume = 1;
-
-    const voces = window.speechSynthesis.getVoices();
-    const voz = voces.find(v => v.lang.includes("es"));
-    if (voz) u.voice = voz;
-
-    window.speechSynthesis.speak(u);
-  }, 50); 
-}
-function hablar(texto) {
-  if (!window.speechSynthesis) return;
-  
-  // Cancelamos cualquier intento previo
-  window.speechSynthesis.cancel();
-
-  const mensaje = new SpeechSynthesisUtterance(texto);
-  mensaje.lang = 'es-ES';
-  mensaje.volume = 1.0;
-  mensaje.rate = 0.9;
-
-  // TRUCO PARA ANDROID 9: Esperar a que las voces carguen
-  let voces = window.speechSynthesis.getVoices();
-  
-  if (voces.length > 0) {
-    mensaje.voice = voces.find(v => v.lang.includes('es')) || voces[0];
-    window.speechSynthesis.speak(mensaje);
-  } else {
-    // Si no hay voces, forzamos la carga y hablamos al terminar
-    window.speechSynthesis.onvoiceschanged = () => {
-      voces = window.speechSynthesis.getVoices();
-      mensaje.voice = voces.find(v => v.lang.includes('es')) || voces[0];
-      window.speechSynthesis.speak(mensaje);
-    };
-  }
-}
-function repasar(tipo){
-  const lista = tipo === "hoy" ? eventosHoy : eventosManana;
-  let texto = tipo === "hoy" ? "Para hoy tienes: " : "Para mañana tienes: ";
-  if(lista.length === 0) {
-    hablar("No tienes tareas para " + (tipo === "hoy" ? "hoy" : "mañana"));
-    return;
-  }
-  lista.forEach(e => { texto += e.textoVoz + ". "; });
-  hablar(texto);
-}
-
-function detener(){
-  window.speechSynthesis.cancel();
-  document.getElementById("pantalla-evento-activo").style.display="none";
-}
-</script>
-// Cada vez que se detecte un cambio en el tamaño de la pantalla (porque salgan los botones)
-// Forzamos a la web a pedir el foco total otra vez.
-window.addEventListener('resize', () => {
-    if (window.innerHeight < screen.height) {
-        // Los botones han aparecido, esperamos 1 segundo y los volvemos a ocultar
-        setTimeout(() => {
-            document.documentElement.requestFullscreen();
-        }, 1000);
-    }
-});
-
-// Bloqueamos clics accidentales en los bordes extremos
-document.addEventListener('touchstart', (e) => {
-    if (e.touches[0].clientY > window.innerHeight - 20) {
-        e.preventDefault(); // Intenta evitar que el toque active la barra
-    }
-}, {passive: false});
+        function cargarEventos() {
+            // Aquí pones tu lógica actual de lectura de eventos
+            // Ejemplo visual:
+            const lista = document.getElementById('lista-eventos');
+            lista.innerHTML = `
+                <div class="evento">
+                    <p><strong>10:00</strong> - Tomar medicina</p>
+                </div>
+            `;
+        }
+    </script>
 </body>
 </html>
