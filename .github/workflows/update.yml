@@ -2,7 +2,7 @@ name: Sync Google Calendar
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -19,46 +19,60 @@ jobs:
       - name: Download ICS
         run: curl -L "https://calendar.google.com/calendar/ical/anacara1941%40gmail.com/public/basic.ics" -o calendar.ics
 
-      - name: Generate events.json
+      - name: Convert ICS to JSON (Versión Mejorada)
         run: |
-          python3 - << 'EOF'
-          import json
+          echo 'import json, re
 
-          with open("calendar.ics", encoding="utf-8") as f:
-              lines = f.readlines()
+lines = open("calendar.ics", encoding="utf-8").read().splitlines()
 
-          events = []
-          event = None
+events = []
+event = {}
 
-          for line in lines:
-              line = line.strip()
+for line in lines:
+    line = line.strip()
 
-              if line == "BEGIN:VEVENT":
-                  event = {}
+    if "BEGIN:VEVENT" in line:
+        event = {}
 
-              elif line.startswith("SUMMARY:"):
-                  event["title"] = line.replace("SUMMARY:", "").strip()
+    elif line.startswith("SUMMARY:"):
+        # Extraemos el título
+        event["title"] = line.replace("SUMMARY:", "").strip()
 
-              elif line.startswith("DTSTART"):
-                  event["start"] = line.split(":")[-1]
+    elif line.startswith("DTSTART"):
+        # Usamos regex para capturar la fecha después de los últimos ":"
+        # Esto soluciona el problema de las zonas horarias (TZID)
+        match = re.search(r":(\d{8}T\d{6}Z?)", line)
+        if match:
+            event["start"] = match.group(1)
+        else:
+            # Si es una fecha todo el día (sin T)
+            event["start"] = line.split(":")[-1].strip()
 
-              elif line.startswith("DTEND"):
-                  event["end"] = line.split(":")[-1]
+    elif line.startswith("DTEND"):
+        match = re.search(r":(\d{8}T\d{6}Z?)", line)
+        if match:
+            event["end"] = match.group(1)
+        else:
+            event["end"] = line.split(":")[-1].strip()
 
-              elif line == "END:VEVENT":
-                  if event and "title" in event:
-                      events.append(event)
+    elif "END:VEVENT" in line:
+        if "title" in event and "start" in event:
+            events.append(event)
 
-          print("EVENTOS ENCONTRADOS:", len(events))
+# Ordenamos por fecha para que el JSON esté organizado
+events.sort(key=lambda x: x.get("start", ""))
 
-          with open("events.json", "w", encoding="utf-8") as f:
-              json.dump(events, f, indent=2, ensure_ascii=False)
-          EOF
+with open("events.json", "w", encoding="utf-8") as f:
+    json.dump(events, f, indent=2, ensure_ascii=False)
 
-      - name: Commit and push events.json
+print(f"Sincronizados {len(events)} eventos.")' > script.py
+
+          python3 script.py
+
+      - name: Commit changes
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "actions@github.com"
           git add events.json
-          git commit -m "update events" || echo "no changes to commit"
+          git commit -m "update events" || exit 0
           git push
