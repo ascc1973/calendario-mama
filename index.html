@@ -54,6 +54,13 @@
             padding-bottom: 10px;
         }
 
+        #eventos-hoy, #eventos-manana {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
         .evento {
             background: #fff;
             padding: 20px;
@@ -61,7 +68,6 @@
             border-left: 10px solid #ccc;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             font-size: 1.8rem;
-            margin-bottom: 10px;
         }
 
         .evento.urgente {
@@ -105,7 +111,7 @@
         }
     </style>
 </head>
-<body onclick="iniciarSistema()">
+<body>
 
     <div id="reloj">00:00</div>
 
@@ -120,40 +126,118 @@
         </div>
     </div>
 
-    <!-- Pantalla de Alarma Gigante -->
     <div id="pantalla-alarma" onclick="detenerAlarmaDirecto()">
         <div id="alarma-titulo">TITULO</div>
         <div id="alarma-hora">00:00</div>
         <button id="boton-parar">TOCA PARA PARAR</button>
     </div>
 
-    <!-- Sonido de campana -->
     <audio id="campana" src="campana.mp3" loop></audio>
 
+    <!-- CARGA DE LIBRERÍAS DE GOOGLE -->
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
     <script>
+        // CONFIGURACIÓN DE TU CALENDARIO (Mantén tus IDs aquí)
+        const CLIENT_ID = 'TU_CLIENT_ID'; 
+        const API_KEY = 'TU_API_KEY';
+        const DISCOVERY_DOC = "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest";
+        const SCOPES = "https://www.googleapis.com/auth/calendar.readonly";
+
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
         let eventos = [];
         let avisosPrevios = new Set();
         let eventoActivo = null;
         let inicioAvisoDiezSeg = 0;
         let wakeLock = null;
 
-        // --- BLOQUEO DE PANTALLA ---
-        async function activarWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch (err) { console.error("WakeLock error:", err); }
+        // --- INICIALIZACIÓN DE API ---
+        function gapiLoaded() { gapi.load('client', initializeGapiClient); }
+        async function initializeGapiClient() {
+            await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
+            gapiInited = true;
+            maybeStart();
+        }
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID, scope: SCOPES, callback: '', 
+            });
+            gisInited = true;
+            maybeStart();
+        }
+        function maybeStart() {
+            if (gapiInited && gisInited) {
+                // Autenticar automáticamente si ya tienes token o esperar click
+                console.log("APIs listas");
+            }
         }
 
-        // --- RELOJ ---
-        function actualizarReloj() {
+        // --- LÓGICA PRINCIPAL ---
+        function actualizarSistema() {
             const ahora = new Date();
             document.getElementById('reloj').innerText = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
             verificarAlertas();
         }
 
-        // --- LÓGICA DE ALERTAS ---
+        async function listarEventos() {
+            try {
+                const ahora = new Date();
+                ahora.setHours(0,0,0,0);
+                const respuesta = await gapi.client.calendar.events.list({
+                    'calendarId': 'primary',
+                    'timeMin': ahora.toISOString(),
+                    'showDeleted': false,
+                    'singleEvents': true,
+                    'orderBy': 'startTime',
+                });
+                
+                const items = respuesta.result.items;
+                eventos = items.map(item => {
+                    const titulo = item.summary || 'Sin título';
+                    const asteriscos = (titulo.match(/\*/g) || []).length;
+                    return {
+                        id: item.id,
+                        titulo: titulo.replace(/\*/g, '').trim(),
+                        asteriscos: asteriscos,
+                        fecha: new Date(item.start.dateTime || item.start.date)
+                    };
+                });
+                renderizarLista();
+            } catch (err) { console.error(err); }
+        }
+
+        function renderizarLista() {
+            const hoyCont = document.getElementById('eventos-hoy');
+            const manCont = document.getElementById('eventos-manana');
+            hoyCont.innerHTML = '';
+            manCont.innerHTML = '';
+
+            const ahora = new Date();
+            const mañana = new Date(ahora);
+            mañana.setDate(ahora.getDate() + 1);
+
+            eventos.forEach(ev => {
+                const div = document.createElement('div');
+                div.className = 'evento';
+                
+                // Si faltan menos de 2 horas y tiene 2 o más estrellas, parpadea
+                const diffMin = (ev.fecha - ahora) / 60000;
+                if (ev.asteriscos >= 2 && diffMin <= 120 && diffMin > -60) {
+                    div.classList.add('urgente');
+                }
+
+                div.innerHTML = `<strong>${ev.fecha.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</strong> - ${ev.titulo}`;
+                div.onclick = () => hablar(`Mamá, a las ${ev.fecha.getHours()} y ${ev.fecha.getMinutes()} tienes ${ev.titulo}`);
+
+                if (ev.fecha.toDateString() === ahora.toDateString()) hoyCont.appendChild(div);
+                else if (ev.fecha.toDateString() === mañana.toDateString()) manCont.appendChild(div);
+            });
+        }
+
+        // --- LAS NUEVAS ALERTAS DE VOZ Y PANTALLA ---
         function verificarAlertas() {
             const ahora = new Date();
             const ahoraMs = ahora.getTime();
@@ -162,7 +246,7 @@
                 const diffMs = ev.fecha - ahoraMs;
                 const min = Math.floor(diffMs / 60000);
 
-                // 1. Aviso 3 HORAS (Solo ***) - REPETICIÓN 10 SEG
+                // 1. AVISO 3 HORAS (***) - 10 SEG REPETICIÓN
                 if (ev.asteriscos === 3 && min === 180) {
                     if (!avisosPrevios.has(ev.id + "-180")) {
                         hablar(`Recordatorio: en tres horas, ${ev.titulo}`);
@@ -173,7 +257,7 @@
                     }
                 }
 
-                // 2. Aviso 2 HORAS (Para ** y ***) - REPETICIÓN 10 SEG
+                // 2. AVISO 2 HORAS (** y ***) - 10 SEG REPETICIÓN
                 if (ev.asteriscos >= 2 && min === 120) {
                     if (!avisosPrevios.has(ev.id + "-120")) {
                         hablar(`Recordatorio: en dos horas, ${ev.titulo}`);
@@ -184,7 +268,7 @@
                     }
                 }
 
-                // 3. Aviso 1 HORA (ALARMA GIGANTE para ** y ***)
+                // 3. AVISO 1 HORA (ALARMA GIGANTE para ** y ***)
                 if (min === 60) {
                     if (ev.asteriscos >= 2) {
                         if (eventoActivo !== ev.id + "-pre") {
@@ -197,7 +281,7 @@
                     }
                 }
 
-                // 4. ALARMA HORA CERO (¡YA!)
+                // 4. HORA CERO
                 if (min === 0 && eventoActivo !== ev.id) {
                     lanzarAlarma(ev, "¡AHORA!");
                     eventoActivo = ev.id;
@@ -205,58 +289,48 @@
             });
         }
 
-        // --- ACCIONES DE ALARMA ---
-        function lanzarAlarma(ev, textoHora) {
+        function lanzarAlarma(ev, texto) {
             document.getElementById('alarma-titulo').innerText = ev.titulo;
-            document.getElementById('alarma-hora').innerText = textoHora;
+            document.getElementById('alarma-hora').innerText = texto;
             document.getElementById('pantalla-alarma').style.display = 'flex';
+            document.getElementById('campana').play();
             
-            const campana = document.getElementById('campana');
-            campana.play().catch(e => console.log("Esperando interacción para audio"));
-
-            // Bucle de voz infinita
             window.speechSynthesis.cancel();
-            const mensajeVoz = `Mamá, ${textoHora} tienes ${ev.titulo}`;
-            
-            const loopVoz = () => {
+            const loop = () => {
                 if (document.getElementById('pantalla-alarma').style.display === 'flex') {
-                    hablar(mensajeVoz, loopVoz);
+                    hablar(`Mamá, ${texto} tienes ${ev.titulo}`, loop);
                 }
             };
-            loopVoz();
-
-            // Forzar pantalla completa (ADB debe estar configurado)
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
-            }
+            loop();
+            document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(()=>{});
         }
 
         function detenerAlarmaDirecto() {
             document.getElementById('pantalla-alarma').style.display = 'none';
-            const campana = document.getElementById('campana');
-            campana.pause();
-            campana.currentTime = 0;
+            document.getElementById('campana').pause();
             window.speechSynthesis.cancel();
-            // No reseteamos eventoActivo inmediatamente para evitar que la alarma 
-            // se relance en el mismo minuto si la detiene rápido.
         }
 
-        function hablar(texto, callback) {
-            const ut = new SpeechSynthesisUtterance(texto);
-            ut.lang = 'es-ES';
-            ut.rate = 0.85; // Un poco más lento para que se entienda mejor
-            if (callback) ut.onend = callback;
-            window.speechSynthesis.speak(ut);
+        function hablar(t, callback) {
+            const u = new SpeechSynthesisUtterance(t);
+            u.lang = 'es-ES'; u.rate = 0.85;
+            if (callback) u.onend = callback;
+            window.speechSynthesis.speak(u);
         }
 
-        // --- INICIO ---
-        function iniciarSistema() {
-            actualizarReloj();
-            activarWakeLock();
-            setInterval(actualizarReloj, 5000);
-            // Aquí llamarías a tu función real de Google Calendar
-            console.log("Sistema iniciado por toque de usuario");
+        // --- WAKELOCK Y TIMERS ---
+        async function reqWake() {
+            try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
         }
+
+        setInterval(actualizarSistema, 5000);
+        setInterval(listarEventos, 300000); // Recarga Google cada 5 min
+
+        document.body.onclick = () => {
+            reqWake();
+            actualizarSistema();
+            listarEventos();
+        };
 
     </script>
 </body>
