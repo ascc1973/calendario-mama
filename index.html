@@ -18,89 +18,78 @@
             justify-content: center; align-items: center; z-index: 300; text-align: center;
             cursor: pointer;
         }
-        #pantalla-inicio h1 { font-size: 5rem; margin-bottom: 20px; }
-        #pantalla-inicio p { font-size: 2rem; }
 
-        /* PANTALLA ALARMA ROJA (PARA AVISOS) */
+        /* PANTALLA ALARMA ROJA */
         #pantalla-alarma {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #ff0000; color: white; display: none; flex-direction: column;
             justify-content: center; align-items: center; z-index: 200; text-align: center;
         }
 
-        /* CABECERA Y RELOJ */
+        /* CABECERA */
         #barra {
             height: 15vh; background: black; color: white;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
-        #fecha { font-size: 2.2rem; text-transform: uppercase; }
-        #reloj { font-size: 4.5rem; font-weight: bold; }
+        #reloj { font-size: 5rem; font-weight: bold; line-height: 1; }
+        #fecha { font-size: 2rem; text-transform: uppercase; margin-top: 5px; }
 
-        /* COLUMNAS HOY/MAÑANA */
+        /* COLUMNAS */
         .container { display: flex; height: 85vh; width: 100%; }
-        .columna { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 15px; }
+        .columna { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 15px; position: relative; }
         .hoy { background-color: #f1d933; color: black; }
         .manana { background-color: #1a237e; color: white; }
 
         .btn-escuchar {
             background: white; border: 4px solid black; padding: 15px;
-            font-size: 1.5rem; border-radius: 15px; margin-bottom: 20px; font-weight: bold;
+            font-size: 1.5rem; border-radius: 15px; margin-bottom: 20px; font-weight: bold; cursor: pointer;
         }
 
-        .lista-tareas { width: 100%; overflow-y: auto; }
+        .lista-tareas { width: 100%; overflow-y: auto; text-align: center; }
         .evento {
-            background: rgba(255,255,255,0.9); margin: 10px; padding: 20px;
-            border-radius: 15px; border: 8px solid transparent; font-size: 2rem; color: black;
+            background: rgba(255,255,255,0.9); margin: 15px; padding: 25px;
+            border-radius: 20px; border: 8px solid transparent; font-size: 2.2rem; color: black;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        /* ANIMACIÓN PARPADEO ROJO */
+        /* PARPADEO */
         .urgente {
             border-color: red !important;
             -webkit-animation: parpadeo 0.8s infinite;
             animation: parpadeo 0.8s infinite;
         }
-        @-webkit-keyframes parpadeo {
-            0% { background-color: #fff; }
-            50% { background-color: #ffcccc; }
-            100% { background-color: #fff; }
-        }
-        @keyframes parpadeo {
-            0% { background-color: #fff; }
-            50% { background-color: #ffcccc; }
-            100% { background-color: #fff; }
-        }
+        @-webkit-keyframes parpadeo { 0%, 100% { background-color: #fff; } 50% { background-color: #ffb3b3; } }
+        @keyframes parpadeo { 0%, 100% { background-color: #fff; } 50% { background-color: #ffb3b3; } }
     </style>
 </head>
 <body>
 
-    <!-- Pantalla Inicial Roja -->
     <div id="pantalla-inicio" onclick="iniciarSistema()">
-        <h1>PULSAR PARA EMPEZAR</h1>
-        <p>Toca cualquier parte de la pantalla</p>
+        <h1 style="font-size: 6rem;">TOCAR AQUÍ</h1>
+        <p style="font-size: 2rem;">PARA EMPEZAR</p>
     </div>
 
-    <!-- Pantalla de Alarma -->
     <div id="pantalla-alarma" onclick="detenerAlarma()">
-        <h1 id="alarma-texto" style="font-size: 4rem;">TAREA</h1>
+        <h1 id="alarma-texto" style="font-size: 4rem;">AVISO</h1>
         <div id="alarma-reloj" style="font-size: 6rem;">00:00</div>
-        <button class="btn-escuchar" style="font-size: 3rem; padding: 30px; margin-top: 20px;">TOCAR PARA PARAR</button>
+        <button class="btn-escuchar" style="font-size: 3rem; padding: 40px; margin-top: 30px;">PARAR ALARMA</button>
     </div>
 
     <div id="barra">
-        <div id="fecha"></div>
         <div id="reloj">00:00</div>
+        <div id="fecha">CARGANDO...</div>
     </div>
 
     <div class="container">
         <div class="columna hoy">
-            <h1>HOY</h1>
-            <button class="btn-escuchar" onclick="leer('lista-hoy')">🔊 ESCUCHAR TODO HOY</button>
-            <div id="lista-hoy" class="lista-tareas"></div>
+            <h1 style="font-size: 3rem; margin-bottom: 10px;">HOY</h1>
+            <button class="btn-escuchar" onclick="leer('lista-hoy')">🔊 ESCUCHAR HOY</button>
+            <div id="lista-hoy" class="lista-tareas">Buscando tareas...</div>
         </div>
         <div class="columna manana">
-            <h1>MAÑANA</h1>
+            <h1 style="font-size: 3rem; margin-bottom: 10px;">MAÑANA</h1>
             <button class="btn-escuchar" onclick="leer('lista-manana')">🔊 ESCUCHAR MAÑANA</button>
-            <div id="lista-manana" class="lista-tareas"></div>
+            <div id="lista-manana" class="lista-tareas">Buscando tareas...</div>
         </div>
     </div>
 
@@ -110,101 +99,94 @@
         const urlJSON = "https://raw.githubusercontent.com/ascc1973/calendario-mama/main/eventos.json";
         let eventosGlobales = [];
         let avisosHechos = new Set();
-        let eventoActivoId = null;
+        let avisoActivo = null;
 
-        function hablar(texto, callback) {
+        function hablar(t, callback) {
             window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(texto);
+            const u = new SpeechSynthesisUtterance(t);
             u.lang = 'es-ES';
-            u.rate = 0.85;
+            u.rate = 0.8;
             if (callback) u.onend = callback;
             window.speechSynthesis.speak(u);
         }
 
-        async function cargarDatos() {
+        async function cargar() {
             try {
-                // El Date.now evita que la tablet use una versión vieja guardada en memoria
-                const respuesta = await fetch(`${urlJSON}?t=${Date.now()}`);
-                const datos = await respuesta.json();
+                const res = await fetch(`${urlJSON}?t=${Date.now()}`);
+                const datos = await res.json();
                 eventosGlobales = datos;
                 
-                const hoyStr = new Date().toISOString().split('T')[0];
-                const manana = new Date(); manana.setDate(manana.getDate() + 1);
-                const manStr = manana.toISOString().split('T')[0];
+                // Cálculo de fechas local
+                const hoy = new Date();
+                const manana = new Date();
+                manana.setDate(hoy.getDate() + 1);
 
-                renderizar(datos.filter(e => e.fecha === hoyStr), 'lista-hoy');
-                renderizar(datos.filter(e => e.fecha === manStr), 'lista-manana');
-            } catch (e) { console.error("Error al cargar:", e); }
+                const hoyF = hoy.toLocaleDateString('en-CA'); // "YYYY-MM-DD"
+                const mananaF = manana.toLocaleDateString('en-CA');
+
+                render(datos.filter(e => e.fecha === hoyF), 'lista-hoy');
+                render(datos.filter(e => e.fecha === mananaF), 'lista-manana');
+            } catch (e) {
+                document.getElementById('lista-hoy').innerHTML = "Error al conectar";
+                console.error(e);
+            }
         }
 
-        function renderizar(lista, idContenedor) {
-            const cont = document.getElementById(idContenedor);
-            if (lista.length === 0) { cont.innerHTML = "<h3>No hay tareas</h3>"; return; }
+        function render(lista, id) {
+            const cont = document.getElementById(id);
+            if (lista.length === 0) {
+                cont.innerHTML = "<h2 style='opacity:0.5; margin-top:20px;'>No hay tareas</h2>";
+                return;
+            }
             
             const ahora = new Date();
-            
             cont.innerHTML = lista.map(e => {
                 const [h, m] = e.hora.split(':');
                 const fechaEv = new Date();
-                fechaEv.setHours(h, m, 0);
+                fechaEv.setHours(parseInt(h), parseInt(m), 0);
                 
                 const diffMin = (fechaEv - ahora) / 60000;
                 const asteriscos = (e.tarea.match(/\*/g) || []).length;
                 
-                // Parpadeo si tiene 2 o 3 estrellas y faltan menos de 2 horas (125 min)
-                let claseUrgente = (asteriscos >= 2 && diffMin <= 125 && diffMin > -60) ? 'urgente' : '';
+                // Parpadeo: si faltan menos de 125 min y tiene **
+                let urgente = (asteriscos >= 2 && diffMin <= 125 && diffMin > -60) ? 'urgente' : '';
                 
-                return `<div class="evento ${claseUrgente}"><b>${e.hora}</b> - ${e.tarea.replace(/\*/g, '')}</div>`;
+                return `<div class="evento ${urgente}"><b>${e.hora}</b><br>${e.tarea.replace(/\*/g, '')}</div>`;
             }).join('');
         }
 
-        function revisarAlertas() {
+        function verificarAlertas() {
             const ahora = new Date();
             eventosGlobales.forEach(e => {
                 const [h, m] = e.hora.split(':');
-                const fechaEv = new Date();
-                fechaEv.setHours(h, m, 0);
+                const evTime = new Date();
+                evTime.setHours(parseInt(h), parseInt(m), 0);
                 
-                const min = Math.floor((fechaEv - ahora) / 60000);
+                const min = Math.floor((evTime - ahora) / 60000);
                 const asteriscos = (e.tarea.match(/\*/g) || []).length;
-                const tareaLimpia = e.tarea.replace(/\*/g, '');
+                const limpia = e.tarea.replace(/\*/g, '');
 
-                // Avisos previos de voz (3h y 2h)
-                if ((asteriscos === 3 && min === 180) || (asteriscos >= 2 && min === 120)) {
-                    const idAviso = `${e.fecha}-${e.hora}-${min}`;
-                    if (!avisosHechos.has(idAviso)) {
-                        hablar(`Recordatorio para mamá: en ${min/60} horas tienes ${tareaLimpia}`);
-                        avisosHechos.add(idAviso);
-                    }
-                }
-
-                // Pantalla Roja de ALARMA (1 hora antes para ** y ***)
-                if (min === 60 && asteriscos >= 2 && eventoActivoId !== e.tarea + "-1h") {
-                    mostrarAlarma(e, "EN UNA HORA");
-                    eventoActivoId = e.tarea + "-1h";
-                }
-
-                // Pantalla Roja de ALARMA (Hora exacta para todos)
-                if (min === 0 && eventoActivoId !== e.tarea) {
-                    mostrarAlarma(e, "AHORA");
-                    eventoActivoId = e.tarea;
+                // Pantalla Roja: 1h antes (**) o Hora exacta (Todos)
+                if ((min === 60 && asteriscos >= 2 && avisoActivo !== e.tarea + "1h") || 
+                    (min === 0 && avisoActivo !== e.tarea)) {
+                    
+                    const prefijo = (min === 60) ? "DENTRO DE UNA HORA" : "AHORA MISMO";
+                    avisoActivo = (min === 60) ? e.tarea + "1h" : e.tarea;
+                    
+                    lanzarAlarma(`${prefijo}: ${limpia}`, e.hora);
                 }
             });
         }
 
-        function mostrarAlarma(e, prefijo) {
+        function lanzarAlarma(msg, hora) {
             const p = document.getElementById('pantalla-alarma');
-            document.getElementById('alarma-texto').innerText = `${prefijo}: ${e.tarea.replace(/\*/g, '')}`;
-            document.getElementById('alarma-reloj').innerText = e.hora;
+            document.getElementById('alarma-texto').innerText = msg;
+            document.getElementById('alarma-reloj').innerText = hora;
             p.style.display = 'flex';
             document.getElementById('campana').play();
             
-            const repetirVoz = () => {
-                if (p.style.display === 'flex') {
-                    hablar(`Mamá, ${prefijo} tienes ${e.tarea.replace(/\*/g, '')}`, repetirVoz);
-                }
-            };
-            repetirVoz();
+            const bucle = () => { if(p.style.display==='flex') hablar("Mamá, " + msg, bucle); };
+            bucle();
         }
 
         function detenerAlarma() {
@@ -215,26 +197,23 @@
 
         function iniciarSistema() {
             document.getElementById('pantalla-inicio').style.display = 'none';
-            // Intentar poner pantalla completa
             if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-            
             actualizarReloj();
-            cargarDatos();
-            setInterval(revisarAlertas, 10000); // Revisa cada 10 segundos
-            setInterval(cargarDatos, 300000);  // Recarga JSON cada 5 min
-            hablar("Sistema encendido.");
+            cargar();
+            setInterval(verificarAlertas, 10000);
+            setInterval(cargar, 60000); // Recarga cada minuto
+            hablar("Sistema listo");
         }
 
         function actualizarReloj() {
             const n = new Date();
-            const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
-            document.getElementById('fecha').innerText = n.toLocaleDateString('es-ES', opciones);
+            document.getElementById('fecha').innerText = n.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
             document.getElementById('reloj').innerText = n.toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
         }
 
         function leer(id) {
-            const texto = document.getElementById(id).innerText;
-            hablar(texto.includes("No hay tareas") ? "No hay nada pendiente." : "Tus tareas son: " + texto);
+            const t = document.getElementById(id).innerText;
+            hablar(t.includes("No hay tareas") ? "No tienes nada pendiente." : "Tus tareas son: " + t);
         }
 
         setInterval(actualizarReloj, 1000);
