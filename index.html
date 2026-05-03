@@ -374,5 +374,22 @@ function detener(){
   document.getElementById("pantalla-evento-activo").style.display="none";
 }
 </script>
+// Cada vez que se detecte un cambio en el tamaño de la pantalla (porque salgan los botones)
+// Forzamos a la web a pedir el foco total otra vez.
+window.addEventListener('resize', () => {
+    if (window.innerHeight < screen.height) {
+        // Los botones han aparecido, esperamos 1 segundo y los volvemos a ocultar
+        setTimeout(() => {
+            document.documentElement.requestFullscreen();
+        }, 1000);
+    }
+});
+
+// Bloqueamos clics accidentales en los bordes extremos
+document.addEventListener('touchstart', (e) => {
+    if (e.touches[0].clientY > window.innerHeight - 20) {
+        e.preventDefault(); // Intenta evitar que el toque active la barra
+    }
+}, {passive: false});
 </body>
 </html>
