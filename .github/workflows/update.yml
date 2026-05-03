@@ -19,7 +19,7 @@ jobs:
       - name: Download ICS
         run: curl -L "https://calendar.google.com/calendar/ical/anacara1941%40gmail.com/public/basic.ics" -o calendar.ics
 
-      - name: Convert ICS to JSON (Versión Mejorada)
+      - name: Convert ICS to JSON (Versión Robusta)
         run: |
           echo 'import json, re
 
@@ -33,39 +33,34 @@ for line in lines:
 
     if "BEGIN:VEVENT" in line:
         event = {}
-
     elif line.startswith("SUMMARY:"):
-        # Extraemos el título
+        # Captura el título del evento
         event["title"] = line.replace("SUMMARY:", "").strip()
-
     elif line.startswith("DTSTART"):
-        # Usamos regex para capturar la fecha después de los últimos ":"
-        # Esto soluciona el problema de las zonas horarias (TZID)
+        # Extrae la fecha ignorando parámetros extras de Google (como TZID)
         match = re.search(r":(\d{8}T\d{6}Z?)", line)
         if match:
             event["start"] = match.group(1)
         else:
-            # Si es una fecha todo el día (sin T)
+            # Caso para eventos de día completo
             event["start"] = line.split(":")[-1].strip()
-
     elif line.startswith("DTEND"):
         match = re.search(r":(\d{8}T\d{6}Z?)", line)
         if match:
             event["end"] = match.group(1)
         else:
             event["end"] = line.split(":")[-1].strip()
-
     elif "END:VEVENT" in line:
         if "title" in event and "start" in event:
             events.append(event)
 
-# Ordenamos por fecha para que el JSON esté organizado
+# Ordenar por fecha y hora
 events.sort(key=lambda x: x.get("start", ""))
 
 with open("events.json", "w", encoding="utf-8") as f:
     json.dump(events, f, indent=2, ensure_ascii=False)
 
-print(f"Sincronizados {len(events)} eventos.")' > script.py
+print(f"Total eventos procesados: {len(events)}")' > script.py
 
           python3 script.py
 
