@@ -4,156 +4,217 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Calendario para Mamá</title>
     <style>
-        /* Estilos para evitar que la interfaz se mueva */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
             background-color: #000;
-            font-family: Arial, sans-serif;
+            font-family: 'Arial Black', sans-serif;
             position: fixed;
         }
 
-        /* Pantalla de inicio (Botón Rojo) */
+        /* Pantalla de inicio necesaria para activar el audio en Chrome */
         #pantalla-inicio {
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             width: 100vw;
-            background-color: #222;
+            background-color: #000;
             z-index: 9999;
+            position: absolute;
         }
 
         #btn-rojo {
-            width: 250px;
-            height: 250px;
+            width: 300px;
+            height: 300px;
             background-color: #ff0000;
             border-radius: 50%;
-            border: 10px solid #fff;
+            border: 15px solid #fff;
             color: white;
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 0 50px rgba(255,0,0,0.5);
+            box-shadow: 0 0 60px rgba(255,0,0,0.7);
         }
 
-        /* Contenedor Principal */
-        #calendario-container {
-            display: none; /* Se activa al pulsar el botón */
-            flex-direction: column;
-            height: 100vh;
+        /* Contenedor principal dividido en dos columnas */
+        #main-container {
+            display: none;
+            display: flex;
             width: 100vw;
-            color: white;
+            height: 100vh;
+        }
+
+        .columna {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             padding: 20px;
+            text-align: center;
+        }
+
+        .hoy { background-color: #f1d933; color: #000; } /* Amarillo */
+        .manana { background-color: #1a237e; color: #fff; } /* Azul oscuro */
+
+        h1 { font-size: 3.5rem; margin-bottom: 20px; text-transform: uppercase; }
+        
+        .btn-escuchar {
+            padding: 20px 40px;
+            font-size: 1.5rem;
+            border-radius: 20px;
+            border: 4px solid #000;
+            cursor: pointer;
+            margin-bottom: 30px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .evento {
-            background: #333;
+            background: rgba(255, 255, 255, 0.2);
             margin: 10px 0;
             padding: 20px;
             border-radius: 15px;
-            border-left: 10px solid #00ff00;
+            width: 90%;
+            font-size: 1.8rem;
+            border: 2px solid rgba(0,0,0,0.1);
         }
 
-        h1 { font-size: 3rem; text-align: center; margin-bottom: 20px; }
-        p { font-size: 1.5rem; }
+        .no-tareas { font-size: 2rem; opacity: 0.6; margin-top: 50px; }
+
+        #fecha-encabezado {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            background: #000;
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+            font-size: 2rem;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Botón inicial para cumplir con la política de Autoplay de Chrome -->
     <div id="pantalla-inicio">
-        <button id="btn-rojo" onclick="iniciarSistema()">PULSAR<br>PARA EMPEZAR</button>
+        <button id="btn-rojo" onclick="iniciarSistema()">PULSAR<br>INICIO</button>
     </div>
 
-    <div id="calendario-container">
-        <h1 id="fecha-hoy">Cargando...</h1>
-        <div id="lista-eventos">
-            <!-- Aquí se cargan tus eventos -->
+    <div id="fecha-encabezado"></div>
+
+    <div id="main-container" style="display: none;">
+        <!-- Columna HOY -->
+        <div class="columna hoy">
+            <h1>HOY</h1>
+            <button class="btn-escuchar" onclick="escucharTareas('lista-hoy', 'hoy')">
+                🔊 ESCUCHAR TODO HOY
+            </button>
+            <div id="lista-hoy" style="width: 100%;"></div>
+        </div>
+
+        <!-- Columna MAÑANA -->
+        <div class="columna manana">
+            <h1>MAÑANA</h1>
+            <button class="btn-escuchar" onclick="escucharTareas('lista-manana', 'mañana')">
+                🔊 ESCUCHAR MAÑANA
+            </button>
+            <div id="lista-manana" style="width: 100%;"></div>
         </div>
     </div>
 
     <script>
-        // 1. CONFIGURACIÓN DE VOZ (Optimizada para Android 9)
+        const urlJSON = "https://raw.githubusercontent.com/ascc1973/calendario-mama/main/eventos.json";
+
+        // 1. VOZ (Optimizado para evitar cortes en Chrome/Android)
         function hablar(texto) {
-            window.speechSynthesis.cancel(); // Detener cualquier audio previo
-            
-            const mensaje = new SpeechSynthesisUtterance(texto);
-            mensaje.lang = 'es-ES';
-            mensaje.volume = 1.0;
-            mensaje.rate = 0.9;
-
-            // Forzar carga de voces en Chrome
-            let voces = window.speechSynthesis.getVoices();
-            mensaje.voice = voces.find(v => v.lang.includes('es')) || voces[0];
-            
-            window.speechSynthesis.speak(mensaje);
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(texto);
+            utterance.lang = 'es-ES';
+            utterance.rate = 0.85; // Un poco más lento para mejor comprensión
+            window.speechSynthesis.speak(utterance);
         }
 
-        // 2. FUNCIÓN DE INICIO (Se activa al tocar el botón rojo)
+        // 2. INICIO DEL SISTEMA
         function iniciarSistema() {
-            // Ocultar botón y mostrar calendario
             document.getElementById('pantalla-inicio').style.display = 'none';
-            document.getElementById('calendario-container').style.display = 'flex';
+            document.getElementById('main-container').style.display = 'flex';
+            
+            // Forzar pantalla completa para ocultar botones
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            }
 
-            // Forzar Pantalla Completa (Modo Inmersivo por Software)
-            const docElm = document.documentElement;
-            if (docElm.requestFullscreen) { docElm.requestFullscreen(); }
-            else if (docElm.webkitRequestFullScreen) { docElm.webkitRequestFullScreen(); }
-
-            // Saludo inicial y cargar datos
-            hablar("Sistema activado. Cargando el calendario de hoy.");
-            actualizarFecha();
-            cargarEventos(); // Aquí llamas a tu función que trae los datos de GitHub/JSON
+            actualizarReloj();
+            cargarDatos();
+            hablar("Calendario activado.");
         }
 
-        function actualizarFecha() {
-            const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-ES', opciones);
+        // 3. CARGA DE DATOS DESDE GITHUB
+        async function cargarDatos() {
+            try {
+                const res = await fetch(`${urlJSON}?t=${Date.now()}`);
+                const eventos = await res.json();
+                
+                const hoyStr = new Date().toISOString().split('T')[0];
+                const manana = new Date();
+                manana.setDate(manana.getDate() + 1);
+                const mananaStr = manana.toISOString().split('T')[0];
+
+                renderizar(eventos.filter(e => e.fecha === hoyStr), 'lista-hoy');
+                renderizar(eventos.filter(e => e.fecha === mananaStr), 'lista-manana');
+            } catch (e) {
+                console.error("Error:", e);
+            }
         }
 
-        // 3. BLOQUEO DE INTERFERENCIAS
-        // Si el usuario desliza y salen los botones, intentamos ocultarlos tras 2 segundos
+        function renderizar(lista, id) {
+            const container = document.getElementById(id);
+            if (lista.length === 0) {
+                container.innerHTML = '<p class="no-tareas">No hay tareas</p>';
+                return;
+            }
+            container.innerHTML = lista.map(ev => `
+                <div class="evento">
+                    <strong>${ev.hora}</strong> - ${ev.tarea}
+                </div>
+            `).join('');
+        }
+
+        // 4. LECTURA DE TAREAS
+        function escucharTareas(idLista, dia) {
+            const eventos = document.getElementById(idLista).querySelectorAll('.evento');
+            if (eventos.length === 0) {
+                hablar(`No hay tareas para ${dia}.`);
+                return;
+            }
+            let texto = `Tus tareas para ${dia} son: `;
+            eventos.forEach(ev => texto += ev.innerText + ". ");
+            hablar(texto);
+        }
+
+        function actualizarReloj() {
+            const ahora = new Date();
+            const opciones = { weekday: 'long', day: 'numeric', month: 'long' };
+            document.getElementById('fecha-encabezado').innerText = ahora.toLocaleDateString('es-ES', opciones).toUpperCase();
+        }
+
+        // 5. PERSISTENCIA DE PANTALLA COMPLETA
         window.addEventListener('resize', () => {
             if (window.innerHeight < screen.height) {
-                setTimeout(() => {
-                    if (document.fullscreenElement === null) {
-                        document.documentElement.requestFullscreen();
-                    }
-                }, 2000);
+                setTimeout(() => document.documentElement.requestFullscreen(), 3000);
             }
         });
 
-        // Evitar que se recargue la página al deslizar hacia abajo (Pull-to-refresh)
-        document.body.style.overscrollBehavior = 'none';
-
-        // 4. MANTENER EL SISTEMA DESPIERTO
-        // Cada 15 minutos "re-activamos" la voz con un silencio para que Chrome no la duerma
-        setInterval(() => {
-            const silencio = new SpeechSynthesisUtterance("");
-            window.speechSynthesis.speak(silencio);
-        }, 900000);
-
-        function cargarEventos() {
-            // Aquí pones tu lógica actual de lectura de eventos
-            // Ejemplo visual:
-            const lista = document.getElementById('lista-eventos');
-            lista.innerHTML = `
-                <div class="evento">
-                    <p><strong>10:00</strong> - Tomar medicina</p>
-                </div>
-            `;
-        }
+        // Auto-actualizar cada hora
+        setInterval(cargarDatos, 3600000);
     </script>
 </body>
 </html>
