@@ -75,6 +75,14 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
     cursor: pointer;
     touch-action: manipulation;
 }
+
+    /* Esto permite que la pantalla roja y los cuadros de eventos 
+   respondan al toque, ignorando el bloqueo de los textos */
+#pantalla-evento-activo, .evento, .btn-repaso, #btn-inicial {
+    pointer-events: auto !important; /* El !important asegura que esta regla gane */
+    touch-action: manipulation;      /* Mejora la respuesta al toque en tablets */
+}
+    
 </style>
 </head>
 <body>
