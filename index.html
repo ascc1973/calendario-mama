@@ -56,14 +56,9 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 .instruccion { font-size: 3.5vh; background: #fff; color: #000; padding: 15px 40px; border-radius: 50px; animation: flash 1s infinite; font-weight: bold; }
 @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-/* Protección de texto contra Google Search */
-.evento p, .evento h2, #reloj, #fecha, #hora-evento-gigante, #texto-evento-gigante {
-    pointer-events: none;
-}
-
-#pantalla-evento-activo, .evento, .btn-repaso, #btn-inicial {
-    pointer-events: auto !important;
-}
+/* Protección contra Google Search */
+.evento p, .evento h2, #reloj, #fecha, #hora-evento-gigante, #texto-evento-gigante { pointer-events: none; }
+#pantalla-evento-activo, .evento, .btn-repaso, #btn-inicial { pointer-events: auto !important; }
 </style>
 </head>
 <body>
@@ -94,7 +89,8 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
     </div>
 </div>
 
-<audio id="campana" src="campana.mp3"></audio>
+<!-- Campana muteada por defecto -->
+<audio id="campana" src="campana.mp3" muted></audio>
 
 <script>
 const API_KEY="AIzaSyDh0DjfE2qqaBeVfww5u84FLp4_elsF7Uc";
@@ -104,7 +100,7 @@ let eventosSilenciados = new Set(); let avisosPrevios = new Set(); let vozSelecc
 
 function cargarVoces() {
     const voces = window.speechSynthesis.getVoices();
-    vozSeleccionada = voces.find(v => v.lang.startsWith("es") && v.name.includes("Google")) || voces.find(v => v.lang.startsWith("es"));
+    vozSeleccionada = voces.find(v => v.lang.startsWith("es") && (v.name.includes("Google") || v.name.includes("Premium"))) || voces.find(v => v.lang.startsWith("es"));
 }
 window.speechSynthesis.onvoiceschanged = cargarVoces;
 
@@ -134,6 +130,12 @@ function iniciarSistema(){
     if (docElm.requestFullscreen) docElm.requestFullscreen({ navigationUI: "hide" }).catch(e => console.log(e));
     document.getElementById("btn-inicial").style.display="none";
     document.getElementById("mainContainer").style.display="flex";
+    
+    // Desbloqueo de audio en tablets
+    window.speechSynthesis.cancel();
+    const desbloqueo = new SpeechSynthesisUtterance("");
+    window.speechSynthesis.speak(desbloqueo);
+    
     cargarVoces();
     cargarCalendario();
     setInterval(actualizarReloj, 1000);
@@ -141,14 +143,9 @@ function iniciarSistema(){
     setInterval(verificarAlertas, 5000);
 }
 
-document.addEventListener('touchmove', function(e) {
-    if (e.target.closest('.lista-eventos')) return;
-    e.preventDefault();
-}, { passive: false });
-
 async function cargarCalendario(){
     const min=new Date(); min.setHours(0,0,0,0);
-    const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}/events?key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
+    const url=`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CALENDAR_ID)}&key=${API_KEY}&timeMin=${min.toISOString()}&singleEvents=true&orderBy=startTime&t=${Date.now()}`;
     try {
         const r=await fetch(url);
         const d=await r.json();
@@ -158,13 +155,13 @@ async function cargarCalendario(){
 
 function organizarEventos(items){
     const hoy = new Date();
-    const hoyISO = hoy.getFullYear() + "-" + String(hoy.getMonth() + 1).padStart(2, '0') + "-" + String(hoy.getDate()).padStart(2, '0');
+    const hoyISO = hoy.toISOString().split('T')[0];
     const manana = new Date(); manana.setDate(manana.getDate()+1);
-    const mananaISO = manana.getFullYear() + "-" + String(manana.getMonth() + 1).padStart(2, '0') + "-" + String(manana.getDate()).padStart(2, '0');
+    const mananaISO = manana.toISOString().split('T')[0];
+    
     eventosHoy=[]; eventosManana=[];
     items.forEach(item=>{
         const startRaw = item.start.dateTime || item.start.date;
-        if (!startRaw) return;
         const partesFecha = startRaw.split('T');
         const fechaEvento = partesFecha[0];
         let h = 0, m = 0;
@@ -174,16 +171,14 @@ function organizarEventos(items){
             m = parseInt(partesHora[1]);
         }
         const inicioLiteral = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), h, m);
-        if (fechaEvento === mananaISO) inicioLiteral.setFullYear(manana.getFullYear(), manana.getMonth(), manana.getDate());
-        const periodo = obtenerFranjaHoraria(h);
-        const hTexto = numeroALetras(h);
-        const mTexto = m === 0 ? "en punto" : "y " + (m < 10 ? "0"+m : m);
+        if (fechaEvento === mananaISO) inicioLiteral.setDate(manana.getDate());
+        
         const ev={
             id: item.id + startRaw,
             titulo: (item.summary || "Sin título").replace(/^\*+/,'').trim(),
             hora: inicioLiteral,
-            franja: periodo,
-            textoVoz: `a las ${hTexto} ${mTexto} ${periodo}`,
+            franja: obtenerFranjaHoraria(h),
+            textoVoz: `a las ${numeroALetras(h)} ${m === 0 ? "en punto" : "y " + m} ${obtenerFranjaHoraria(h)}`,
             horaPantalla: (h % 12 || 12) + ":" + (m < 10 ? "0" + m : m),
             asteriscos: (item.summary || "").match(/^\*+/)?.[0].length || 0
         };
@@ -235,11 +230,11 @@ function lanzarPantallaGigante(ev) {
     document.getElementById("texto-evento-gigante").innerText = ev.titulo;
     document.getElementById("pantalla-evento-activo").style.display = "flex";
     
-    // CAMPANA MUTEADA (Para activar: sube volume > 0 y quita // de campana.play)
+    // --- LINEAS DE CAMPANA MANTENIDAS PERO ANULADAS ---
     const campana = document.getElementById("campana");
     campana.volume = 0.0; 
-    campana.loop = true;
-    // campana.play().catch(()=>{});
+    campana.muted = true;
+    // campana.play().catch(()=>{}); 
     
     ejecutarVozInfinita(ev);
 }
@@ -250,16 +245,14 @@ function ejecutarVozInfinita(ev) {
     const diaHoy = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
     const textoFinal = `Mamá, hoy ${diaHoy}, ${ev.textoVoz} tienes ${ev.titulo}`;
     
-    window.speechSynthesis.cancel();
-    setTimeout(() => {
-        if (idEventoActual !== ev.id) return;
-        const msg = new SpeechSynthesisUtterance(textoFinal);
-        msg.volume = 0.5; // VOLUMEN A la mitad
-        if(vozSeleccionada) msg.voice = vozSeleccionada;
-        msg.lang = "es-ES"; msg.rate = 0.85; 
-        msg.onend = () => { if (idEventoActual === ev.id) setTimeout(() => ejecutarVozInfinita(ev), 2000); };
-        window.speechSynthesis.speak(msg);
-    }, 50);
+    window.speechSynthesis.cancel(); // Limpia antes de hablar
+    
+    const msg = new SpeechSynthesisUtterance(textoFinal);
+    msg.volume = 1.0; 
+    if(vozSeleccionada) msg.voice = vozSeleccionada;
+    msg.lang = "es-ES"; msg.rate = 0.85; 
+    msg.onend = () => { if (idEventoActual === ev.id) setTimeout(() => ejecutarVozInfinita(ev), 2000); };
+    window.speechSynthesis.speak(msg);
 }
 
 function detenerAlarmaDirecto() {
@@ -267,10 +260,7 @@ function detenerAlarmaDirecto() {
         eventosSilenciados.add(idEventoActual);
         idEventoActual = null;
         document.getElementById("pantalla-evento-activo").style.display = "none";
-        
-        // Detener campana muteada por si acaso
         document.getElementById("campana").pause();
-        
         window.speechSynthesis.cancel();
         render(); 
     }
@@ -278,13 +268,11 @@ function detenerAlarmaDirecto() {
 
 function hablarDirecto(texto) {
     window.speechSynthesis.cancel();
-    setTimeout(() => {
-        const u = new SpeechSynthesisUtterance(texto);
-        u.volume = 0.5; // VOLUMEN A la mitad
-        if(vozSeleccionada) u.voice = vozSeleccionada;
-        u.lang = "es-ES"; u.rate = 0.9;
-        window.speechSynthesis.speak(u);
-    }, 10);
+    const u = new SpeechSynthesisUtterance(texto);
+    u.volume = 1.0;
+    if(vozSeleccionada) u.voice = vozSeleccionada;
+    u.lang = "es-ES"; u.rate = 0.9;
+    window.speechSynthesis.speak(u);
 }
 
 function verificarAlertas(){
@@ -293,26 +281,6 @@ function verificarAlertas(){
         const diffMs = ev.hora - ahora;
         const min = Math.floor(diffMs / 60000);
         if((ev.asteriscos === 3 && min === 180) || (ev.asteriscos >= 2 && min === 120)) {
-            const alertaKey = ev.id + "_" + min;
-            if(!avisosPrevios.has(alertaKey)) {
-                avisosPrevios.add(alertaKey);
-                const diaHoy = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
-                const textoRecordatorio = `Recordatorio: Mamá, hoy ${diaHoy}, ${ev.textoVoz} tienes ${ev.titulo}`;
-                const tiempoInicio = Date.now();
-                const repetirDiezSeg = () => {
-                    if (Date.now() - tiempoInicio < 10000) {
-                        const u = new SpeechSynthesisUtterance(textoRecordatorio);
-                        u.volume = 0.5; // VOLUMEN A la mitad
-                        if(vozSeleccionada) u.voice = vozSeleccionada;
-                        u.lang = "es-ES"; u.rate = 0.9;
-                        u.onend = () => setTimeout(repetirDiezSeg, 1000);
-                        window.speechSynthesis.speak(u);
-                    }
-                };
-                repetirDiezSeg();
-            }
-        }
-        if(ev.asteriscos >= 1 && min === 60) {
             const alertaKey = ev.id + "_" + min;
             if(!avisosPrevios.has(alertaKey)) {
                 avisosPrevios.add(alertaKey);
@@ -326,11 +294,9 @@ function verificarAlertas(){
 function repasarDia(dia){
     const lista = dia === "hoy" ? eventosHoy : eventosManana;
     if(lista.length === 0) { hablarDirecto("No hay nada anotado"); return; }
-    
     const ahora = new Date();
     if(dia === "manana") ahora.setDate(ahora.getDate() + 1);
     const nombreDia = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
-    
     let t = `Mamá, ${dia} ${nombreDia}, tienes: `;
     lista.forEach(ev => { t += `${ev.textoVoz}, ${ev.titulo}. `; });
     hablarDirecto(t);
