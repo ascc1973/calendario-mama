@@ -10,12 +10,11 @@
 <style>
 :root{ --hoy-bg:#FFEB3B; --manana-bg:#1A237E; }
 
-/* BLOQUEO DE SISTEMA: Evita que el navegador y Android interactúen con el texto */
 * {
-    -webkit-user-select: none; /* Evita que aparezca la búsqueda de Google al tocar texto */
-    -webkit-touch-callout: none; /* Bloquea menús contextuales */
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
     user-select: none;
-    overscroll-behavior: none; /* Bloquea el deslizamiento que saca la barra superior */
+    overscroll-behavior: none;
 }
 
 body, html { 
@@ -25,12 +24,6 @@ body, html {
     overflow:hidden; 
     position: fixed; 
     width: 100%;
-}
-
-/* Permitir clics pero no selección */
-.evento, .btn-repaso, #pantalla-evento-activo {
-    pointer-events: auto;
-    touch-action: manipulation;
 }
 
 #barra{ position:fixed; top:0; left:0; width:100%; background:#000; color:#fff; text-align:center; z-index:1000; }
@@ -50,39 +43,27 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 }
 
 .lista-eventos{ flex-grow:1; display:flex; flex-direction:column; gap:8px; overflow-y: auto; touch-action: pan-y; }
-.evento{ background:#fff; border-radius:10px; border:3px solid #333; padding:10px; color:#000; width: 100%; box-sizing: border-box; }
+.evento{ background:#fff; border-radius:10px; border:3px solid #333; padding:10px; color:#000; width: 100%; box-sizing: border-box; cursor: pointer; touch-action: manipulation; }
 .evento h2{ margin:0; color:#d32f2f; font-size:2.5vh; display: flex; gap: 10px; align-items: baseline; }
 .evento p{ margin:5px 0 0; font-size:2.8vh; font-weight:bold; line-height: 1.2; }
 
 .urgente{ border:8px solid red !important; animation:blink 0.8s linear infinite; }
 @keyframes blink{ 0%{background:#00ff00;border-color:red;} 50%{background:#ffffff;border-color:#ffffff;} 100%{background:#00ff00;border-color:red;} }
 
-#pantalla-evento-activo { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ff0000; color: white; z-index: 100000; text-align: center; flex-direction: column; justify-content: center; align-items: center; }
+#pantalla-evento-activo { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ff0000; color: white; z-index: 100000; text-align: center; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; touch-action: manipulation; }
 #hora-evento-gigante { font-size: 8vh; color: #fff; margin: 0; }
 #texto-evento-gigante { font-size: 10vh; margin: 10px 20px 30px 20px; text-transform: uppercase; }
 .instruccion { font-size: 3.5vh; background: #fff; color: #000; padding: 15px 40px; border-radius: 50px; animation: flash 1s infinite; font-weight: bold; }
 @keyframes flash { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-/* Este código hace que el texto sea invisible para el selector de Google */
-.evento p, .evento h2, #reloj, #fecha {
-    pointer-events: none; /* El sistema ignora el texto al tocarlo */
-    user-select: none;
-    -webkit-user-select: none;
+/* Protección de texto contra Google Search */
+.evento p, .evento h2, #reloj, #fecha, #hora-evento-gigante, #texto-evento-gigante {
+    pointer-events: none;
 }
 
-.evento {
-    pointer-events: auto; /* El cuadro blanco sí recibe el toque para hablar */
-    cursor: pointer;
-    touch-action: manipulation;
-}
-
-    /* Esto permite que la pantalla roja y los cuadros de eventos 
-   respondan al toque, ignorando el bloqueo de los textos */
 #pantalla-evento-activo, .evento, .btn-repaso, #btn-inicial {
-    pointer-events: auto !important; /* El !important asegura que esta regla gane */
-    touch-action: manipulation;      /* Mejora la respuesta al toque en tablets */
+    pointer-events: auto !important;
 }
-    
 </style>
 </head>
 <body>
@@ -116,7 +97,6 @@ h1{ font-size:2.2vh; margin:2px 0 10px 0; text-align:center; color:#fff; }
 <audio id="campana" src="campana.mp3"></audio>
 
 <script>
-// (Mantén aquí toda la lógica de la API de Google que ya tenías configurada)[cite: 2]
 const API_KEY="AIzaSyDh0DjfE2qqaBeVfww5u84FLp4_elsF7Uc";
 const CALENDAR_ID="anacara1941@gmail.com";
 let eventosHoy=[]; let eventosManana=[]; let idEventoActual = null;
@@ -161,7 +141,6 @@ function iniciarSistema(){
     setInterval(verificarAlertas, 5000);
 }
 
-// Bloqueo manual de scroll fuera de las listas
 document.addEventListener('touchmove', function(e) {
     if (e.target.closest('.lista-eventos')) return;
     e.preventDefault();
@@ -223,8 +202,6 @@ function renderLista(lista, idCont){
     if(!cont) return;
     cont.innerHTML = "";
     const ahora = new Date();
-    
-    // Obtenemos el nombre del día para hoy y mañana
     const diaHoy = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
     const mananaObj = new Date(); mananaObj.setDate(ahora.getDate() + 1);
     const diaManana = mananaObj.toLocaleDateString('es-ES', { weekday: 'long' });
@@ -238,12 +215,10 @@ function renderLista(lista, idCont){
         div.className = "evento" + (urgente ? " urgente" : "");
         div.innerHTML = `<h2>${ev.horaPantalla} ${ev.franja}</h2><p>${ev.titulo}</p>`;
         
-        // Al tocar un evento individual: "Mamá hoy/mañana [día] a las [hora] tienes [evento]"
         const prefijo = idCont === "lista-hoy" ? "hoy" : "mañana";
         const nombreDiaActual = idCont === "lista-hoy" ? diaHoy : diaManana;
         
         div.onclick = () => hablarDirecto(`Mamá, ${prefijo} ${nombreDiaActual}, ${ev.textoVoz} tienes ${ev.titulo}`);
-        
         cont.appendChild(div);
         
         if (idCont === "lista-hoy" && !yaSilenciado && idEventoActual !== ev.id) {
@@ -259,20 +234,27 @@ function lanzarPantallaGigante(ev) {
     document.getElementById("hora-evento-gigante").innerText = ev.horaPantalla + " " + ev.franja;
     document.getElementById("texto-evento-gigante").innerText = ev.titulo;
     document.getElementById("pantalla-evento-activo").style.display = "flex";
+    
+    // CAMPANA MUTEADA (Para activar: sube volume > 0 y quita // de campana.play)
     const campana = document.getElementById("campana");
-    campana.volume = 0.0; campana.loop = true;
-    // Anulo la campana: campana.play().catch(()=>{});
+    campana.volume = 0.0; 
+    campana.loop = true;
+    // campana.play().catch(()=>{});
+    
     ejecutarVozInfinita(ev);
 }
 
 function ejecutarVozInfinita(ev) {
     if (idEventoActual !== ev.id) return;
-    const textoFinal = `Mamá, ${ev.textoVoz} tienes ${ev.titulo}`;
+    const ahora = new Date();
+    const diaHoy = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
+    const textoFinal = `Mamá, hoy ${diaHoy}, ${ev.textoVoz} tienes ${ev.titulo}`;
+    
     window.speechSynthesis.cancel();
     setTimeout(() => {
         if (idEventoActual !== ev.id) return;
         const msg = new SpeechSynthesisUtterance(textoFinal);
-        msg.volume = 0.1; // Añade esta línea para forzar el volumen al máximo
+        msg.volume = 0.5; // VOLUMEN A la mitad
         if(vozSeleccionada) msg.voice = vozSeleccionada;
         msg.lang = "es-ES"; msg.rate = 0.85; 
         msg.onend = () => { if (idEventoActual === ev.id) setTimeout(() => ejecutarVozInfinita(ev), 2000); };
@@ -285,7 +267,10 @@ function detenerAlarmaDirecto() {
         eventosSilenciados.add(idEventoActual);
         idEventoActual = null;
         document.getElementById("pantalla-evento-activo").style.display = "none";
+        
+        // Detener campana muteada por si acaso
         document.getElementById("campana").pause();
+        
         window.speechSynthesis.cancel();
         render(); 
     }
@@ -295,7 +280,7 @@ function hablarDirecto(texto) {
     window.speechSynthesis.cancel();
     setTimeout(() => {
         const u = new SpeechSynthesisUtterance(texto);
-        u.volume = 0.1; // Añade esta línea aquí también
+        u.volume = 0.5; // VOLUMEN A la mitad
         if(vozSeleccionada) u.voice = vozSeleccionada;
         u.lang = "es-ES"; u.rate = 0.9;
         window.speechSynthesis.speak(u);
@@ -311,12 +296,13 @@ function verificarAlertas(){
             const alertaKey = ev.id + "_" + min;
             if(!avisosPrevios.has(alertaKey)) {
                 avisosPrevios.add(alertaKey);
-                const textoRecordatorio = `Recordatorio: ${ev.textoVoz} tienes ${ev.titulo}`;
+                const diaHoy = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
+                const textoRecordatorio = `Recordatorio: Mamá, hoy ${diaHoy}, ${ev.textoVoz} tienes ${ev.titulo}`;
                 const tiempoInicio = Date.now();
                 const repetirDiezSeg = () => {
                     if (Date.now() - tiempoInicio < 10000) {
                         const u = new SpeechSynthesisUtterance(textoRecordatorio);
-                        u.volume = 0.1;
+                        u.volume = 0.5; // VOLUMEN A la mitad
                         if(vozSeleccionada) u.voice = vozSeleccionada;
                         u.lang = "es-ES"; u.rate = 0.9;
                         u.onend = () => setTimeout(repetirDiezSeg, 1000);
@@ -330,7 +316,8 @@ function verificarAlertas(){
             const alertaKey = ev.id + "_" + min;
             if(!avisosPrevios.has(alertaKey)) {
                 avisosPrevios.add(alertaKey);
-                hablarDirecto(`Recordatorio: ${ev.textoVoz} tienes ${ev.titulo}`);
+                const diaHoy = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
+                hablarDirecto(`Recordatorio: Mamá, hoy ${diaHoy}, ${ev.textoVoz} tienes ${ev.titulo}`);
             }
         }
     });
@@ -344,13 +331,8 @@ function repasarDia(dia){
     if(dia === "manana") ahora.setDate(ahora.getDate() + 1);
     const nombreDia = ahora.toLocaleDateString('es-ES', { weekday: 'long' });
     
-    // Frase inicial: "Mamá hoy/mañana [lunes...] tienes..."
     let t = `Mamá, ${dia} ${nombreDia}, tienes: `;
-    
-    lista.forEach(ev => { 
-        // Añadimos cada evento con su hora
-        t += `${ev.textoVoz}, ${ev.titulo}. `; 
-    });
+    lista.forEach(ev => { t += `${ev.textoVoz}, ${ev.titulo}. `; });
     hablarDirecto(t);
 }
 </script>
