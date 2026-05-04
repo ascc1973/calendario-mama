@@ -260,7 +260,7 @@ function lanzarPantallaGigante(ev) {
     document.getElementById("texto-evento-gigante").innerText = ev.titulo;
     document.getElementById("pantalla-evento-activo").style.display = "flex";
     const campana = document.getElementById("campana");
-    campana.volume = 0.01; campana.loop = true;
+    campana.volume = 0.0; campana.loop = true;
     campana.play().catch(()=>{});
     ejecutarVozInfinita(ev);
 }
@@ -272,7 +272,7 @@ function ejecutarVozInfinita(ev) {
     setTimeout(() => {
         if (idEventoActual !== ev.id) return;
         const msg = new SpeechSynthesisUtterance(textoFinal);
-        msg.volume = 0.02; // Añade esta línea para forzar el volumen al máximo
+        msg.volume = 0.09; // Añade esta línea para forzar el volumen al máximo
         if(vozSeleccionada) msg.voice = vozSeleccionada;
         msg.lang = "es-ES"; msg.rate = 0.85; 
         msg.onend = () => { if (idEventoActual === ev.id) setTimeout(() => ejecutarVozInfinita(ev), 2000); };
@@ -295,7 +295,7 @@ function hablarDirecto(texto) {
     window.speechSynthesis.cancel();
     setTimeout(() => {
         const u = new SpeechSynthesisUtterance(texto);
-        u.volume = 0.02; // Añade esta línea aquí también
+        u.volume = 0.09; // Añade esta línea aquí también
         if(vozSeleccionada) u.voice = vozSeleccionada;
         u.lang = "es-ES"; u.rate = 0.9;
         window.speechSynthesis.speak(u);
@@ -316,7 +316,7 @@ function verificarAlertas(){
                 const repetirDiezSeg = () => {
                     if (Date.now() - tiempoInicio < 10000) {
                         const u = new SpeechSynthesisUtterance(textoRecordatorio);
-                        u.volume = 0.02;
+                        u.volume = 0.09;
                         if(vozSeleccionada) u.voice = vozSeleccionada;
                         u.lang = "es-ES"; u.rate = 0.9;
                         u.onend = () => setTimeout(repetirDiezSeg, 1000);
